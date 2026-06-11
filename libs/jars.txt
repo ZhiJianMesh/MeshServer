@@ -1,0 +1,30 @@
+===server network
+netty-all-4.1.112.Final.jar
+
+===security(BouncyCastle)
+bcprov-jdk18on-176.jar
+bcutil-jdk18on-176.jar
+bcpkix-jdk18on-176.jar
+
+===json
+fastjson2-2.0.50.jar
+
+===javascript(quickjs的java封装，自实现)
+cn.net.zhijian.quickjs
+
+===fileq(本地文件队列，自实现)
+cn.net.zhijian.fileq
+
+===log
+slf4j-api-1.7.36.jar
+logback-core-1.2.11.jar
+logback-classic-1.2.11.jar
+
+===ok httpclient
+okhttp-3.14.9.jar
+okio-1.17.2.jar
+
+===sqlite
+sqlite-jdbc-xxx.jar（安卓不需要）
+HikariCP-7.0.2.jar（JDBC连接池实现，用于支持大型数据库，安卓不需要）
+

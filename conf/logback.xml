@@ -1,0 +1,57 @@
+<configuration>
+    <property name="loggerHome" value="${logs.root}" />
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.out</target>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{50}&#x09;%msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+	        <level>INFO</level>
+        </filter>
+    </appender>
+    
+    <appender name="FILE" class="cn.net.zhijian.util.SyncRollingFileAppender">
+    	<file>${loggerHome}/mesh/run.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${loggerHome}/mesh/run_%d{yyyyMMdd}_%i.gz</fileNamePattern>
+            <maxHistory>15</maxHistory>
+            <maxFileSize>50MB</maxFileSize>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}&#x09;%msg%n</pattern>
+        </encoder>
+        <immediateFlush>true</immediateFlush>
+        <forceSync>true</forceSync>
+    </appender>
+    
+    <appender name="ACCESS_FILE" class="cn.net.zhijian.util.SyncRollingFileAppender">
+        <file>${loggerHome}/access/access.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${loggerHome}/access/access_%d{yyyyMMdd}_%i.gz</fileNamePattern>
+            <maxHistory>15</maxHistory>
+            <maxFileSize>50MB</maxFileSize>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}&#x09;%msg%n</pattern>
+        </encoder>
+        <immediateFlush>true</immediateFlush>
+        <forceSync>true</forceSync>
+    </appender>
+
+    <root level="DEBUG">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+    
+    <logger name="io.netty" level="INFO" additivity="false">
+        <appender-ref ref="FILE" />
+    </logger>
+    
+    <logger name="ACCESS" additivity="false" level="info">
+        <appender-ref ref="ACCESS_FILE" />
+    </logger>
+</configuration>

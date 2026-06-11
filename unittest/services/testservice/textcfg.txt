@@ -1,0 +1,7 @@
+js:
+var list=@{!list};
+var txt=[];
+for(var l of list) {
+    txt.push(l.a,'\t',l.b,'\t',l.c,'\n');
+}
+txt.join('');

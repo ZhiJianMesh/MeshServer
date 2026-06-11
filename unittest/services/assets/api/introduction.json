@@ -1,0 +1,9 @@
+{
+"introduce": {
+    "descrs": [
+        "UI基础依赖库，集成vue、vue-router、quasar、echarts等基本库，并提供了帐号、地址模糊搜索等插件"
+    ],
+    "images": [
+    ]
+}
+}

@@ -1,0 +1,17 @@
+{
+    "macro_namespace" : {
+        "name" : "macro_ns",
+        "type" : "static",
+        "nameSpace" : "macro",
+        "data":{"result":0}
+    },
+    "macro_call_ns" : {
+        "name" : "get_init",
+        "type" : "call",
+        "method" : "POST",
+        "nameSpace" : "login_test",
+        "service" : "user",
+        "url" : "/login",
+        "parameters":"{\"account\":\"ttt\",\"password\":\"ddddd\"}"
+    },
+}
