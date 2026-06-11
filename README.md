@@ -3,21 +3,27 @@ An extremely tiny server written by Java, very easy to develop apis. Built in Re
 More about it, refer to the project [HomePage](http://www.zhijian.net.cn/).
 
 ## Advantages
-1. It can support OS linux/windows/termux/android;
-2. It is very easy to develop apis to support your business, especially for apis which based on database;
-3. It is very very small. You can even run it on an old Android phone or a Raspberry Pi;
-4. It is very big. It can run as a cluster in public or private cloud, and backup among different cities;
-5. So many Reliability,Safety,High-Performance and Extendibility realizations are builtin it;
-6. It has many example applications in [Enterpris](https://github.com/ZhiJianMesh/endterprise), all can be used in your enterprise stably and freely.
+1. Support linux/windows/termux/android;
+2. Very easy to develop apis to support your business, especially for apis which based on database, builtin data sharding and encoding;
+3. Very very small, it can even run on an old Android phone or a Raspberry Pi;
+4. Also very big. It can run as a cluster in public or private cloud, and backup among different cities;
+5. So many Reliability,Safety,High-Performance and Extendibility realizations are built in it;
+6. Necessary basic services are ready, e.g. oauth2,sequence-id,schedule,user,workflow,webdb,keystore;
+7. Ready-made corresponding client for windows/android, vue+quasar knowledge is enough to develop;
+8. Cut down big number of code, reduce development difficulty;
+9. There are many applications in [Enterprise](https://github.com/ZhiJianMesh/endterprise), all can be used in your enterprise stably and freely. They are also good examples.
 
-## Startup command
-Switch into server directory fisrt.
-Windows: sbin/startup.bat
-Linux/Termux: sbin/mesh.sh start
-Android: Hit the startup button.
+## Start/Stop command
+Switch into server directory at fisrt.
+| OS           | Start              | Stop              |
+|--------------|--------------------|-------------------|
+| Windows      | sbin/startup.bat   | ctrl + c          |
+| Linux/Termux | sbin/mesh.sh start | sbin/mesh.sh stop |
+| Android      | Hit startup button | Hit stop button   |
+
 
 ## API definition
-Each api definition is a json, it looks like:
+Each api definition is a json object. It looks like:
 ```Json
 {
     "name": "queryCustomer",
@@ -41,10 +47,10 @@ Each api definition is a json, it looks like:
                     "multi":false,
                     "merge":true,
                     "sql":"select c.name,c.address,c.createAt,c.creator,c.taxid,c.flowid,
-                                  c.flSta 'status',c.business,c.cmt 'comment',c.ordNum,p.power
-                          from customers c, power p
-                          where c.id=@{id} and p.account='@{#tokenAcc}' and p.type='CU'
-                          and p.did=@{id} and p.endT>@{NOW|unit60000}"
+                                  c.flSta 'status',c.business,c.cmt 'comment',c.ordNum
+                             from customers c, power p
+                            where c.id=@{id} and p.account='@{#tokenAcc}' and p.type='CU'
+                              and p.did=@{id} and p.endT>@{NOW|unit60000}"
                 }
             ]
         }
@@ -65,9 +71,9 @@ Each api definition is a json, it looks like:
     }
 }
 ```
-If string in the config is very long, newline can exist in it. Such as 'sql' in fore example.
+If a string in the configure is too long, newline can exist in it. Such as 'sql' in fore example.
 
-Many apis can be written in one config file, for example in file customer.cfg:
+Many apis can be written in one config file, for example in customer.cfg:
 ```Json
 [
 {
@@ -137,5 +143,5 @@ It supports JS to realize complex logics, such as:
     "response":[]
 }
 ```
-JS has many usages, you can refer to examples in [Enterpris](https://github.com/ZhiJianMesh/endterprise).
+JS has many usages, you can refer to examples in [Enterprise](https://github.com/ZhiJianMesh/endterprise).
 If you want to know more about it, refer to [HomePage](http://www.zhijian.net.cn/).
