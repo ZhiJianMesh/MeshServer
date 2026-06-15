@@ -67,4 +67,8 @@ public interface IThreadPool {
                     return super.newThread(wrapper);
                 }
             });
+    
+    static void stopPool() {
+        Pool.close();
+    }
 }

@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.LruCache;
@@ -25,6 +27,7 @@ public class BigFileReader implements Closeable {
     public final long size; //最大2G
     public final String digest; //摘要
     private UncloseableRandomAccessFile file;
+    private FileChannel channel;
     
     public BigFileReader(File file) throws IOException {
         long len = file.length();
@@ -33,22 +36,48 @@ public class BigFileReader implements Closeable {
         }
         this.size = len;
         this.file = new UncloseableRandomAccessFile(file, "r");
+        this.channel = this.file.getChannel();
         this.digest = FileUtil.digest(file);
     }
 
-    public synchronized byte[] read(long start, int len) throws IOException {
-        this.file.seek(start);
+    public byte[] read(long start, int len) throws IOException {
         int readLen = (int)Math.min(size - start, len);
+        if(readLen <= 0) {
+            return new byte[0];
+        }
         byte[] content = new byte[readLen];
-        this.file.read(content);
+        read(start, readLen, content);
         return content;
     }
     
-    public synchronized int read(long start, byte[] buff) throws IOException {
-        this.file.seek(start);
+    public int read(long start, byte[] buff) throws IOException {
         int readLen = (int)Math.min(size - start, buff.length);
-        this.file.read(buff, 0, readLen);
-        return readLen;
+        if(readLen <= 0) {
+            return 0;
+        }
+        return read(start, readLen, buff);
+    }
+    
+    private int read(long start, int len, byte[] buff) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(buff);
+        
+        int read = 0;
+        int n;
+        while (read < len) {
+            //使用 FileChannel 的原子读取
+            //read(ByteBuffer dst, long pos)支持并发，read(ByteBuffer dst)不支持并发
+            //FileChannel是file的视图，无需单独关闭，关闭file时会自动关闭关联的FileChannel
+            n = channel.read(buffer, start + read);
+            if (n == -1) {
+                break; // EOF
+            }
+            if (n == 0) {
+                throw new IOException("Read action was broken");
+            }
+            read += n;
+        }
+        
+        return read;
     }
     
     public RandomAccessFile file() {
