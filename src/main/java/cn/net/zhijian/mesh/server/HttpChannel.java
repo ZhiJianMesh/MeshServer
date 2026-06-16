@@ -46,6 +46,7 @@ import io.netty.handler.codec.http2.Http2FrameCodecBuilder;
 import io.netty.handler.codec.http2.Http2FrameStream;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
 import io.netty.handler.codec.http2.Http2MultiplexHandler;
+import io.netty.handler.codec.http2.Http2ResetFrame;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
@@ -332,6 +333,14 @@ public final class HttpChannel {
                  */
                 //ctx.write(new DefaultHttp2WindowUpdateFrame(data.initialFlowControlledBytes()).stream(stream));
                 data.release();
+            } else if(msg instanceof Http2ResetFrame) {
+                Http2ResetFrame resetFrame = (Http2ResetFrame) msg;
+                int streamId = resetFrame.stream().id();
+                FullHttp2Request h2Req = requests.get(streamId);
+                if(h2Req != null) {
+                    h2Req.release();
+                    requests.remove(streamId);
+                }
             } else {
                 /*
                  * 不释放，就会放到TailContext中处理，
@@ -350,6 +359,26 @@ public final class HttpChannel {
             //LOG.debug("channelReadComplete");
             super.channelReadComplete(ctx);
             ctx.channel().flush();
+        }
+        
+        // 连接关闭时，清理所有残存的流缓存
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            for (FullHttp2Request req : requests.values()) {
+                req.release();
+            }
+            requests.clear();
+            super.channelInactive(ctx);
+        }
+        
+        // 最后防线：处理器被移除时也要清理
+        @Override
+        public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+            for (FullHttp2Request req : requests.values()) {
+                req.release();
+            }
+            requests.clear();
+            super.handlerRemoved(ctx);
         }
 
         @Override

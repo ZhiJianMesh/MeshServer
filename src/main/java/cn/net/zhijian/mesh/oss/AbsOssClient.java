@@ -178,8 +178,7 @@ public abstract class AbsOssClient extends HttpClient {
         http.asyncGet(req.url, req.headers, future);
         return future;
     }
-    
-    
+
     protected static String errMsg(Response resp) {
         try (ResponseBody body = resp.body()) {
             if (body != null) {

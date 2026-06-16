@@ -93,47 +93,11 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
    
     api fileTree(dir:'libs', include:['*.jar'])
-    
-    implementation project(':util')
-    implementation(project(':fileq')) {
-        transitive = false  // 关键：禁用传递依赖
-    }
-    implementation(project(':quickjs')) {
-        transitive = false
-    }
 }
-
-def cloudPackage = [
-    'cn/net/zhijian/mesh/builtin/address/**',
-    'cn/net/zhijian/mesh/builtin/appstore/**',
-    'cn/net/zhijian/mesh/builtin/company/**',
-    'cn/net/zhijian/mesh/builtin/httpdns/**'
-]
 
 jar {
     archiveFileName = "${prjectName}-${version}.jar"
     from sourceSets.main.output
-    exclude cloudPackage
-
-    manifest {
-        attributes(
-            'Manifest-Version':"${version}",
-            'Main-Class'     : javaMainClass,
-            'Built-By'       : System.properties['user.name'],
-            'Build-Timestamp': new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
-            'Build-Revision' : "${version}",
-            'Created-By'     : "Gradle ${gradle.gradleVersion}",
-            'Build-Jdk'      : "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
-            'Build-OS'       : "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
-        )
-    }
-}
-
-task cloudjar(type: Jar) {
-    archiveFileName = "${prjectName}-cloud-${version}.jar"
-    from sourceSets.main.output //不可少这一行
-    include cloudPackage
-    
     manifest {
         attributes(
             'Manifest-Version':"${version}",
