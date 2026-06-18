@@ -12,7 +12,7 @@ import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.server.TcpChannel;
 
 /**
- * 接受客户端的http请求，转发给用TCP长连接服务器的客户端
+ * 接受http客户端的请求，转发给连接TCP长连接服务器的TCP客户端
  */
 public class HttpXTcpProcessor extends AbsProcessor {
     private static TcpChannel tcpChannel = null;

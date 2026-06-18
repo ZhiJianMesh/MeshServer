@@ -1,7 +1,10 @@
 package cn.net.zhijian.mesh.js;
 
 import cn.net.zhijian.mesh.bean.HandleResult;
+import cn.net.zhijian.mesh.frm.RetCode;
+import cn.net.zhijian.mesh.frm.abs.AbsDBWorker;
 import cn.net.zhijian.quickjs.JavascriptMethod;
+
 /**
  * js中sql拼接，本质上就是返回一个字符串。
  * 可以直接在js中完成，也可以通过sql、action等完成
@@ -11,6 +14,9 @@ import cn.net.zhijian.quickjs.JavascriptMethod;
 public final class JsDB {
     @JavascriptMethod
     public String sql(String s) {
+        if(AbsDBWorker.isSqlInjected(s)) {
+            return sqlError(RetCode.FORBIDDEN, "sql injected");
+        }
         return s; //统一在这里过一遍，防止后面需要对sql进行编辑
     }
 

@@ -37,7 +37,7 @@ final class FOR extends ScriptElement {
 
         //因为修改insert sql时会判断")"，添加update_timer，所以用中括号
         int start = s.indexOf('['); 
-        if(start > 0) { //判断是否有过滤条件
+        if(start > 0) { //判断是否有过滤条件，循环变量后面加中括号括起的内容
             int level = 1;
             int end;
             int len = paras.length();
@@ -56,7 +56,7 @@ final class FOR extends ScriptElement {
             if(level != 0) {
                 throw new InvalidParameterException("brackets not match in filter");
             }
-            s = paras.substring(start + 1, end) //不包括最外层的括号
+            s = paras.substring(start + 1, end) //不包括最外层的中括号
                     .replace("||", "+").replace("&&", "*")
                     .replace('[', '(').replace(']', ')'); //Calculator只识别小括号
             List<IFilter> ff = parseFilters(s, pl);
@@ -86,15 +86,15 @@ final class FOR extends ScriptElement {
                 continue;
             }
             
-            //支持字符串中有占位符
+            //不是循环元素，则解析成普通字段，支持字符串中有占位符
             List<ScriptElement> scrs = parseHolders(ss, i, i + 1, quote, safeQuote);
-            pl.addAll(listReqParameters(scrs));//用于参数校验，不存入，在启动时无法发现字符串中未定义的参数
+            pl.addAll(listReqParameters(scrs));//用于参数校验，如果不存入，在启动时无法发现字符串中未定义的参数
             ScriptElement[] sl = scrs.toArray(new ScriptElement[0]);
             if(sl.length == 1 && sl[0].paras.length == 1) { 
                 if(sl[0].paras[0].isConst()) { //对于只有一项且是常量的情况，做个优化
                     eles.add(new STR(sl[0].paras[0].name));
                 } else {
-                    eles.add(new HOLDER(sl[0].paras[0]));
+                    eles.add(new HOLDER(sl[0].paras[0], quote, safeQuote));
                 }
             } else {
                 eles.add(new COMPLEX(sl));
@@ -181,6 +181,7 @@ final class FOR extends ScriptElement {
     
     static class STR implements ILoopElement {
         private final String s;
+        
         STR(String s) {
             this.s = s;
         }
@@ -198,6 +199,9 @@ final class FOR extends ScriptElement {
         }        
     }
     
+    /**
+     * 复杂字符串，其中包括了占位符
+     */
     static class COMPLEX implements ILoopElement {
         final ScriptElement[] paras;
         
@@ -223,22 +227,36 @@ final class FOR extends ScriptElement {
         @Override
         public Object get(int sn, Object item, AbsServerRequest req, Map<String, Object> resp) {
             return convertQuotes(item, quote, safeQuote);
-        }        
+        }
     }
     
+    /**
+     * 大部分是单个占位符，做一点点优化
+     */
     static class HOLDER implements ILoopElement {
         private final ApiParaHolder holder;
-        
-        HOLDER(ApiParaHolder holder) {
+        final String quote;
+        final String safeQuote;
+
+        HOLDER(ApiParaHolder holder, String quote, String safeQuote) {
             this.holder = holder;
+            this.quote = quote;
+            this.safeQuote = safeQuote;
         }
         
         @Override
         public Object get(int sn, Object item, AbsServerRequest req, Map<String, Object> resp) {
-            return holder.get(req, resp);
+            Object o = holder.get(req, resp);
+            if(o != null) { //处理字符串中的引号、单引号
+                return convertQuotes(o, quote, safeQuote);
+            }
+            return o;
         }
     }
     
+    /**
+     * 循环对象中的成员
+     */
     static class MEMBER implements ILoopElement {
         final String seg;
         final String quote;
@@ -287,7 +305,7 @@ final class FOR extends ScriptElement {
                     le1 = new STR(aph.name);
                 } else {
                     pl.add(aph);
-                    le1 = new HOLDER(aph);
+                    le1 = new HOLDER(aph, quote, safeQuote);
                 }                
             }
             
@@ -313,7 +331,7 @@ final class FOR extends ScriptElement {
                     le2 = new STR(aph.name);
                 } else {
                     pl.add(aph);
-                    le2 = new HOLDER(aph);
+                    le2 = new HOLDER(aph, quote, safeQuote);
                 }
             }
             filters.add(new FilterCondition(relation, le1, le2));

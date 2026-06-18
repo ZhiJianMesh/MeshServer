@@ -1,6 +1,8 @@
 package cn.net.zhijian.mesh.frm.abs;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -41,6 +43,66 @@ public class AbsDBWorkerTest extends UnitTestBase {
                 + "|,`update orders set cmt='@{comment}' where id=@{id}`]";
         String sql1 = AbsRDBWorker.compileScript(sql, req, resp);
         assertEquals(sql1, "rs:\nupdate orders set cmt='don''t',price=1 where id=1");
+    }
+    
+    @Test
+    public void testSqlInjection() {
+        Map<String, String> headers = MapBuilder.of("cid", "40");
+        Map<String, Object> params = MapBuilder.of("price", 1, "comment", "don't", "id", "2 or 1=1");
+        Map<String, Object> resp = MapBuilder.of("price", 1, "comment", "don't", "id", "1 or 1=1");
+        AbsServerRequest req = HttpServerRequest4Test.create(headers, params);
+        String sql = "update orders set cmt='@[!comment]',price=@[!price] where id='@[!id]'";
+        String sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(!AbsDBWorker.isSqlInjected(sql1));
+        
+        resp.put("id", "1 or '='='='");
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(!AbsDBWorker.isSqlInjected(sql1));
+
+        resp.put("id", "1 or '=' = '=' ");
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(!AbsDBWorker.isSqlInjected(sql1));
+        
+        sql = "truncate table abc;insert into table(x,y,z) values(1,2,3)";
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(AbsDBWorker.isSqlInjected(sql1));
+
+        sql = "create table abc";
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(AbsDBWorker.isSqlInjected(sql1));
+
+        sql = "select 'create,truncate'";
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(!AbsDBWorker.isSqlInjected(sql1));
+
+        sql = "drop table abc";
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(AbsDBWorker.isSqlInjected(sql1));
+
+        sql = "select * from table;alter table abc";
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(AbsDBWorker.isSqlInjected(sql1));
+    }
+    
+    @Test
+    public void testForInjection() {
+        Map<String, String> headers = MapBuilder.of("cid", "40");
+        Map<String, Object> params = MapBuilder.of("price", "1' or 1=1");
+        Map<String, Object> resp = MapBuilder.of("list", Arrays.asList("1", "1' or 1=1", "2"));
+        AbsServerRequest req = HttpServerRequest4Test.create(headers, params);
+        String sql = "@[FOR|!list, `;`, `update orders set val='a' where id='`, e, `'`]";
+        String sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(!AbsDBWorker.isSqlInjected(sql1));
+        
+        List<Object> list = Arrays.asList(MapBuilder.of("a", 1, "b", 2), MapBuilder.of("a", 2, "b", "' or 1=1"));
+        resp.put("list", list);
+        sql = "@[FOR|!list, `;`, `update orders set val='`,e.a,`' where id='`, e.b, `'`]";
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(!AbsDBWorker.isSqlInjected(sql1));
+
+        sql = "@[FOR|!list, `;`, `update orders set val='`,e.a,`' where id='`, e.b, `' and price='`, price, `'`]";
+        sql1 = AbsRDBWorker.compileScript(sql, req, resp);
+        assertTrue(!AbsDBWorker.isSqlInjected(sql1));
     }
     
     public void testValidTreeDBAct() {

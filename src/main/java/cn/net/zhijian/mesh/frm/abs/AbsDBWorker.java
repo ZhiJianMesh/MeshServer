@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
 import cn.net.zhijian.mesh.frm.config.placeholder.ScriptElement;
 import cn.net.zhijian.mesh.frm.intf.IDBConst;
+import cn.net.zhijian.util.CharList;
 import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
@@ -66,6 +67,15 @@ public abstract class AbsDBWorker implements IDBConst {
     
     public static final String PLACEHOLDER_START = "@[";
     public static final char PLACEHOLDER_END = ']';
+    
+    private static final char[][] DangerWords = new char[][] {
+        "drop".toCharArray(),
+        "alter".toCharArray(),
+        "create".toCharArray(),
+        "truncate".toCharArray()
+   };
+   
+   private static final char[] OrWord = " or ".toCharArray();
     
     public static boolean isWriteTreeDBAct(String act) {
         return WRITE_ACTS.contains(act);
@@ -215,5 +225,105 @@ public abstract class AbsDBWorker implements IDBConst {
         pos += PLACEHOLDER_START.length();
         //只有找到配对的`]`，才认为是变量占位符
         return sql.indexOf(PLACEHOLDER_END, pos) > pos;
+    }
+    
+    
+    /**
+     * sql注入检查
+     * @param sql 待检查的sql
+     * @return true 被注入
+     */
+    public static boolean isSqlInjected(String sql) {
+        CharList cl = simplifySql(sql, DangerWords);
+        
+        // 存在危险关键字
+        if (cl == null) {
+            return true;
+        }
+        char[] s = cl.getData();
+        int pos = StringUtil.indexOf(s, OrWord, 0, '\'');
+        int idx, end;
+        String s1, s2;
+        
+        
+        while(pos > 0) { //寻找恒真的条件
+            pos += OrWord.length;
+            idx = StringUtil.indexOf(s, '=', pos, '\'');//不用String.indexOf，防止出现'=' = '='
+            if(idx < 0) {
+                break;
+            }
+            s1 = new String(s, pos, idx - pos).trim();
+            idx++;
+            while(s[idx] == ' ') { //忽略紧跟在等号后面的空格
+                idx++;
+            }
+            end = StringUtil.indexOf(s, ' ', idx, '\'');
+            if(end < 0) {
+                end = s.length;
+            }
+            s2 = new String(s, idx, end - idx).trim();
+            if(s1.equals(s2)) {
+                return true;
+            }
+            pos = StringUtil.indexOf(s, OrWord, end, '\'');
+        }
+
+        return false;
+    }
+    
+    public static CharList simplifySql(String s, char[][] dangerWords) {
+        char[] ss = s.toCharArray();
+        char ch;
+        boolean isBlank = false;
+        boolean inStr = false;
+        CharList list = new CharList(s.length());
+        final int n = dangerWords.length;
+        int[] matchPos = new int[n];
+        int pos;
+        char[] word;
+        
+        for(int i = 0; i < n; i++) {
+            matchPos[i] = 0;
+        }
+        
+        for(int i = 0; i < ss.length; i++) {
+            ch = ss[i];
+            if(ch == '\'') {
+                inStr = !inStr;
+                list.append(ch);
+                continue;
+            }
+            
+            if(inStr) {
+                list.append(ch);
+                continue;
+            }
+            
+            if(ch == '\t' || ch == ' ' || ch == ' ' || ch == '\n' || ch == '\r') {
+                if(isBlank) { //删除连续的空格
+                    continue;
+                }
+                isBlank = true;
+                list.append(' ');
+            } else {
+                isBlank = false;
+                ch = Character.toLowerCase(ch);
+                for(int j = 0; j < n; j++) {
+                    pos = matchPos[j];
+                    word = dangerWords[j];
+                    if(word[pos] == ch) {
+                        pos++;
+                        if(pos == word.length) {
+                            return null; //存在危险关键词，直接停止
+                        }
+                        matchPos[j] = pos;
+                    } else {
+                        matchPos[j] = 0;
+                    }
+                }
+                list.append(ch);
+            }
+        }
+        return list;
     }
 }

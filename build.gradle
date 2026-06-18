@@ -112,21 +112,6 @@ jar {
     }
 }
 
-task proguard(type:proguard.gradle.ProGuardTask, dependsOn: jar) {
-    printmapping "${buildDir}/mapping.txt"
-    configuration 'proguard.cfg'
-    
-    libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod", jarfilter: '!.jar', filter: '!module-info.class'
-    libraryjars "${System.getProperty('java.home')}/jmods/java.sql.jmod", jarfilter: '!.jar', filter: '!module-info.class'
-    libraryjars "${System.getProperty('java.home')}/jmods/org.graalvm.truffle.jmod", jarfilter: '!.jar', filter: '!module-info.class'
-    libraryjars "${System.getProperty('java.home')}/jmods/org.graalvm.sdk.jmod", jarfilter: '!.jar', filter: '!module-info.class'
-    
-    libraryjars project.sourceSets.main.compileClasspath
-
-    injars "${buildDir}/libs/${prjectName}-${version}.jar"
-    outjars "${buildDir}/libs/${prjectName}-proguard-${version}.jar"
-}
-
 test {
     testLogging { //必须写在useJUnitPlatform前面
         events /*"passed",*/ "skipped", "failed", "standardOut", "standardError"

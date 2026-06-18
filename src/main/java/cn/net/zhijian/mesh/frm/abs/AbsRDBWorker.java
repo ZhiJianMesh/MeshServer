@@ -710,7 +710,11 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
  
     //-------------------------------------------------------------------------
     public enum SqlType {INSERT, DELETE, UPDATE, REPLACE,
-        SELECT, ERROR, CREATE, ALTER, DROP, SCRIPT, RUNTIMESCRIPT;
+        SELECT, ERROR, CREATE, ALTER, DROP, TRUNCATE, RUNTIMESCRIPT,
+        //普通sql中，请求参数类型做了严格限制，将字符串参数中单引号转成了两个单引号，可以防止sql注入
+        //但是，在SCRIPT只对双引号做了转义，如果在SCRIPT中拼接sql，要特别小心，
+        //用到的请求参数需要做严格的类型限制，做好防注入的设计
+        SCRIPT;
         public boolean laterModify() {
             return this == SCRIPT || this == RUNTIMESCRIPT; //脚本或拼接的sql需要后期编辑
         }
@@ -785,6 +789,9 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         }
         if(s.equals("dro")) {
             return SqlType.DROP;
+        }
+        if(s.equals("tru")) {
+            return SqlType.TRUNCATE;
         }
         if(s.startsWith(JS_HEAD)) {
             return SqlType.SCRIPT;

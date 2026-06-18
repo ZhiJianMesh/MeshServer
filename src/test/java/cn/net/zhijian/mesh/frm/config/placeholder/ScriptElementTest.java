@@ -1199,17 +1199,21 @@ public class ScriptElementTest extends UnitTestBase {
     @Test
     public void testForWithOthers() {
         String s = "A:@{FOR|list,`;`,'(',i,`,`,e.a,`,`,e.b,`,@{IFVALID|p1,p1,'+',p2},'','')`}"
-                + "B:@{FOR|list,`,`,'(',i,`,`,e.a,`,`,e.b,`,`,e.c,`,@{CONDITION|p1,'s.==', 'x', 'true', 'false'})`};";
+                + "B:@{FOR|list,`,`,'(',i,`,`,e.a,`,`,e.b,`,`,e.c,`,@{CONDITION|p1,'s.==', 'x', 'true', 'false'})`};"
+                + "C:@{FOR|list,`,`,'(',i,`,`,e.a,`,`,e.b,`,`,e.c,`,@{p1},@{p2})`};"
+                + "D:@{FOR|list,`,`,'(',i,`,`,e.a,`,`,e.b,`,`,e.c,`,`, p1, `,`, p2, `)`};";
         Map<String, Object> o1 = MapBuilder.of("a", "n1", "b", "n2", "c", 1);
         Map<String, Object> o2 = MapBuilder.of("a", "m1", "b", "m2", "c", 2);
         List<Map<String, Object>> list = Arrays.asList(o1, o2);
-        Map<String, Object> params = MapBuilder.of("list", list, "p1", "x", "p2", "y");
+        Map<String, Object> params = MapBuilder.of("list", list, "p1", "x", "p2", "y'");
         Map<String, Object> resp = MapBuilder.of("r", "test");
 
         ScriptElement[] segs = ScriptElement.parsePlaceHolder(s, params.keySet(), "'", "''");
         String str = segementsToStr(params, resp, segs);
-        assertEquals(str, "A:(0,n1,n2,x+y,'','');(1,m1,m2,x+y,'','')"
-                + "B:(0,n1,n2,1,true),(1,m1,m2,2,true);");
+        assertEquals(str, "A:(0,n1,n2,x+y'','','');(1,m1,m2,x+y'','','')"
+                + "B:(0,n1,n2,1,true),(1,m1,m2,2,true);"
+                + "C:(0,n1,n2,1,x,y''),(1,m1,m2,2,x,y'');" //p1 & @{p1}
+                + "D:(0,n1,n2,1,x,y''),(1,m1,m2,2,x,y'');");
     }
     
     @Test

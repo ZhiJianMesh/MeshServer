@@ -20,6 +20,8 @@ import cn.net.zhijian.util.ValParser;
  *
  */
 public class JsEngineTest extends UnitTestBase {
+    static final String INJECTED_SQL = "{\"code\":"+RetCode.FORBIDDEN+",\"info\":\"sql injected\"}";
+
     @Test
     public void testBase() throws Exception {
         String js = "var a='a',b='b';a+b;";
@@ -88,7 +90,47 @@ public class JsEngineTest extends UnitTestBase {
 
         js = "DB.sql(`select * from t where a='a' and b=1`)";
         s = JsEngine.getString(js);
-        assertTrue(s.equals("select * from t where a='a' and b=1"));
+        assertEquals(s, "select * from t where a='a' and b=1");
+    }
+    
+    @Test
+    public void testDBSqlInjection() throws Exception {
+        String js = "DB.sql(\"select * from user where account='a' or 1=1\")";
+        String s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+        js = "DB.sql(\"select * from user where account='a' or '='='=' and pwd='123'\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+        js = "DB.sql(\"delete from user where account='a' or ''''='''' and pwd='123'\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+
+        js = "DB.sql(\"delete from user where account='a'  OR  12 = 12 and pwd='123'\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+
+        js = "DB.sql(\"delete from user where account='a' and pwd='123'  OR  12 = 12\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+    }
+    
+    @Test
+    public void testDBDangerSql() throws Exception {
+        String js = "DB.sql(\"drop table aaa\")";
+        String s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+        js = "DB.sql(\"truncate table aaa\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+        js = "DB.sql(\"alter table aaa\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+        js = "DB.sql(\"create table aaa\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
+        js = "DB.sql(\"CREATE table aaa\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
     }
     
     @Test
