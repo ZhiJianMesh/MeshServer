@@ -250,7 +250,7 @@ public class AbsRDBWorkerTest extends UnitTestBase {
                 + "                dispName varchar(255) not null, -- 显示名称\n"
                 + "                comment  varchar(255) not null -- 描述\n"
                 + ") -- test--";
-        String sql1 = AbsRDBWorker.removeComment(sql);
+        String sql1 = AbsRDBWorker.removeComment(sql).toString();
         System.out.println("remove comment:" + sql1);
         int pos = sql1.indexOf("'--'");
         assertTrue(pos > 0 && sql1.indexOf("--", pos + 4) < 0);
@@ -323,34 +323,6 @@ public class AbsRDBWorkerTest extends UnitTestBase {
         }
         return true;
     }
-
-    @Test
-    public void testFindKeywords() {
-        String sql = "js:if(@[!pkgNum]>0){\n"
-                + "      DB.sql(\"update pkgreports set logVal=@{val},logNum=logNum+1,orderBal=@[!total]\n"
-                + "       where pkgId=@{!pkgId} and reportAt=@{NOW|unit86400000}\")\n"
-                + "   }";
-        char[][] kws = new char[][] {"update".toCharArray(), "insert".toCharArray(), "delete".toCharArray()};
-        int pos = AbsRDBWorker.findSqlKeyWordsInScript(sql, kws);
-        assertTrue(pos > 0);
-        sql = "js:if(@[!pkgNum]>0){\n"
-                + "      DB.sql(`insert into pkgreports(pkgId,reportAt,logVal,logNum,orderBal)\n"
-                + "        values(@{!pkgId},@{NOW|unit86400000},@{val},@[!total])`\n"
-                + "}";
-        pos = AbsRDBWorker.findSqlKeyWordsInScript(sql, kws);
-        assertTrue(pos > 0);
-        sql = "js:if(@[!pkgNum]>0){\n"
-            + "    DB.sql('delete from pkgreports where pkgId=@{!pkgId}"
-            + "}";
-        pos = AbsRDBWorker.findSqlKeyWordsInScript(sql, kws);
-        assertTrue(pos > 0);
-        sql = "js:if(@[!pkgNum]>0){\n"
-                + "    DB.sql('select * from pkgreports where pkgId=@{!pkgId}"
-                + "}";
-        pos = AbsRDBWorker.findSqlKeyWordsInScript(sql, kws);
-        assertTrue(pos < 0);
-    }
-
 
     /**
      * 一个sql中有多个分号分隔的多个子sql

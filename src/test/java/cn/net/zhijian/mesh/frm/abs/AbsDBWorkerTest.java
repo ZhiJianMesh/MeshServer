@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import cn.net.zhijian.UnitTestBase;
 import cn.net.zhijian.mesh.prot.http.HttpServerRequest4Test;
+import cn.net.zhijian.util.CharArray;
 import cn.net.zhijian.util.MapBuilder;
 
 public class AbsDBWorkerTest extends UnitTestBase {
@@ -46,6 +47,13 @@ public class AbsDBWorkerTest extends UnitTestBase {
     }
     
     @Test
+    public void testRemoveSqlBlanks() {
+        String sql = "select a,b,c,\n\r'  '   from table \r\n where a=1 \t";
+        CharArray s =  AbsDBWorker.removeBlanks(sql);
+        assertEquals(s.toString(), "select a,b,c,'  ' from table where a=1");
+    }
+    
+    @Test
     public void testSqlInjection() {
         Map<String, String> headers = MapBuilder.of("cid", "40");
         Map<String, Object> params = MapBuilder.of("price", 1, "comment", "don't", "id", "2 or 1=1");
@@ -55,19 +63,37 @@ public class AbsDBWorkerTest extends UnitTestBase {
         String sql1 = AbsRDBWorker.compileScript(sql, req, resp);
         assertTrue(!AbsDBWorker.isSqlInjected(sql1));
         
-        resp.put("id", "1 or '='='='");
+        resp.put("id", "1 or     '='='='");
         sql1 = AbsRDBWorker.compileScript(sql, req, resp);
         assertTrue(!AbsDBWorker.isSqlInjected(sql1));
 
-        resp.put("id", "1 or '=' = '=' ");
+        resp.put("id", "1 or '=' = '='    ");
         sql1 = AbsRDBWorker.compileScript(sql, req, resp);
         assertTrue(!AbsDBWorker.isSqlInjected(sql1));
+
+        sql = "update orders set cmt='test',price=1 where id='1' or 1=1";
+        assertTrue(AbsDBWorker.isSqlInjected(sql));
+
+        sql = "update orders set cmt='test',price=1 where id='1' or '=' = '='";
+        assertTrue(AbsDBWorker.isSqlInjected(sql));
         
-        sql = "truncate table abc;insert into table(x,y,z) values(1,2,3)";
+        sql = "update orders set cmt='test',price=1 where id='1' or '='='='";
+        assertTrue(AbsDBWorker.isSqlInjected(sql));
+
+        sql = "update orders set cmt='test',price=1 where id='1' -- and price>10";
+        assertTrue(AbsDBWorker.isSqlInjected(sql));
+
+        sql = "update orders set cmt='test',price=1 where id='1' // and price>10";
+        assertTrue(AbsDBWorker.isSqlInjected(sql));
+
+        sql = "update orders set cmt='test',price=1 where id='1 -- //' and price>10";
+        assertTrue(!AbsDBWorker.isSqlInjected(sql));
+        
+        sql = "Truncate table abc;insert into table(x,y,z) values(1,2,3)";
         sql1 = AbsRDBWorker.compileScript(sql, req, resp);
         assertTrue(AbsDBWorker.isSqlInjected(sql1));
 
-        sql = "create table abc";
+        sql = "creatE table abc";
         sql1 = AbsRDBWorker.compileScript(sql, req, resp);
         assertTrue(AbsDBWorker.isSqlInjected(sql1));
 

@@ -402,7 +402,7 @@ public class RDBProcessor extends AbsDBProcessor {
                     isWrite = ValParser.getAsBool(cfg, SQL_ISWRITE, true);
                 } else {
                     //此处的判断并不完全准确，当不同分支返回的sql性质不同时，判断可能会出错，但是只会严判
-                    isWrite = AbsRDBWorker.findSqlKeyWordsInScript(sSql, WRITESQL_KWS) > 0;
+                    isWrite = findSqlKeyWords(sSql, WRITESQL_KWS) > 0;
                 }
             }
             boolean toResp = ValParser.getAsBool(cfg, SQL_TO_RESP, !isWrite);
@@ -438,5 +438,60 @@ public class RDBProcessor extends AbsDBProcessor {
             }
             return statements;
         }
+    }
+    
+    
+    private static final char[] SCRIPT_STR_FLAGS = new char[] {SQL_QUOTE, '"', '`'};
+    /**
+     * ',",`括起来的内容中存在任意一个kw，则返回相应位置，不区分大小写，
+     * 几个kw是同时查找的，这样可以提高效率
+     * @param s 数据库脚本
+     * @param kwList 关键词列表，必须全部小写
+     * @return 第一个匹配上的关键词的位置，都不存在则返回-1
+     */
+    static int findSqlKeyWords(String sql, char[][] kwList) {
+        char[] s = sql.toCharArray(); //废点内存，省点时间
+        int len = s.length;
+        int inStr = -1; //标识字符串引号运算符的开始
+        char ch;
+        int j;
+        int keyNum = kwList.length;
+        int[] matchedLen = new int[keyNum];
+
+        for(int i = 0; i < len; i++) {
+            ch = s[i];
+            if(inStr >= 0) {
+                if(ch == SCRIPT_STR_FLAGS[inStr]) {
+                    inStr = -1;
+                    continue;
+                }
+                ch = Character.toLowerCase(ch);
+                for(j = 0; j < keyNum; j++) {
+                    if(ch == kwList[j][matchedLen[j]]) {
+                        matchedLen[j]++;
+                        if(matchedLen[j] == kwList[j].length) {
+                            return i - kwList[j].length + 1;
+                        }
+                    } else {
+                        matchedLen[j] = 0;
+                    }
+                }
+                continue;
+            }
+            
+            if (ch == SCRIPT_STR_FLAGS[0]) {
+                inStr = 0;
+            }else if (ch == SCRIPT_STR_FLAGS[1]) {
+                inStr = 1;
+            }else if (ch == SCRIPT_STR_FLAGS[2]) {
+                inStr = 2;
+            }
+            if(inStr >= 0) {
+                for(j = 0; j < keyNum; j++) {
+                    matchedLen[j] = 0;
+                }
+            }
+        }
+        return -1;
     }
 }

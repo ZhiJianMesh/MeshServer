@@ -112,6 +112,10 @@ public class JsEngineTest extends UnitTestBase {
         js = "DB.sql(\"delete from user where account='a' and pwd='123'  OR  12 = 12\")";
         s = JsEngine.getString(js);
         assertEquals(s, INJECTED_SQL);
+        
+        js = "DB.sql(\"delete from user where account='a' -- and pwd='123'\")";
+        s = JsEngine.getString(js);
+        assertEquals(s, INJECTED_SQL);
     }
     
     @Test

@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
 import cn.net.zhijian.mesh.frm.config.placeholder.ScriptElement;
 import cn.net.zhijian.mesh.frm.intf.IDBConst;
-import cn.net.zhijian.util.CharList;
+import cn.net.zhijian.util.CharArray;
 import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
@@ -68,14 +68,20 @@ public abstract class AbsDBWorker implements IDBConst {
     public static final String PLACEHOLDER_START = "@[";
     public static final char PLACEHOLDER_END = ']';
     
-    private static final char[][] DangerWords = new char[][] {
+    static final char[][] DangerWords = new char[][] {
         "drop".toCharArray(),
         "alter".toCharArray(),
         "create".toCharArray(),
-        "truncate".toCharArray()
-   };
+        "truncate".toCharArray(),
+        //注释也作为注入威胁，防止传入"'...' --"这样的内容，直接忽略后面的逻辑判断
+        "--".toCharArray(),
+        "//".toCharArray()
+    };
    
-   private static final char[] OrWord = " or ".toCharArray();
+    private static final char[] SQL_OR = " or ".toCharArray();
+    protected static final char[] SQL_QUOTATIONS = new char[] {SQL_QUOTE, SQL_QUOTE};
+    private static final char[] SymbolEqual = new char[] {'='};
+    private static final char[] SymbolBlank = new char[] {' '};
     
     public static boolean isWriteTreeDBAct(String act) {
         return WRITE_ACTS.contains(act);
@@ -229,101 +235,84 @@ public abstract class AbsDBWorker implements IDBConst {
     
     
     /**
-     * sql注入检查
+     * sql注入检查。在js中生成sql脚本时需要检查，
+     * 占位符替换时生成的sql脚本已将字符串中的"'"转为"''"，数值类型进行了类型判断，所以无需再次判断注入
      * @param sql 待检查的sql
      * @return true 被注入
      */
     public static boolean isSqlInjected(String sql) {
-        CharList cl = simplifySql(sql, DangerWords);
-        
-        // 存在危险关键字
-        if (cl == null) {
+        CharArray ca = removeBlanks(sql);
+        int pos = ca.indexOf(DangerWords, 0, SQL_QUOTATIONS, false);
+        if(pos >= 0) {// 存在危险关键字
             return true;
         }
-        char[] s = cl.getData();
-        int pos = StringUtil.indexOf(s, OrWord, 0, '\'');
+
         int idx, end;
         String s1, s2;
         
-        
+        //寻找 or 后面的恒等式
+        pos = ca.indexOf(SQL_OR, 0, SQL_QUOTATIONS, false);
         while(pos > 0) { //寻找恒真的条件
-            pos += OrWord.length;
-            idx = StringUtil.indexOf(s, '=', pos, '\'');//不用String.indexOf，防止出现'=' = '='
+            pos += SQL_OR.length;
+            idx = ca.indexOf(SymbolEqual, pos, SQL_QUOTATIONS, false);//不用String.indexOf，防止出现'=' = '='
             if(idx < 0) {
                 break;
             }
-            s1 = new String(s, pos, idx - pos).trim();
+            s1 = ca.substring(pos, idx).trim();
             idx++;
-            while(s[idx] == ' ') { //忽略紧跟在等号后面的空格
+            while(ca.charAt(idx) == ' ') { //忽略紧跟在等号后面的空格
                 idx++;
             }
-            end = StringUtil.indexOf(s, ' ', idx, '\'');
+            end = ca.indexOf(SymbolBlank, idx, SQL_QUOTATIONS, false);
             if(end < 0) {
-                end = s.length;
+                end = ca.size();
             }
-            s2 = new String(s, idx, end - idx).trim();
+            s2 = ca.substring(idx, end).trim();
             if(s1.equals(s2)) {
                 return true;
             }
-            pos = StringUtil.indexOf(s, OrWord, end, '\'');
+            pos = ca.indexOf(SQL_OR, end, SQL_QUOTATIONS);
         }
 
         return false;
     }
     
-    public static CharList simplifySql(String s, char[][] dangerWords) {
-        char[] ss = s.toCharArray();
+    /**
+     * 去除多余的空格、换行，方便后面的关键词匹配。
+     * @param sql 数据库sql
+     * @return char数组
+     */
+    public static CharArray removeBlanks(String sql) {
+        char[] ss = sql.trim().toCharArray();
         char ch;
         boolean isBlank = false;
         boolean inStr = false;
-        CharList list = new CharList(s.length());
-        final int n = dangerWords.length;
-        int[] matchPos = new int[n];
-        int pos;
-        char[] word;
-        
-        for(int i = 0; i < n; i++) {
-            matchPos[i] = 0;
-        }
+        CharArray ca = new CharArray(ss.length);
         
         for(int i = 0; i < ss.length; i++) {
             ch = ss[i];
-            if(ch == '\'') {
+            if(ch == SQL_QUOTE) {
                 inStr = !inStr;
-                list.append(ch);
+                ca.append(ch);
                 continue;
             }
             
             if(inStr) {
-                list.append(ch);
+                ca.append(ch);
                 continue;
             }
-            
+
             if(ch == '\t' || ch == ' ' || ch == ' ' || ch == '\n' || ch == '\r') {
                 if(isBlank) { //删除连续的空格
                     continue;
                 }
                 isBlank = true;
-                list.append(' ');
+                ca.append(' ');
             } else {
                 isBlank = false;
-                ch = Character.toLowerCase(ch);
-                for(int j = 0; j < n; j++) {
-                    pos = matchPos[j];
-                    word = dangerWords[j];
-                    if(word[pos] == ch) {
-                        pos++;
-                        if(pos == word.length) {
-                            return null; //存在危险关键词，直接停止
-                        }
-                        matchPos[j] = pos;
-                    } else {
-                        matchPos[j] = 0;
-                    }
-                }
-                list.append(ch);
+                ca.append(ch);
             }
         }
-        return list;
+        return ca;
     }
 }

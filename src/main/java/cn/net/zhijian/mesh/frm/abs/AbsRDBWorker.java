@@ -27,6 +27,7 @@ import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.js.JsEngine;
 import cn.net.zhijian.util.Calculator;
+import cn.net.zhijian.util.CharArray;
 import cn.net.zhijian.util.DateUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
@@ -63,8 +64,6 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
     private static final char[] SQL_FROM = SQL_SFROM.toCharArray();
     private static final char[] SQL_SEPARATOR = ";".toCharArray();
     private static final char[] SQL_UPDATE_TIME = SEG_UPDATETIME.toCharArray();
-    private static final char[] SQL_BRACKETS = new char[] {SQL_QUOTE, SQL_QUOTE, '(', ')'};
-    private static final char[] SQL_QUOTATIONS = new char[] {SQL_QUOTE, SQL_QUOTE};
     private static final char[] SQL_INSERTIGNORE = "or ignore".toCharArray();
     private static final String SQL_SINSERTIGNORE = " or ignore ";
 
@@ -505,15 +504,17 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @param sql 脚本，支持subsof函数
      * @return 结果集
      */
-    public List<Object> querySingleList(AbsConnection conn, String sql) throws SQLException {
-        int pos0 = findSqlKeyWord(sql, SQL_SUBSOF, SQL_SELECT.length + 1, SQL_QUOTATIONS);
+    private List<Object> querySingleList(AbsConnection conn, String sql) throws SQLException {
+        CharArray cl = removeComment(sql);
+        
+        int pos0 = cl.indexOf(SQL_SUBSOF, SQL_SELECT.length + 1, SQL_QUOTATIONS, false);
         if(pos0 > 0) { //select subsof(id_value, id_name, fid_name, inits...) from table_name
             pos0 += SQL_SUBSOF.length;
-            int pos1 = sql.indexOf(')', pos0);
+            int pos1 = cl.indexOf(')', pos0);
             if(pos1 < 0) {
                 throw new SQLException("invalid sql 'subsof', no ending");
             }
-            String[] segs = sql.substring(pos0, pos1).trim().split(",");
+            String[] segs = cl.substring(pos0, pos1).trim().split(",");
             String id, idName, fidName;
             if(segs.length >= 3) {
                 id = segs[0].trim();
@@ -526,11 +527,11 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
             } else {
                 throw new SQLException("invalid sql 'subsof',invalid parameters");
             }
-            pos0 = sql.indexOf(SQL_SFROM, pos1 + 1);
+            pos0 = cl.indexOf(SQL_FROM, pos1 + 1, SQL_QUOTATIONS);
             if(pos0 < 0) {
                 throw new SQLException("invalid sql subsof,no from table_name");
             }
-            String tab = sql.substring(pos0 + SQL_FROM.length).trim();
+            String tab = cl.substring(pos0 + SQL_FROM.length).trim();
             Set<String> list = new HashSet<>();
             if(segs.length > 3) { //初始列表
                 for(int i = 3; i < segs.length; i++) {
@@ -540,7 +541,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
             querySubs(conn, tab, list, id, idName, fidName);
             return new ArrayList<>(list);
         }
-        return querySingles(conn, sql);
+        return querySingles(conn, cl.toString());
     }
 
     public List<Object> querySingleList(String sql) {
@@ -752,9 +753,9 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         }
     }
 
-    public static SqlType getSqlType(String sql) {
+    private static SqlType getSqlType(CharArray sql) {
         //至少有select/insert/delete/update/replace/create/js:开头
-        if(sql.length() <= 7) {
+        if(sql.size() <= 7) {
             return SqlType.ERROR;
         }
         String s = sql.substring(0, 3).toLowerCase();
@@ -801,164 +802,18 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         }
         return SqlType.ERROR;
     }
-
-    /**
-     * 在sql中查找关键词的位置，一次只能寻找一个，且会跳过skipPairs括起的内容。
-     * 查找时不区分大小写，要求kw必须小写
-     * @param sql 脚本
-     * @param kw 关键词列表，必须小写
-     * @param start sql开始位置
-     * @param skipPairs 需要忽略的部分，比如''、()括起的部分，成对出现，前一个字符是开始符，后一个字符是结束符
-     * @return 第一个匹配上的关键词位置，没找到则返回-1
-     */
-    private static int findSqlKeyWord(String sql, char[] kw, int start, char[] skipPairs) {
-        int len = sql.length();
-        int skip = -1; //标识字符串引号运算符的开始
-        int skipNum = skipPairs.length;
-        char ch;
-        int findPos = 0;
-        int j;
-        int level = 0;
-        int kwLen = kw.length;
-
-        for(int i = start; i < len; i++) {
-            ch = sql.charAt(i);
-            if(skip >= 0) { //已有开始符，找到跳过内容的结束位置
-                if(ch == skipPairs[skip + 1]){//这一句放前面，解决头尾都是同一个字符的情况
-                    level--;
-                } else if(ch == skipPairs[skip]) {
-                    level++; //比如()里面还可能出现()
-                }
-                if(level == 0) { //退出所有层之后才会结束
-                    skip = -1;
-                }
-                continue;
-            }
-            
-            for(j = 0; j < skipNum; j += 2) { //寻找跳过内容的开始
-                if(ch == skipPairs[j]) {
-                    findPos = 0;
-                    skip = j;
-                    level = 1;
-                    break;
-                }
-            }
-            if(skip >= 0) { //如果找到了，不必查找关键词
-                continue;
-            }
-
-            if(Character.toLowerCase(ch) == kw[findPos]) {
-                findPos++;
-                if(findPos == kwLen) { //匹配到字符串了
-                    return i - kwLen + 1;
-                }
-            } else {
-                findPos = 0;
-            }
-        }
-        return -1;
-    }
     
-    /**
-     * 在sql中查找关键词的位置，一次只能寻找一个，会跳过字符串(单引号)中的内容。
-     * 与findSqlKeyWord区别在于它只避开字符串。查找时不区分大小写，要求kw必须小写
-     * @param sql 脚本
-     * @param kw 关键词列表，必须小写
-     * @param start sql开始位置
-     * @return 第一个匹配上的关键词位置，没找到则返回-1
-     */
-    private static int quickFindSqlKw(String sql, char[] kw, int start) {
-        int len = sql.length();
-        boolean inStr = false; //标识字符串引号运算符的开始
-        char ch;
-        int findPos = 0;
-        int kwLen = kw.length;
-
-        for(int i = start; i < len; i++) {
-            ch = sql.charAt(i);
-            if(inStr) { //找到字符串的结束位置
-                if(ch == SQL_QUOTE) {
-                    inStr = false;
-                }
-                continue;
-            }
-            
-            if(ch == SQL_QUOTE) { //如果碰到了字符串引号，不必查找关键词
-                findPos = 0;
-                inStr = true;
-                continue;
-            }
-
-            if(Character.toLowerCase(ch) == kw[findPos]) {
-                findPos++;
-                if(findPos == kwLen) { //匹配到字符串了
-                    return i - kwLen + 1;
-                }
-            } else {
-                findPos = 0;
-            }
-        }
-        return -1;
+    public static SqlType getSqlType(String sql) {
+        CharArray cl = removeComment(sql);
+        return getSqlType(cl);
     }
 
-    private static int findSqlKeyWord(String sql, char[] kw, int start) {
-        return quickFindSqlKw(sql, kw, start);
+    private static int findSqlKeyWord(CharArray sql, char[] kw, int start) {
+        return sql.indexOf(kw, start, SQL_QUOTATIONS, false);
     }
-    
-    private static int findSqlKeyWord(String sql, char[] kw) {
-        return quickFindSqlKw(sql, kw, 0);
-    }
-    
-    private static final char[] SCRIPT_STR_FLAGS = new char[] {SQL_QUOTE, '"', '`'};
-    /**
-     * 只要script中'/"/`括起来的内容中存在任意一个kw，则返回相应位置，不区分大小写，
-     * 几个kw是同时查找的，这样可以提高效率
-     * @param sql 数据库脚本
-     * @param kwList 关键词列表，必须全部小写
-     * @return 第一个匹配上的关键词的位置，都不存在则返回-1
-     */
-    public static int findSqlKeyWordsInScript(String sql, char[][] kwList) {
-        int len = sql.length();
-        int inStr = -1; //标识字符串引号运算符的开始
-        char ch;
-        int j;
-        int keyNum = kwList.length;
-        int[] matchedLen = new int[keyNum];
 
-        for(int i = 0; i < len; i++) {
-            ch = sql.charAt(i);
-            if(inStr >= 0) {
-                if(ch == SCRIPT_STR_FLAGS[inStr]) {
-                    inStr = -1;
-                    continue;
-                }
-                ch = Character.toLowerCase(ch);
-                for(j = 0; j < keyNum; j++) {
-                    if(ch == kwList[j][matchedLen[j]]) {
-                        matchedLen[j]++;
-                        if(matchedLen[j] == kwList[j].length) {
-                            return i - kwList[j].length + 1;
-                        }
-                    } else {
-                        matchedLen[j] = 0;
-                    }
-                }
-            } else {
-                if (ch == SCRIPT_STR_FLAGS[0]) {
-                    inStr = 0;
-                }else if (ch == SCRIPT_STR_FLAGS[1]) {
-                    inStr = 1;
-                }else if (ch == SCRIPT_STR_FLAGS[2]) {
-                    inStr = 2;
-                }
-                if(inStr >= 0) {
-                    for(j = 0; j < keyNum; j++) {
-                        matchedLen[j] = 0;
-                    }
-                }
-            }
-        }
-        return -1;
+    private static int findSqlKeyWord(CharArray sql, char[] kw) {
+        return sql.indexOf(kw, 0, SQL_QUOTATIONS, false);
     }
   
     /**
@@ -966,16 +821,16 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @param sql SQL脚本
      * @return 清除后的脚本
      */
-    private static String clean(String sql) {
-        String s = sql.trim();
-        StringBuilder sb  = new StringBuilder(sql.length());
+    static CharArray removeComment(String sql) {
+        char[] s = sql.trim().toCharArray();
+        CharArray sb  = new CharArray(s.length);
         boolean inStr = false;
         boolean inComment = false;
         char c;
-        int len = s.length();
+        int len = s.length;
         
         for(int i = 0; i < len; i++) {
-            c = s.charAt(i);
+            c = s[i];
             if(c == '\0') {
                 continue; //字符串中有异常的0结束符，在多语言编程中，如果不注意，则会出现
             }
@@ -988,17 +843,18 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
             if(!inStr) {
                 if(c == '\n') {
                     inComment = false;
-                } else if(c == '-' && i < len - 1 && s.charAt(i + 1) == '-') {
+                } else if(c == '-' && i < len - 1 && s[i + 1] == '-') {
                     inComment = true;
                 }
             }
             
-            if(!inComment) {
+            if(!inComment) {//注释中的，直接丢弃
                 sb.append(c);
             }        
         }
-        return sb.toString();
+        return sb;
     }
+
     /**
      * 
      * @param sql 原始的sql，只可以是DML类SQL，可以用分号分隔多个
@@ -1007,8 +863,8 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @return 修改后的sql
      */
     public static List<String> modifyDMLSqls(String sql, String now) {
-        String s = clean(sql);
-        SqlType sqType = getSqlType(s);
+        CharArray s = removeComment(sql);
+        SqlType sqType = getSqlType(s.toString());
         if(sqType == SqlType.ERROR) {
             LOG.error("modifyDMLSqls,invalid sql `{}`, must start with a valid sql keyword", s);
             return null;
@@ -1017,18 +873,18 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         List<String> sqls = new ArrayList<>();
         //script只有在解释执行后才能知道sql，而select，则不可以有多个
         if(sqType.laterModify() || sqType == SqlType.SELECT) {
-            sqls.add(s);
+            sqls.add(s.toString());
             return sqls;
         }
 
         int end;
         int start = 0;
-        final int len = s.length();
+        final int len = s.size();
         //每次都使用同一个sb，并且分配足够大的内存，避免频繁的创建对象、分配内存
-        StringBuilder sb = new StringBuilder(Math.max(len * 2, 1024));
+        CharArray sb = new CharArray(Math.max(len * 2, 1024));
         while(start < len && (end = findSqlKeyWord(s, SQL_SEPARATOR, start)) > 0) {
             String oneSql = s.substring(start, end);
-            sb.setLength(0); //清空sb，设为0时，不会导致重新分配内存
+            sb.clear(); //清空sb，设为0时，不会导致重新分配内存
             if(modifyDMLSql(oneSql, now, sb) == SqlType.ERROR) {
                 LOG.error("Invalid sql {} between {} and {}", oneSql, start, end);
                 return null;
@@ -1038,7 +894,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         }
 
         if(start < len) {
-            sb.setLength(0);
+            sb.clear();
             String oneSql = s.substring(start);
             if(modifyDMLSql(oneSql, now, sb) == SqlType.ERROR) {
                 LOG.error("Invalid sql {} at {}", oneSql, start);
@@ -1062,7 +918,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @return 修改后的sql
      */
     public static String modifyDMLSql(String sql, String now) {
-        StringBuilder sb = new StringBuilder(sql.length() * 2);
+        CharArray sb = new CharArray(sql.length() * 2);
         if(modifyDMLSql(sql, now, sb) == SqlType.ERROR) {
             LOG.error("Invalid sql {}", sql);
             return null;
@@ -1083,8 +939,8 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @param sb 脚本缓存
      * @return sql类型，在sb中返回修改后的sql
      */
-    private static SqlType modifyDMLSql(String sql, String now, StringBuilder sb) {
-        String s = clean(sql);
+    private static SqlType modifyDMLSql(String sql, String now, CharArray sb) {
+        CharArray s = removeComment(sql);
         SqlType sqType = getSqlType(s);
         if(sqType == SqlType.ERROR) {
             LOG.error("modifyDMLSql,invalid sql `{}`, must start with a valid sql keyword", s);
@@ -1115,17 +971,17 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @param sb 存放修改内容的内存
      * @return 如果sql格式异常，则返回false
      */
-    private static boolean modifyUpdate(String sql, String now, StringBuilder sb) {
-        int pos = findSqlKeyWord(sql, SQL_WHERE, 0, SQL_BRACKETS);
+    private static boolean modifyUpdate(CharArray sql, String now, CharArray sb) {
+        int pos = sql.indexOf(SQL_WHERE, 0, SQL_QUOTATIONS, false);
         if(pos == 0) {
             LOG.error("Update sql can't start with 'where', {}", sql);
             return false;
         }
         if(pos > 0) {
-            sb.append(sql.substring(0, pos))
+            sb.append(sql, 0, pos)
               .append(',').append(SEG_UPDATETIME)
               .append('=').append(now).append(' ')
-              .append(sql.substring(pos));
+              .append(sql, pos);
         } else {
             //没有where的情况下，直接加在最后面
             sb.append(sql).append(',')
@@ -1141,7 +997,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @param sb 存放编辑内容的内存
      * @return 如果sql格式异常则返回false
      */
-    private static boolean modifyDelete(String sql, String now, StringBuilder sb) {
+    private static boolean modifyDelete(CharArray sql, String now, CharArray sb) {
         int pos = findSqlKeyWord(sql, SQL_WHERE);
         if(pos == 0) {
             LOG.error("Delete sql can't start with 'where', {}", sql);
@@ -1149,8 +1005,8 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         }
         if(pos > 0) {
             int end = pos + SQL_WHERE.length + 1;
-            sb.append(sql.substring(0, end)).append('(')
-              .append(sql.substring(end))
+            sb.append(sql, 0, end).append('(')
+              .append(sql, end)
               //防止在同步时，误删后面新增的数据，加上等于，使得可以删除当次请求产生的数据
               //在sqlite单个写入连接的情况下，这样处理没有问题
               //大型数据库支持并发写入，同时写入&删除同一条数据，而同步又不能删除的情况，可以忽略不计
@@ -1171,7 +1027,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
      * @param sb 保存脚本的sb
      * @return 如果sql格式异常，则返回false
      */
-    private static boolean modifyInsert(String sql, String now, StringBuilder sb) {
+    private static boolean modifyInsert(CharArray sql, String now, CharArray sb) {
         if(findSqlKeyWord(sql, SQL_UPDATE_TIME) > 0) {
             sb.append(sql);
             return true; //自带update_time，不必做任何修改
@@ -1182,7 +1038,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
             return modifyInsertSel(sql, now, sb);
         }
 
-        int sqlLen = sql.length();
+        int sqlLen = sql.size();
         int segsEndPos = valsPos - 1; //向回找')'，找到后，添加一个update_time
         while(sql.charAt(segsEndPos) != ')' && segsEndPos > 0){ 
             segsEndPos--;
@@ -1198,7 +1054,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         boolean inQuot = false;
         int valCount = 0;
         
-        sb.append(sql.substring(0, segsEndPos))
+        sb.append(sql, 0, segsEndPos)
          .append(',').append(SEG_UPDATETIME).append(") values");
 
         /*
@@ -1232,7 +1088,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         return true;
     }
     
-    private static boolean modifyInsertSel(String sql, String now, StringBuilder sb) {
+    private static boolean modifyInsertSel(CharArray sql, String now, CharArray sb) {
         int selPos = findSqlKeyWord(sql, SQL_SELECT);
         if(selPos <= 0) {
             LOG.error("Invalid replace/insert-select sql, no select, {}", sql);
@@ -1252,27 +1108,28 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         
         int fromPos = findSqlKeyWord(sql, SQL_FROM, selPos);
         
-        sb.append(sql.substring(0, segsEndPos)).append(',')
+        sb.append(sql, 0, segsEndPos).append(',')
           .append(SEG_UPDATETIME);
         if(fromPos <= 0) {
-            sb.append(sql.substring(segsEndPos))
+            sb.append(sql, segsEndPos)
               .append(',').append(now);
         } else {
-            sb.append(sql.substring(segsEndPos, fromPos))
+            sb.append(sql, segsEndPos, fromPos)
               .append(',').append(now).append(' ')
-              .append(sql.substring(fromPos));
+              .append(sql, fromPos);
         }
         
         return true;
     }
     
     public static String addInsertIgnore(String sql) {
-        int pos = findSqlKeyWord(sql, SQL_INSERTIGNORE);
+        CharArray ca = removeComment(sql);
+        int pos = findSqlKeyWord(ca, SQL_INSERTIGNORE);
         if(pos > 0) {
-            return sql;
+            return ca.toString();
         }
-        pos = findSqlKeyWord(sql, SQL_INTO);
-        return sql.substring(0, pos) + SQL_SINSERTIGNORE + sql.substring(pos);
+        pos = findSqlKeyWord(ca, SQL_INTO);
+        return ca.substring(0, pos) + SQL_SINSERTIGNORE + ca.substring(pos);
     }
 
     private static final Pattern SQL_CREATE_TABLE = Pattern.compile("(?is)^create\\s+table.+$");
@@ -1294,7 +1151,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
          *  update_time主要用途是在同步时，避免delete语句删除了错误的记录，
          *  或者update语句执行了过时的更新
          */
-        String s = removeComment(sql);
+        CharArray s = removeComment(sql);
         int pos = s.indexOf('(') + 1;
         return s.substring(0, pos) + '\n'
                 + SEG_UPDATETIME + " bigint(8) NOT NULL,"
@@ -1322,44 +1179,6 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
             }
         }
         return sql.substring(start, end);
-    }
-    
-    public static String removeComment(String sql) {
-        StringBuilder sb = new StringBuilder(sql.length());
-        int len = sql.length();
-        boolean inStr = false;
-        boolean inComment = false;
-        char ch;
-
-        for(int i = 0; i < len; i++) {
-            ch = sql.charAt(i);
-            if(inComment) { //注释中的，直接丢弃
-                if(ch == '\n') {
-                    inComment = false;
-                    sb.append(ch);
-                }
-                continue;
-            }
-
-            if(ch == '\'') {
-                inStr = !inStr;
-            }
-
-            if(inStr) { //在字符串中的直接copy，一直到字符串结尾，字符串中不判断注释
-                sb.append(ch);
-                continue;
-            }
-
-            if(ch == '-') {
-                if(i < len - 1 && sql.charAt(i + 1) == '-') {
-                    inComment = true;
-                    continue;
-                }
-            }
-
-            sb.append(ch);
-        }
-        return sb.toString();
     }
     //-------------------------------------------------------------------------
     /**

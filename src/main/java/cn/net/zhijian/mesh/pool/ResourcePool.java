@@ -47,7 +47,7 @@ public class ResourcePool<T extends AbsResource> implements Closeable {
             LOG.debug("Create ResourcePool {}, poolSize:{}", name, poolSize);
         }
         this.factory = factory;
-        for(int i = 0; i < poolSize; i++) { //提前建好连接
+        for(int i = 0; i < poolSize; i++) { //提前建好资源池
             T res = factory.create();
             res.setPool(this);
             this.resources.add(res);
