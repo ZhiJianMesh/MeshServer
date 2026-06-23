@@ -132,7 +132,7 @@ public class CodebookTokenWorker implements ITokenWorker {
      * @return 多个密码本，之间使用逗号分隔
      */
     public static String generateCodebooks(int num) {
-        StringBuilder sb = new StringBuilder(4096);
+        StringBuilder sb = new StringBuilder(num  * (4096 * 8 / 6 + 1));
         for(int i = 0; i < num; i++) {
             String codebook = ByteUtil.bin2base64(ByteUtil.generate(4096));
             if(i > 0) {

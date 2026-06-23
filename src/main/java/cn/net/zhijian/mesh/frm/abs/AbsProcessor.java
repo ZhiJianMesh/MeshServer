@@ -354,7 +354,7 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
         if(elements == null || elements.length == 0) {
             return null;
         }
-        StringBuilder script = new StringBuilder(4096);
+        StringBuilder script = new StringBuilder(512);
         for (ScriptElement se : elements) {
             script.append(se.run(req, resp));
         }

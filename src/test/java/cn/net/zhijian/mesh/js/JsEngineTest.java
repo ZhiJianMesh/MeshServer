@@ -105,7 +105,7 @@ public class JsEngineTest extends UnitTestBase {
         s = JsEngine.getString(js);
         assertEquals(s, INJECTED_SQL);
 
-        js = "DB.sql(\"delete from user where account='a'  OR  12 = 12 and pwd='123'\")";
+        js = "DB.sql(\"delete from user where account='a' \n OR  12 = 12 and pwd='123'\")";
         s = JsEngine.getString(js);
         assertEquals(s, INJECTED_SQL);
 
@@ -232,21 +232,21 @@ public class JsEngineTest extends UnitTestBase {
         String js;
         int N=100;
         HandleResult hr = null;
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         for(int i = 0; i < N; i++) {
             js = "(function(){return Mesh.success({})})()";
             hr = JsEngine.getHandleResult(js);
         }
-        long end = System.currentTimeMillis();
+        long end = System.nanoTime();
         assertTrue(hr != null && hr.code == RetCode.OK);
-        System.out.println("speed1(auto executed):" + (1000L*N/(end - start)));
-        start = System.currentTimeMillis();
+        System.out.println("speed1(auto executed):" + (1000000000L*N/(end - start)));
+        start = System.nanoTime();
         for(int i = 0; i < N; i++) {
             js = "Mesh.success({})";
             hr = JsEngine.getHandleResult(js);
         }
-        end = System.currentTimeMillis();
-        System.out.println("speed2(normal):" + (1000L*N/(end - start)));
+        end = System.nanoTime();
+        System.out.println("speed2(normal):" + (1000000000L*N/(end - start)));
         assertTrue(hr != null && hr.code == RetCode.OK);
     }
     

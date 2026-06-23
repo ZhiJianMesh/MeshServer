@@ -264,14 +264,11 @@ public final class TreeDBWorker extends AbsDBWorker {
                     return cur; //原值与数据库不一致，则直接返回数据库中的值
                 }
             }
-            StringBuilder sb = new StringBuilder(4096);
-            
-            sb.append(SQL_WRITEITEM_PREFIX).append(fid).append(",'");
-            StringUtil.replaceChars(name, '\'', "''", sb);
-            sb.append("','");
-            StringUtil.replaceChars(val, '\'', "''", sb);
-            sb.append("',").append(ut).append(')');
-            sql = sb.toString();
+            sql = SQL_WRITEITEM_PREFIX + fid + ",'"
+                + name.replace("'", "''")
+                + "','"
+                + val.replace("'", "''")
+                + "'," + ut + ')';
             
             rdb.executeRawDML(conn, sql);
             execOk = true;
@@ -436,7 +433,6 @@ public final class TreeDBWorker extends AbsDBWorker {
         
         boolean execOk = false;
         AbsConnection conn = null;
-        StringBuilder sb = new StringBuilder(4096);
         List<String> sqls = new ArrayList<>(val.size());
 
         try {
@@ -451,15 +447,11 @@ public final class TreeDBWorker extends AbsDBWorker {
                 }
                 String v = ValParser.parseString(e.getValue());
                 
-                sb.delete(0, sb.length());
-                sb.append(SQL_WRITEITEM_PREFIX).append(fid).append(",'");
-                StringUtil.replaceChars(name, '\'', "''", sb);
-                sb.append("','");
-                StringUtil.replaceChars(v, '\'', "''", sb);
-                sb.append("',").append(ut).append(')');
-                
-                String sql = sb.toString();
-                
+                String sql = SQL_WRITEITEM_PREFIX + fid + ",'"
+                           + name.replace("\'", "''")
+                           + "','"
+                           + v.replace("\'", "''")
+                           + "'," + ut + ')';
                 sqls.add(sql);
                 rdb.executeRawDML(conn, sql);
             }
@@ -486,13 +478,12 @@ public final class TreeDBWorker extends AbsDBWorker {
     private static final String SQL_WRITEITEM_PREFIX = "replace into " + TABLE_ITEM 
             + "(fid,name,val," + SEG_UPDATETIME + ") values(";
     private DBResultCode writeItem(long fid, String name, String v, long ut) {
-        StringBuilder sb = new StringBuilder(4096);
-        sb.append(SQL_WRITEITEM_PREFIX).append(fid).append(",'");
-        StringUtil.replaceChars(name, '\'', "''", sb);
-        sb.append("','");
-        StringUtil.replaceChars(v, '\'', "''", sb);
-        sb.append("',").append(ut).append(')');
-        return execute(sb.toString());
+        String sql = SQL_WRITEITEM_PREFIX + fid + ",'"
+                   + name.replace("\'", "''")
+                   + "','"
+                   + v.replace("\'", "''")
+                   + "'," + ut + ')';
+        return execute(sql);
     }
     
     private DBResultCode execute(String sql) {
@@ -797,13 +788,11 @@ public final class TreeDBWorker extends AbsDBWorker {
             LOG.debug("Dir {} already exists", dir);
             return DBResultCode.OK; // don't care, just return OK
         }
-        StringBuilder sb = new StringBuilder(4096);
-        sb.append(SQL_INSERTDIR_PREFIX)
-          .append(fid).append(',').append(id).append(",'");
-        StringUtil.replaceChars(fullDir, '\'', "''", sb);
-        sb.append("',").append(ut).append(')');
-
-        return execute(sb.toString());
+        String sql = SQL_INSERTDIR_PREFIX
+                   + fid + ',' + id + ",'"
+                   + fullDir.replace("\'", "''")
+                   + "'," + ut + ')';
+        return execute(sql);
     }
 
     /**

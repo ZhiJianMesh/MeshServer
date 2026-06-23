@@ -435,7 +435,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
             s = sqls.get(0);//不可改变其内容
         } else {
             int count = 0;
-            StringBuilder sb = new StringBuilder(4096);
+            StringBuilder sb = new StringBuilder(512);
 
             for(String sql : sqls) {
                 if(sql == null) {

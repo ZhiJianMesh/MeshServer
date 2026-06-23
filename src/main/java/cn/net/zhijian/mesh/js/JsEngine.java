@@ -49,7 +49,7 @@ public final class JsEngine {
     public static void destroyContext() {
         QuickJSContext ctx = threadContext.get(); //每个线程的js会话是分开的
         if(ctx != null) {
-            threadContext.set(null);
+            threadContext.remove();
             ctx.close();
         }
     }

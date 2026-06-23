@@ -247,7 +247,7 @@ public class PartitionConfig {
     
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(4096);
+        StringBuilder sb = new StringBuilder(1024);
         sb.append("{\n\"").append(SEG_PARTITION).append("\":").append(partition)
           .append(",\n\"").append(SEG_FILECACHETIME).append("\":").append(fileCacheTime)
           .append(",\n\"").append(SEG_INCLOUD).append("\":\"").append(isInCloud)

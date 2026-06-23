@@ -55,7 +55,7 @@ public final class RDBHandler extends DBHandlerBase {
         Map<String, Object> params = req.params();
         String dbName = ValParser.getAsStr(params, DB_REQ_DB);
         String service = req.token().caller;
-        
+
         AbsRDBWorker db = AbsRDBWorker.instance(req.cid(), service, dbName);
         if(db == null) {
             int dbNo = ValParser.getAsInt(params, DB_REQ_DBNO, -1);

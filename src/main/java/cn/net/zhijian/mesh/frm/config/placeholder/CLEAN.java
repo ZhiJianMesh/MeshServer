@@ -22,7 +22,7 @@ final class CLEAN extends ScriptElement {
     @Override
     public Object run(AbsServerRequest req, Map<String, Object> resp) {
         Object v = paras[0].get(req, resp);
-        StringBuilder sb = new StringBuilder(4096);
+        StringBuilder sb = new StringBuilder(1024);
         objToStr(v, sb);
         return convertQuotes(sb.toString());
     }

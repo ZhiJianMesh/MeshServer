@@ -68,20 +68,27 @@ public abstract class AbsDBWorker implements IDBConst {
     public static final String PLACEHOLDER_START = "@[";
     public static final char PLACEHOLDER_END = ']';
     
-    static final char[][] DangerWords = new char[][] {
+    private static final char[][] DangerWords = new char[][] {
         "drop".toCharArray(),
         "alter".toCharArray(),
         "create".toCharArray(),
         "truncate".toCharArray(),
-        //注释也作为注入威胁，防止传入"'...' --"这样的内容，直接忽略后面的逻辑判断
+        "grant".toCharArray(), //调整权限
+        //注释也作为注入威胁，防止传入"'...' --"，直接忽略后面的逻辑判断
         "--".toCharArray(),
-        "//".toCharArray()
+        "//".toCharArray(),
+        "/*".toCharArray()
+    };
+    
+    private static final char[][] DangerWordsAfterStr = new char[][] {
+        //先用单引号截断字符串，再在后面加恒等判断
+        //如果确实需要这样的判断，需要调整一下顺序，让or前面不出现单引号
+        " or ".toCharArray(),
+        " || ".toCharArray(),
+        " union select ".toCharArray()
     };
    
-    private static final char[] SQL_OR = " or ".toCharArray();
     protected static final char[] SQL_QUOTATIONS = new char[] {SQL_QUOTE, SQL_QUOTE};
-    private static final char[] SymbolEqual = new char[] {'='};
-    private static final char[] SymbolBlank = new char[] {' '};
     
     public static boolean isWriteTreeDBAct(String act) {
         return WRITE_ACTS.contains(act);
@@ -242,38 +249,21 @@ public abstract class AbsDBWorker implements IDBConst {
      */
     public static boolean isSqlInjected(String sql) {
         CharArray ca = removeBlanks(sql);
-        int pos = ca.indexOf(DangerWords, 0, SQL_QUOTATIONS, false);
-        if(pos >= 0) {// 存在危险关键字
+        //只要有危险关键字，则认为有sql注入，对or的判断存在误杀
+        if(ca.indexOf(DangerWords, 0, SQL_QUOTATIONS, false) >= 0) {
             return true;
         }
-
-        int idx, end;
-        String s1, s2;
-        
-        //寻找 or 后面的恒等式
-        pos = ca.indexOf(SQL_OR, 0, SQL_QUOTATIONS, false);
-        while(pos > 0) { //寻找恒真的条件
-            pos += SQL_OR.length;
-            idx = ca.indexOf(SymbolEqual, pos, SQL_QUOTATIONS, false);//不用String.indexOf，防止出现'=' = '='
-            if(idx < 0) {
-                break;
+        for(char[] s : DangerWordsAfterStr) {
+            int pos = 0;
+            int len = s.length;
+            while((pos = ca.indexOf(s, pos, SQL_QUOTATIONS, false)) > 0) {
+                //前面是单引号，则认为是sql注入，存在误杀的可能性
+                if(ca.charAt(pos - 1) == SQL_QUOTE) {
+                    return true;
+                }
+                pos += len;
             }
-            s1 = ca.substring(pos, idx).trim();
-            idx++;
-            while(ca.charAt(idx) == ' ') { //忽略紧跟在等号后面的空格
-                idx++;
-            }
-            end = ca.indexOf(SymbolBlank, idx, SQL_QUOTATIONS, false);
-            if(end < 0) {
-                end = ca.size();
-            }
-            s2 = ca.substring(idx, end).trim();
-            if(s1.equals(s2)) {
-                return true;
-            }
-            pos = ca.indexOf(SQL_OR, end, SQL_QUOTATIONS);
         }
-
         return false;
     }
     
@@ -294,6 +284,7 @@ public abstract class AbsDBWorker implements IDBConst {
             if(ch == SQL_QUOTE) {
                 inStr = !inStr;
                 ca.append(ch);
+                isBlank = false;
                 continue;
             }
             

@@ -40,24 +40,23 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
          * create virtual table if not exists __docs__ using fts4
          * (cls,did,title,summary,content,update_time,tokenize=porter)
          */
-        StringBuilder builder = new StringBuilder(4096)
-           .append("create virtual table if not exists ")
-           .append(SEARCH_DOCS).append(" using fts4(")
-           .append(SEG_TABLE).append(',')
-           .append(SEG_DID).append(',')
-           .append(SEARCH_SEG_TITLE).append(',')
-           .append(SEARCH_SEG_SUMMARY).append(',')
-           .append(SEARCH_SEG_CONTENT).append(',')
-           .append(SEG_UPDATETIME)//update_time字段只是用来分析使用，无特殊含义
-           .append(",tokenize=porter)");
-        String sql =  builder.toString();
+        String sql = "create virtual table if not exists "
+           + SEARCH_DOCS + " using fts4("
+           + SEG_TABLE + ','
+           + SEG_DID + ','
+           + SEARCH_SEG_TITLE + ','
+           + SEARCH_SEG_SUMMARY + ','
+           + SEARCH_SEG_CONTENT + ','
+           + SEG_UPDATETIME //update_time字段只是用来分析使用，无特殊含义
+           + ",tokenize=porter)";
+
         try(AbsConnection conn = rdb.getWriteConn()){
             rdb.executeRawDDL(conn, sql);
         } catch (SQLException e) {
-            LOG.error("Fail to execute {}", builder, e);
+            LOG.error("Fail to execute {}", sql, e);
             throw e;
         } catch (MeshException e) {
-            LOG.error("Fail to execute {}, io error", builder, e);
+            LOG.error("Fail to execute {}, io error", sql, e);
         } finally {
             rdb.sync(sql); //无论成功与否，都同步
         }
@@ -160,17 +159,16 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
     
     private boolean putDocument(AbsConnection conn, String table, String did, String title, String summary, String content) {
         int count = 0;
-        StringBuilder sql = new StringBuilder(4096)
-                .append("insert into ").append(SEARCH_DOCS)
-                .append('(').append(SEG_TABLE)
-                .append(',').append(SEG_DID)
-                .append(',').append(SEG_UPDATETIME);
-        StringBuilder values = new StringBuilder(4096).append("'")
+        String sql = "insert into " + SEARCH_DOCS
+                + '(' + SEG_TABLE
+                + ',' + SEG_DID
+                + ',' + SEG_UPDATETIME;
+        StringBuilder values = new StringBuilder("'")
                 .append(table).append("','").append(did)
                 .append("','").append(System.currentTimeMillis()).append('\'');
 
         if(title != null) {
-            sql.append(',').append(SEARCH_SEG_TITLE);
+            sql += ',' + SEARCH_SEG_TITLE;
             values.append(",'");
             splitWords(title, values);
             values.append('\'');
@@ -178,7 +176,7 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
         }
 
         if(summary != null) {
-            sql.append(',').append(SEARCH_SEG_SUMMARY);
+            sql += ',' + SEARCH_SEG_SUMMARY;
             values.append(",'");
             splitWords(summary, values);
             values.append('\'');
@@ -186,7 +184,7 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
         }
 
         if(content != null) {
-            sql.append(',').append(SEARCH_SEG_CONTENT);
+            sql += ',' + SEARCH_SEG_CONTENT;
             values.append(",'");
             splitWords(content, values);
             values.append('\'');
@@ -195,12 +193,11 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
         if(count == 0) {
             return true;
         }
-        sql.append(") values(").append(values).append(')');
-        String sqlStr = sql.toString();
+        sql += ") values(" + values.toString() + ')';
         if(LOG.isDebugEnabled()) {
-            LOG.debug("putDocument:{}", sqlStr);
+            LOG.debug("putDocument:{}", sql);
         }
-        return execute(conn, sqlStr) >= 0;
+        return execute(conn, sql) >= 0;
     }
 
     /**
@@ -214,7 +211,7 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
      * @return 数据id列表
      */
     List<Object> getDocuments(String table, int limit, String[] args) {
-        StringBuilder sb = new StringBuilder(4096);
+        StringBuilder sb = new StringBuilder(1024);
 
         sb.append("select ").append(SEG_DID).append(" from ").append(SEARCH_DOCS)
           .append(" where ").append(SEARCH_DOCS).append(" match('")

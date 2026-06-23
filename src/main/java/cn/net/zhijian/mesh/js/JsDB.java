@@ -26,4 +26,9 @@ public final class JsDB {
         return "{\"" + HandleResult.CODE + "\":" + code
                 + ",\"" + HandleResult.INFO + "\":\"" + info +"\"}";
     }
+    
+    @JavascriptMethod
+    public String clearInjection(String s) {
+        return s.replace("\'", "''"); //将单引号替换为两个单引号，阻止注入
+    }
 }

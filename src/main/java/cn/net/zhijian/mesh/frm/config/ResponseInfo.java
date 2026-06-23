@@ -22,6 +22,7 @@ import cn.net.zhijian.mesh.frm.config.placeholder.ScriptElement;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.frm.intf.IThreadPool;
 import cn.net.zhijian.mesh.js.JsEngine;
+import cn.net.zhijian.util.CharArray;
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.HttpUtil;
 import cn.net.zhijian.util.LogUtil;
@@ -154,7 +155,7 @@ public final class ResponseInfo {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(4096);
+        CharArray sb = new CharArray(1024);
         sb.append("{");
         if(segments != null) {
             sb.append("\"").append(PROPERTY_CHECK).append("\":[");
@@ -169,7 +170,7 @@ public final class ResponseInfo {
             sb.append("],");
         }
         sb.append("\"").append(PROPERTY_CHECK).append("\":")
-          .append(check).append(',');
+          .append(check ? "true" : "false").append(',');
         sb.append("}");
         return sb.toString();
     }

@@ -23,7 +23,7 @@ public class Codebook extends AbsCommand {
             pwd = args[1].getBytes();
         } 
         
-        StringBuilder sb = new StringBuilder(4096 * num + num);//book1,book2,...
+        StringBuilder sb = new StringBuilder((4096 * 8 / 6 + 1) * num);//book1,book2,...
         for(int i = 0; i < num; i++) {
             codebook = ByteUtil.generate(4096);
             if(pwd != null) {

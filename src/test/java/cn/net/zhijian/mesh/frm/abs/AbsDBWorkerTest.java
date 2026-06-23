@@ -50,7 +50,7 @@ public class AbsDBWorkerTest extends UnitTestBase {
     public void testRemoveSqlBlanks() {
         String sql = "select a,b,c,\n\r'  '   from table \r\n where a=1 \t";
         CharArray s =  AbsDBWorker.removeBlanks(sql);
-        assertEquals(s.toString(), "select a,b,c,'  ' from table where a=1");
+        assertEquals(s.toString(), "select a,b,c, '  ' from table where a=1");
     }
     
     @Test
@@ -74,10 +74,13 @@ public class AbsDBWorkerTest extends UnitTestBase {
         sql = "update orders set cmt='test',price=1 where id='1' or 1=1";
         assertTrue(AbsDBWorker.isSqlInjected(sql));
 
-        sql = "update orders set cmt='test',price=1 where id='1' or '=' = '='";
+        sql = "update orders set cmt='test',price=1 where id='1'  or '=' = '='";
         assertTrue(AbsDBWorker.isSqlInjected(sql));
         
-        sql = "update orders set cmt='test',price=1 where id='1' or '='='='";
+        sql = "update orders set cmt='test',price=1 where id='1'\t\n OR '='='='";
+        assertTrue(AbsDBWorker.isSqlInjected(sql));
+
+        sql = "update orders set cmt='test',price=1 where id='1'\t\n || 2=1+1";
         assertTrue(AbsDBWorker.isSqlInjected(sql));
 
         sql = "update orders set cmt='test',price=1 where id='1' -- and price>10";

@@ -293,7 +293,7 @@ public final class RequestInfo {
         }
         
         private static String compile(AbsServerRequest req, Map<String, Object> resp, ScriptElement[] elements) {
-            StringBuilder str = new StringBuilder(4096);
+            StringBuilder str = new StringBuilder(1024);
 
             for (ScriptElement se : elements) {
                 Object o = se.run(req, resp);

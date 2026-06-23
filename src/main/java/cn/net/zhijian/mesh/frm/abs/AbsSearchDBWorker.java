@@ -179,7 +179,7 @@ public abstract class AbsSearchDBWorker extends AbsDBWorker {
      */
     protected boolean updateDocument(AbsConnection conn, String docid, String title, String summary, String content) {
         int count = 0;
-        StringBuilder sql = new StringBuilder(4096)
+        StringBuilder sql = new StringBuilder(1024)
             .append("update ")
             .append(SEARCH_DOCS).append(" set ")
             .append(SEG_UPDATETIME).append("='")

@@ -506,7 +506,7 @@ public final class ServiceInfo {
     }
 
     private String toAppString() {
-        StringBuilder sb = new StringBuilder(4096);
+        StringBuilder sb = new StringBuilder(1024);
         sb.append("{\"").append(CFG_AUTHOR).append("\":\"").append(this.author)
           .append("\",\"").append(CFG_VER).append("\":\"").append(StringUtil.intToVer(this.version))
           .append("\",\"").append(CFG_NAME).append("\":\"").append(this.name)
@@ -933,7 +933,7 @@ public final class ServiceInfo {
         List<CompletableFuture<HandleResult>> actions = new ArrayList<>();
         Map<String, HandleResult> results = new HashMap<>();
         LOG.info("Create {}'s db of cid({}) in partition {}", this.name, cid, partId);
-        StringBuilder dbs = new StringBuilder(4096);
+        StringBuilder dbs = new StringBuilder(512);
         
         /*
          *dbDefines:[
