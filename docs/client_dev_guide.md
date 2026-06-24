@@ -203,7 +203,7 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 <-- 避免加载favicon -->
 <link rel="icon" href="data:image/ico;base64,aWNv">
 <-- 如果使用quasar，则必须加载以下两个css -->
-<link href="/assets/v3/quasar\_font.css" rel="stylesheet" type="text/css">
+<link href="/assets/v3/quasar_font.css" rel="stylesheet" type="text/css">
 <link href="/assets/v3/quasar.css" rel="stylesheet" type="text/css">
 <title>CRM</title>
 </head>
@@ -226,10 +226,10 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 import Language from "./language.js"
 //延迟加载，引入公共组件，这样import可以兼容安卓7
 //如果不考虑兼容android 7，则可以按需加载，在VueRouter.createRouter的routes中直接import
-import DateInput from "/assets/v3/components/date\_input.js"
-import UserSelector from "/assets/v3/components/user\_selector.js"
-import AlertDialog from "/assets/v3/components/alert\_dialog.js"
-import ConfirmDialog from "/assets/v3/components/confirm\_dialog.js"
+import DateInput from "/assets/v3/components/date_input.js"
+import UserSelector from "/assets/v3/components/user_selector.js"
+import AlertDialog from "/assets/v3/components/alert_dialog.js"
+import ConfirmDialog from "/assets/v3/components/confirm_dialog.js"
 const l=(typeof os)=='undefined' ? navigator.language : os.language();
 const tags = l.indexOf("zh") == 0 ? Language.cn : Language.en;
 //router定义
@@ -243,7 +243,7 @@ const router = VueRouter.createRouter({"history": VueRouter.createMemoryHistory(
 
 //service定义
 const service = {
-	go\_back() { //返回，在页面中通过service.go\_back调用
+	go_back() { //返回，在页面中通过service.go_back调用
 		router.back();
 	},
 	jumpTo(url) {
@@ -260,7 +260,7 @@ created(){
 },
 
 mounted() {
-	window.sys\_go\_back = this.sysGoBack;//给webview调用
+	window.sys_go_back = this.sysGoBack;//给webview调用
 },
 
 methods:{
@@ -415,7 +415,7 @@ opts中，除了支持request的所有选项外，还需要增加一个file\_nam
 
 如果不是通过接口访问获得文件，还可以增加一个file参数，设为true时，使用的url中将不会携带api。 其他参数与request完全相同。
 ```JavaScript
-download({file\_name: fn,/\*attatchment\*/ url:'/downloadlog?n=' + encodeURIComponent(f)}, "crm").then(resp => {
+download({file_name: fn,/*attatchment*/ url:'/downloadlog?n=' + encodeURIComponent(f)}, "crm").then(resp => {
 	Console.debug(JSON.stringify(resp));
 	if(resp.code == RetCode.OK) {
 		this.dlList.splice(0, 0, {file:resp.data.saveAs, size:resp.data.size, bg:'#00000000'})
@@ -552,7 +552,7 @@ Database.queryMaps(db, "select c1,c2 from testtab where ...").then(res=>{
 
 ### 扫码案例
 ```JavaScript
-var jsCbId=\_\_regsiterCallback(resp => {
+var jsCbId=__regsiterCallback(resp => {
 	if(resp.code!=RetCode.OK) {
 		this.$refs.alertDlg.showErr(resp.code, resp.info);
 		return;
@@ -596,10 +596,10 @@ showQrCode() {
 
 首先，在UI实现时先import它们，比如：
 ```JavaScript
-import DateInput from "/assets/v3/components/date\_input.js"
-import UserSelector from "/assets/v3/components/user\_selector.js"
-import AlertDialog from "/assets/v3/components/alert\_dialog.js"
-import ConfirmDialog from "/assets/v3/components/confirm\_dialog.js"
+import DateInput from "/assets/v3/components/date_input.js"
+import UserSelector from "/assets/v3/components/user_selector.js"
+import AlertDialog from "/assets/v3/components/alert_dialog.js"
+import ConfirmDialog from "/assets/v3/components/confirm_dialog.js"
 ```
 
 其次，在app.mount('#app')之前将这些组件都注册进去
@@ -677,7 +677,7 @@ this.$refs.errMsg.show(info)
 
 如果是在其他组件中引用本组件，可以参照以下方法，首先引入本组件：
 ```JavaScript
-import AlertDialog from "/assets/v3/components/alert\_dialog.js"
+import AlertDialog from "/assets/v3/components/alert_dialog.js"
 ```
 然后，在组件中注册组件：
 ```JavaScript
@@ -727,16 +727,6 @@ this.$refs.errMsg.showErr(errCode, errInfo);
 | weekDays | 从星期天到星期六，每天的名称，字符串数组类型，默认为["日","一","二","三","四","五","六"] |
 | months | 从1月到12月，每月的名称，字符串数组类型，默认为["一月","二月",...] |
 | close | 关闭按钮的标签，字符串类型，默认为“关闭” |
-
-### grp\_selector
-
-群组选择输入框。调用企业用户服务中的群组接口，选择一个群组，支持对群组名称模糊搜索，并列出搜索结果供选择。支持以下属性：
-
-| 属性名称 | 备注 |
-| --- | --- |
-| label | 输入框的标题，字符串类型 |
-| useid | 是否返回群组id，布尔类型，默认为false，返回群组名称，否则返回群组id |
-| grp | 群组，字符串类型 |
 
 ### user\_selector
 
@@ -806,7 +796,7 @@ this.$refs.errMsg.showErr(errCode, errInfo);
 
 需要显示进度条时，引用ref，调用show函数：
 ```JavaScript
-this.$refs.procDlg.show('数据备份', '确定要执行备份吗？', 'cloud\_download',
+this.$refs.procDlg.show('数据备份', '确定要执行备份吗？', 'cloud_download',
 	(dlg)=> {
 		dlg.setInfo('');
 		return this.service.command({cmd:"restore"}, 100000); //必须为异步函数

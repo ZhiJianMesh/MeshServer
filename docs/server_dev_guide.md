@@ -16,9 +16,9 @@
 
 # 摘要
 
-至简网格是一款HTTP服务器，用于开发基于数据库的端云结合的服务程序，可以运行在资源极其有限的设备上，比如安卓手机、树莓派等，使得服务器可以尽量前移到生产端，可以运用于边沿计算、企业生产信息化、办公自动化等，
+至简网格是一款基于HTTP协议的通用业务服务器，用于开发基于数据库的端云结合的服务程序，服务程序可以运行在资源极其有限的设备上，比如安卓手机、树莓派等，使得服务器可以尽量前移到生产端，可以运用于边沿计算、企业信息化、办公自动化等场景。
 
-它致力于简化开发、部署与运维工作；通过简单的配置即可实现数据库、接口开发；内置可靠性、安全性实现，业务开发无需过多关注；单例模式可以安装在一个安卓手机上，同时，集群模式可以跨实例、跨机房、跨城市部署。
+它致力于简化开发、部署与运维工作；通过简单的配置即可实现数据库、接口开发；内置了可靠性、安全性能力，业务开发无需过多关注；具备伸缩能力，单例模式可以安装在一部老旧的安卓手机上；集群模式可以跨实例、跨机房、跨城市部署。
 
 本文主要用于指导至简网格服务端程序开发，包括数据库定义、接口定义等。
 
@@ -124,20 +124,20 @@
 
 service.cfg配置非常简单，格式如下：
 ```JSON
-    {
-        "author":"flyinmind@zhijian.net.cn", //作者
-        "company" : "zhijian.net.cn", //公司或组织名称
-        "version":"0.1.0", //版本号
-        "dependencies":[
-            //依赖的服务列表，如果不申明，就不能调用这个服务
-            //webdb、bios、oauth等服务无需申明依赖
-            //安卓等平台的单例版本，会根据此处的定义自动添加服务依赖
-            //非单例版本，需要在OM平台上设置依赖关系
-            {"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1"}
-        ],
+{
+	"author":"flyinmind@zhijian.net.cn", //作者
+	"company" : "zhijian.net.cn", //公司或组织名称
+	"version":"0.1.0", //版本号
+	"dependencies":[
+		//依赖的服务列表，如果不申明，就不能调用这个服务
+		//webdb、bios、oauth等服务无需申明依赖
+		//安卓等平台的单例版本，会根据此处的定义自动添加服务依赖
+		//非单例版本，需要在OM平台上设置依赖关系
+		{"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1"}
+	],
 
-        "displayName":"客户关系管理系统" //对外显示的名称
-    }
+	"displayName":"客户关系管理系统" //对外显示的名称
+}
 ```
 
 配置中没有name这样的配置，因为服务的name就是工程的目录名称。
@@ -146,45 +146,44 @@ service.cfg配置非常简单，格式如下：
 
 database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但是必须在此申明。在单例模式（比如在安卓服务器中）运行时，至简网格会自动执行database中的建库、建表操作，根据服务器已有的数据版本，执行对应版本的升级操作。
 ```JSON
-    [
-        {
-            "name":"crm", //库名称
-            "version":"0.2.0", //版本号
-            "type":"rdb", //类型，有rdb（关系型数据库）、tdb（树形数据库）、sdb（搜索数据库）
-            "versions":[
-                {
-                    //minVer与maxVer指定了最小、最大可执行版本
-                    //如果运行中的数据库版本不在此范围内，sqls中的sql不会执行
-                    "minVer":"0.0.0",
-                    "maxVer":"0.1.0",
-                    "toVer":"0.2.0", //升级后的数据库版本号
-                    "sqls":[
-                        //建表或升级sql，一个字符串，字符串中可以换行，可以有多条sql
-                        "create table if not exists orders ( -- 订单信息
-                            id int not null primary key, -- seq\_id
-                            ...
-                        )"
-                    ]
-                },
-                {
-                    //另一个版本的初始或升级脚本
-                }
-            ]
-        },
+[
+	{
+		"name":"crm", //库名称
+		"version":"0.2.0", //版本号
+		"type":"rdb", //类型，有rdb（关系型数据库）、tdb（树形数据库）、sdb（搜索数据库）
+		"versions":[
+			{
+				//minVer与maxVer指定了最小、最大可执行版本
+				//如果运行中的数据库版本不在此范围内，sqls中的sql不会执行
+				"minVer":"0.0.0",
+				"maxVer":"0.1.0",
+				"toVer":"0.2.0", //升级后的数据库版本号
+				"sqls":[
+					//建表或升级sql，一个字符串，字符串中可以换行，可以有多条sql
+					"create table if not exists orders ( -- 订单信息
+						id int not null primary key, -- seq_id
+						...
+					)"
+				]
+			},
+			{
+				//另一个版本的初始或升级脚本
+			}
+		]
+	},
 
-        {
-            "name":"crm", //searchdb的名称，与rdb同名，表示与rdb在同一个库中
-            "type":"sdb"
-        },
+	{
+		"name":"crm", //searchdb的名称，与rdb同名，表示与rdb在同一个库中
+		"type":"sdb"
+	},
 
-        {
-            //treedb的名称，与rdb同名，表示与rdb在同一个库中
-            //与rdb共库的情况，需要表名不能有dir、item，否则会造成表名冲突
-            "name":"crm",
-            "type":"tdb"
-        }
-
-    ]
+	{
+		//treedb的名称，与rdb同名，表示与rdb在同一个库中
+		//与rdb共库的情况，需要表名不能有dir、item，否则会造成表名冲突
+		"name":"crm",
+		"type":"tdb"
+	}
+]
 ```
 如果数据库只用在当前实例，每个服务实例上的数据是独立的（比如地址查询，每个实例都有完整的地址信息记录），无需同步、备份，这种数据库可以用database.loc.cfg定义，定义方法与database.cfg完全相同。
 
@@ -192,42 +191,42 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 接口定义文件分成3类，扩展名分别为cfg、json、def。每个”.cfg“文件中，是一个json数组，数组中每个元素定义一个接口。访问时url有接口定义文件以及接口名称共同决定。比如，在接口文件customer.cfg中定义了create接口，则可以通过 "/customer/create" 访问。
 ```JSON
-    [
-        {
-            "name": "create", //接口名称
-            "method":"POST", //调用的method，如果调用方使用的method错误，会返回API\_NOT\_FOUND错误
-            "property" : "private", //public或private，private接口必须在请求头中携带服务token才可以访问，
-            "tokenChecker" : "USER", //鉴权类，USER|OAUTH|OM|APP
-            "comment":"创建客户，需要在电子流中审批", //描述
-            "request": [...],
-            "process" : [...],
-            "response":[...]
-        },
-        ...
-    ]
+[
+	{
+		"name": "create", //接口名称
+		"method":"POST", //调用的method，如果调用方使用的method错误，会返回API_NOT_FOUND错误
+		"property" : "private", //public或private，private接口必须在请求头中携带服务token才可以访问，
+		"tokenChecker" : "USER", //鉴权类，USER|OAUTH|OM|APP
+		"comment":"创建客户，需要在电子流中审批", //描述
+		"request": [...],
+		"process" : [...],
+		"response":[...]
+	},
+	...
+]
 ```
 ## 接口宏定义
 
 ".def"文件定义宏，宏定义只能是process，可以在接口的process里引用它。比如在def文件中定义一个check\_accounts宏：
 ```JSON
-    "check_accounts":{
-        "name":"check\_accounts",
-        "comment":"检查帐号是否都存在",
-        "type" : "call",
-        "service": "user",
-        "method":"POST",
-        "url":"/user/userid",
-        "tokenSign":"OAUTH",
-        "parameters":"{\"accounts\":#ACCLIST#}"
-    }
+"check_accounts":{
+	"name":"check_accounts",
+	"comment":"检查帐号是否都存在",
+	"type" : "call",
+	"service": "user",
+	"method":"POST",
+	"url":"/user/userid",
+	"tokenSign":"OAUTH",
+	"parameters":"{\"accounts\":#ACCLIST#}"
+}
 ```
 
 这个宏可以在接口中多次引用，比如：
 ```JSON
-    "process" : [
-        {"macro": "check\_accounts", "#ACCLIST#":"@{JSON|to,0}"},
-        ...
-    ]
+"process" : [
+	{"macro": "check_accounts", "#ACCLIST#":"@{JSON|to,0}"},
+	...
+]
 ```
 宏可以传递参数，宏参数名称前后要加上“#”，比如上例中的"#ACCLIST#"，这些宏参数最终都转成了字符串替换到宏定义中。
 
@@ -235,14 +234,14 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 ".json"文件是用来定义静态内容的接口，与type为 [static的处理](#static)不同之处在于“这些接口必须public的”。常用在roles接口中，roles接口是定义服务中用户角色的，比如：
 ```JSON
-    {
-        "roles": {
-            "admin":{"name":"企业主","rights":{"sku":"\*","report":"\*","proxy":"\*"}},
-            "sales":{"name":"销售","rights":{}},
-            "finance":{"name":"财务","rights":{"report":"\*"}},
-            "support":{"name":"服务","rights":{}}
-        }
-    }
+{
+	"roles": {
+		"admin":{"name":"企业主","rights":{"sku":"\*","report":"\*","proxy":"\*"}},
+		"sales":{"name":"销售","rights":{}},
+		"finance":{"name":"财务","rights":{"report":"\*"}},
+		"support":{"name":"服务","rights":{}}
+	}
+}
 ```
 
 这样在其他服务中就可以通过调用”/roles“获得服务中支持的角色，以及角色可以执行哪些接口。
@@ -256,32 +255,32 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 服务端开发主要是接口定义，每个接口定义分成5个部分， 基本信息（名称、请求方法、属性、token检查方法、接入检查方法等）、变量定义vars、请求参数request、处理逻辑process、响应体response。总体结构如下：
 ```JSON
-    {
-        "name":"api名称",
-        "method":"可接受的请求方法，不设置表示不限,POST|GET|PUT|DELETE",
-        "property":"属性，private或public",
-        "tokenChecker": "认证方式，property有public时不必设置，[USER,UNIUSER,OAUTH,COMPANY,INIT,MNT,APP,APP-调用方服务名或/*](#服务间认证&鉴权)",
-        "aclChecker": "接入检查，只支持RBAC(Role Based Access Control)或者自定义实现",
-        "sameAs":"如果接口的request、vars、process、response与某个其他的接口完全一致，则可以增加此配置，指定为那个接口的路径，比如与stats.cfg中的report接口相同，则可以写成/stats/report，此时request、vars、process、response不必配置",
-        "feature": "特性，与RBAC配合，用于更加细致的控制[角色授权](#鉴权)",
-        "comment":"描述，用于生成接口描述，可不提供",
+{
+	"name":"api名称",
+	"method":"可接受的请求方法，不设置表示不限,POST|GET|PUT|DELETE",
+	"property":"属性，private或public",
+	"tokenChecker": "认证方式，property有public时不必设置，[USER,UNIUSER,OAUTH,COMPANY,INIT,MNT,APP,APP-调用方服务名或/*](#服务间认证&鉴权)",
+	"aclChecker": "接入检查，只支持RBAC(Role Based Access Control)或者自定义实现",
+	"sameAs":"如果接口的request、vars、process、response与某个其他的接口完全一致，则可以增加此配置，指定为那个接口的路径，比如与stats.cfg中的report接口相同，则可以写成/stats/report，此时request、vars、process、response不必配置",
+	"feature": "特性，与RBAC配合，用于更加细致的控制[角色授权](#鉴权)",
+	"comment":"描述，用于生成接口描述，可不提供",
 
-        "vars":[
-            [变量列表，可以有多个](#vars)，每一个都是json对象
-        ],
+	"vars":[
+		[变量列表，可以有多个](#vars)，每一个都是json对象
+	],
 
-        "request":[
-            [请求参数列表，可以有多个，支持嵌套复杂结构](#请求request)
-        ],
+	"request":[
+		[请求参数列表，可以有多个，支持嵌套复杂结构](#请求request)
+	],
 
-        "process":[
-            [处理逻辑，可以有多个](#处理process)，也可以应用宏定义
-        ],
+	"process":[
+		[处理逻辑，可以有多个](#处理process)，也可以应用宏定义
+	],
 
-        "response":[
-            [响应结果，可以有多个，支持嵌套复杂结构](#响应response)
-        ]
-    }
+	"response":[
+		[响应结果，可以有多个，支持嵌套复杂结构](#响应response)
+	]
+}
 ```
 多个接口定义可以放在同一个接口定义文件中，扩展名必须是“.cfg”。以json数组方式存储，每个接口定义是数组中的一个元素，比如:[api1DefineJson, api2DefineJson,...]
 
@@ -289,10 +288,10 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 请求参数是一个json数组，每个元素是一个请求参数定义，可以指定参数名称、类型、取值范围等信息，比如：
 ```JSON
-    "request": [
-        {"name":"name","type":"string","must":true,"regular":"^[a-z0-9]{1,30}$"},
-        {"name":"val","type":"int","must":true,"max":0,"min":10}
-    ]
+"request": [
+	{"name":"name","type":"string","must":true,"regular":"^[a-z0-9]{1,30}$"},
+	{"name":"val","type":"int","must":true,"max":0,"min":10}
+]
 ```
 
 参数与变量可以看作是一类，在脚本中都使用@{paraName}引用。
@@ -348,14 +347,14 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 1. val：配置中可以使用内置[占位符](#占位符)；
 2. response：默认为false，如果设为true，生成的变量会插入到响应的data中。
 ```JSON
-    "vars":[
-        {"name":"flowid", "response":true, "val":"@{SEQUENCE|'flow',i}", "comment":"流程id"}
-    ]
+"vars":[
+	{"name":"flowid", "response":true, "val":"@{SEQUENCE|'flow',i}", "comment":"流程id"}
+]
 ```
 
 ## 处理process
 
-一个接口中，可以包括多个处理，常用的处理类型有 js、java、rdb、treedb、search、localrdb、localtreedb、 localsearch、call、static、dataexists。
+一个接口中，可以包括多个处理，常用的处理类型有 js、java、rdb、treedb、search、localrdb、localtreedb、localsearch、call、static、dataexists。
 
 也可以自定义类型，实现IProcessor接口，或继承已有的实现类，再通过AbstractProcessor.register注册到至简网格中； 配置接口时，将处理的type设置成注册的名称后，就可以使用。 或者不注册，直接将handler设置成对应的类即可。 相应的class文件要打包成jar，放在服务根目录下的libs文件夹中，这属于 [高阶开发](#高阶开发)，在此不赘述。
 
@@ -370,47 +369,40 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 RDB是使用最多的处理类型，调用webdb/api/rdb/request实现数据库读写。
 ```JSON
-    {
-        "name" : "sys",
-        "type" : "rdb",
-        "db":"companydb",
-        "sharding":"@{cid}",
-        "sqls" : ["replace into config(cid,service,k,v) values(@{cid}, '@{service}', '@{k}', '@{v}')"]
-    }
+{
+	"name" : "sys",
+	"type" : "rdb",
+	"db":"companydb",
+	"sharding":"@{cid}",
+	"sqls" : ["replace into config(cid,service,k,v) values(@{cid}, '@{service}', '@{k}', '@{v}')"]
+}
 ```
-
-1. db：指定需要操作的数据库；
-2. sharding：指定分片计算方法，可以引用请求参数、变量、请求头或者上一步的返回结果， 也可以使用token中的数据或请求头中的数据，但是最终结果要转换为一个无符号整型数，更多详情在 [数据分片](#数据分片)中；
-3. sqls：可以只有一个sql，也可以有多个；
-4. 多个sql是顺序执行的；
-5. 下一个sql可以使用上一个sql的查询结果，通过[占位符](#占位符)@[!xxx]引用，注意是中括号不是大括号；
-6. 每个sql的配置可以是一个字符串，也可以是一个map，通常增删改操作可以写成一个字符串，查询操作写成map，因为需要对返回结果进行定义；
-7. 多个写sql是放在一个事务中执行的，如果一个发生了错误，则所有操作都会回滚。
-8. any：多个sql的情况，如果any为true，则，任意一个执行成功就返回结果，否则将所有sql的执行结果都汇总后再返回。
+| 属性     | 说明  |
+| -------  | ---  |
+| db      | 指定需要操作的数据库 |
+| sharding|指定分片计算方法，可以引用请求参数、变量、请求头或者上一步的返回结果， 也可以使用token中的数据或请求头中的数据，但是最终结果要转换为一个无符号整型数，更多详情在 [数据分片](#数据分片)中|
+| sqls    |可以只有一个sql，也可以有多个；<br>A) 多个sql是顺序执行的；<br>B)  下一个sql可以使用上一个sql的查询结果，通过[占位符](#占位符)@\[!xxx\]引用(注意是中括号不是大括号)；<br>C) 每个sql的配置可以是一个字符串，也可以是一个map，通常增删改操作可以写成一个字符串，查询操作写成map，因为需要对返回结果进行定义；<br>D) 多个写sql是放在一个事务中执行的，如果一个发生了错误，则所有操作都会回滚|
+| any     |多个sql的情况，如果any为true，则，任意一个执行成功就返回结果，否则将所有sql的执行结果都汇总后再返回|
 
 #### 普通SQL
 
 SQL操作是最常见的接口操作。增删改比较简单，只有成功失败的返回；而查询SQL，因为要设置结果集的返回格式，所以每个sql还有name、multi、metas、merge配置。
 ```JSON
-    {
-        "name":"vips",
-        "multi":true,
-        "metas":"each",
-        "sql":"select id,name,mobile,update\_time from vips order by update\_time desc LIMIT @{num} OFFSET @{offset}",
-        "comment":"返回字段与search保持一致"
-    }
+{
+	"name":"vips",
+	"multi":true,
+	"metas":"each",
+	"sql":"select id,name,mobile,update_time from vips order by update_time desc LIMIT @{num} OFFSET @{offset}",
+	"comment":"返回字段与search保持一致"
+}
 ```
 
-1. name：执行结果的名称，在merge为true时，无意义，只用于日志中打印；
-2. multi：返回结果是否为多行；
-3. metas：返回结果中每一行是否携带字段名信息；
-4. each：返回的每行记录中，每个字段都带有列名，如，{mobile:189…}；
-5. none：每行记录都是一个数组，如，返回[1,"hello",4]，这样可以减少响应体大小；
-6. oneCol：如果结果集有多行，且只有一列，可以指定oneCol，返回一个数组， 如，ids:[1,2,3,4...]，这样可以减少响应内容；
-7. 列信息字段名：数据记录按数组返回，但是在最后添加一行各列的列名，如， cols:["name","age",...]，这里的cols就是用metas指定的， 解析时可以利用它，既可以减少返回内容的体积，又可以方便标识每一列。
-8. merge：是否将结果直接存在HandleResult.data中，当multi为false时才有效；
-9. false：响应形如data.'name'.mobile:189…，其中的name就是sql配置中的列名称；
-10. true：响应形如data.mobile:189…，省去了中间一层。
+| 属性  | 说明 |
+| ---  | ---  |
+|name  |执行结果的名称，在merge为true时，无意义，只用于日志中打印|
+|multi |返回结果是否为多行|
+|metas |返回结果中每一行是否携带字段名信息<br>each：返回的每行记录中，每个字段都带有列名，如，{mobile:189…}<br>none：  每行记录都是一个数组，如，返回[1,"hello",4]，这样可以减少响应体大小<br>oneCol：如果结果集有多行，且只有一列，可以指定oneCol，返回一个数组， 如，ids:[1,2,3,4...]，这样可以减少响应内容<br>列信息字段名：数据记录按数组返回，但是在最后添加一行各列的列名，如，cols:["name","age",...]，这里的cols就是用metas指定的， 解析时可以利用它，既可以减少返回内容的体积，又可以方便标识每一列|
+|merge |是否将结果直接存在HandleResult.data中，当multi为false时才有效<br>false：响应形如data.'name'.mobile:189…，其中的name就是sql配置中的列名称<br>true：响应形如data.mobile:189…，省去了中间一层|
 
 【注意】
 
@@ -422,15 +414,15 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
 
 如果SQL比较复杂，需要一些简单的逻辑来拼装，则可以用“js:”开头，后面跟一段复杂的js脚本生成SQL，比如实现一个批量插入数据的处理：
 ```Javascript
-    js:var sqls=['insert into tb(a,b,c,d) values']
-    var vv=@{signers};
-    for(var i in vv){
-        if(i>0)sqls.push(',');
-        sqls.push("(@{a},'@{b}',");
-        sqls.push(DB.clearInjection(vv[i])); //字符串参数最好先清除sql注入
-        sqls.push(",@{ABSHASH|c,d})")
-    }
-    DB.sql(sqls.join(''));
+js:var sqls=['insert into tb(a,b,c,d) values']
+var vv=@{signers};
+for(var i in vv){
+	if(i>0)sqls.push(',');
+	sqls.push("(@{a},'@{b}',");
+	sqls.push(DB.clearInjection(vv[i])); //字符串参数最好先清除sql注入
+	sqls.push(",@{ABSHASH|c,d})")
+}
+DB.sql(sqls.join(''));
 ```
 
 使用js拼装sql时，所有占位符都可以用，占位符解析时会将字符串中的单引号"'"变为两个单引号"''"。也可以使用服务端内置的js函数（请参考4.3.5）。
@@ -439,8 +431,8 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
 
 运行时拼接出来的sql，加载配置时还无法知道sql类型，需要以"rs:"开头。通常用来拼接一个批量执行的sql，通常用@{FOR}、@{SWITCH}等占位符，比如：
 ```Javascript
-    rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver=`, e.ver,
-    ` where partId=@{partId} and service='`, e.name, `' and addr='@{addr}'`}
+rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver=`, e.ver,
+` where partId=@{partId} and service='`, e.name, `' and addr='@{addr}'`}
 ```
 
 运行后会将请求参数services中所有元素拼接成多个update操作，每个update操作之间用“;”分隔。其中的e.ver就是指请求services参数每个元素中的ver字段。
@@ -452,24 +444,24 @@ TreeDB是记录树状关系数据的数据库，比如：
 ![treedb](imgs/server/treedb.png)
 
 ```JSON
-    {
-        "name" : "createDb",
-        "type" : "biosmeta",
-        "actions" : [
-            {"action":"crtDir", "key":"/service/@{service}/dbs"},
-            {"action":"crtDir", "key":"/service/@{service}/dbs/@{db}"},
-            {"action":"put", "key":"/service/@{service}/dbs/@{db}/tabledef", "value":""},
-            {"action":"put", "key":"/service/@{service}/dbs/@{db}/type", "value":"@{type}"},
-            {"action":"get", "key":"/service/@{service}/dbs/@{db}/type"}
-        ]
-    }
+{
+	"name" : "createDb",
+	"type" : "biosmeta",
+	"actions" : [
+		{"action":"crtDir", "key":"/service/@{service}/dbs"},
+		{"action":"crtDir", "key":"/service/@{service}/dbs/@{db}"},
+		{"action":"put", "key":"/service/@{service}/dbs/@{db}/tabledef", "value":""},
+		{"action":"put", "key":"/service/@{service}/dbs/@{db}/type", "value":"@{type}"},
+		{"action":"get", "key":"/service/@{service}/dbs/@{db}/type"}
+	]
+}
 ```
 1. action是区分大小写的；
 2. 所有的action都有key选项，key唯一指定一个记录；
 3. value用于存储key对应的值，如果是一个dir，不必指定value；
 4. 一个dir下可以有多条K-V键值对。
 
-| **action** | **作用** | **备注** |
+| action | 作用 | 备注 |
 | --- | --- | --- |
 | crtDir | 创建dir | 创建key之前，必须创建对应的父目录，然后在其下面才可以创建多个K-V键值对 |
 | rmvDir | 删除dir | 删除dir之前，必须保证dir没有K-V |
@@ -500,17 +492,17 @@ SearchDB是逆向索引的数据库，用于分词查找。action有put、update
 
 添加搜索内容，title指定标题，summary指定摘要内容，content指定具体内容；
 ```JSON
-    {
-        "name" : "createSearch",
-        "type" : "search",
-        "db": "crm",
-        "action" : "put",
-        "table":"customer",
-        "did" : "@{custId}",
-        "title" : "@{name}",
-        "summary" : "@{address}",
-        "content" : "@{CLEAN|comment} @{business} @{taxid}"
-    }
+{
+	"name" : "createSearch",
+	"type" : "search",
+	"db": "crm",
+	"action" : "put",
+	"table":"customer",
+	"did" : "@{custId}",
+	"title" : "@{name}",
+	"summary" : "@{address}",
+	"content" : "@{CLEAN|comment} @{business} @{taxid}"
+}
 ```
 title、summary、content并无本质区别，只是对照一篇文章的结构逻辑上分成标题、摘要、内容三部分。 每个部分在入库时都会经过分词处理，变成一个一个独立的词语存入库中，也可以在输入时就人为加空格，以提供分词的准去率。
 
@@ -526,14 +518,14 @@ title、summary、content并无本质区别，只是对照一篇文章的结构�
 
 搜索，get后面可以增加传回的最大结果集行数，content指定要搜索的内容，可以用空格分隔成多个词。
 ```JSON
-    {
-        "name" : "docs",
-        "type" : "search",
-        "db": "user",
-        "table":"user",
-        "action" : "get @{limit}",
-        "content" : "@{s}"
-    }
+{
+	"name" : "docs",
+	"type" : "search",
+	"db": "user",
+	"table":"user",
+	"action" : "get @{limit}",
+	"content" : "@{s}"
+}
 ```
 
 content即为要查找的内容，查找前会经过分词处理，也可以人为在词之间添加空格，以提升分词的准确率。
@@ -548,17 +540,17 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 
 如果基本的数据库操作无法满足处理逻辑，可以使用js进行开发。脚本中可以使用参数、变量，通过@{xxx}引用，前面processor返回的结果可以通过@{!xxx}引用。
 ```JSON
-    {
-        "name" : "judgeExists",
-        "type" : "js",
-        "script" : "
-            if(@{!vipNum}>0) {
-                Mesh.error(RetCode.EXISTS,'vip already exists');
-            } else {
-                Mesh.success({});
-            }
-        "
-    }
+{
+	"name" : "judgeExists",
+	"type" : "js",
+	"script" : "
+		if(@{!vipNum}>0) {
+			Mesh.error(RetCode.EXISTS,'vip already exists');
+		} else {
+			Mesh.success({});
+		}
+	"
+}
 ```
 
 #### JS扩展能力
@@ -605,7 +597,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 | hmacSHA256(str) | 使用SHA256算法对str进行不可逆运算。随机生成16字节key，并记录在结果的前面 |
 | hmacSHA256Check(str, saved) | 验证str与saved内容是否一致，saved是hmacSHA256算法生成的 |
 | hmacSHA1(str, key) | 使用HMAC-SHA1算法对str进行不可逆运算，key可以是一个随机字符串 |
-| isPwdStrong(acc, pwd, min, max, charTypeNum, diffCharNum) | 判断密码强度是否足够。 acc：帐号 pwd：密码 min：最小长度 charTypeNum：不同字符的数量 diffCharNum：不同类型字符数量，0-9|a-z|A-Z|其他，共四类，所以diffCharNum最大为4，最小为1 |
+| isPwdStrong(acc, pwd, min, max, charTypeNum, diffCharNum) | 判断密码强度是否足够。 <br>acc：帐号<br>pwd：密码<br>min：最小长度 <br>charTypeNum：不同字符的数量<br>diffCharNum：不同类型字符数量，0-9\|a-z\|A-Z\|其他，共四类，所以diffCharNum最大为4，最小为1 |
 | keyPair(pwd) | ecc算法，产生密钥对，并用pwd加密后返回 |
 | privateKey(kp,pwd) | ecc算法，先用pwd解密kp，然后取出密钥对中的私钥 |
 | publicKey(keyPair) | 从密钥对中取出公钥 |
@@ -626,66 +618,67 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 5. tokenSign：表示使用的token类型，可以选择OMKEY、OAUTH、APPKEY三种；
 6. trans：表示请求是否将参数全部传递给被调服务。
 ```JSON
-    {
-        "name" : "addAcl",
-        "type" : "call",
-        "service":"bios",
-        "method":"POST",
-        "url":"/acl/set",
-        "tokenSign":"OM",
-        "trans":true
-    }
+{
+	"name" : "addAcl",
+	"type" : "call",
+	"service":"bios",
+	"method":"POST",
+	"url":"/acl/set",
+	"tokenSign":"OM",
+	"trans":true
+}
 ```
 如果一个处理中需要发起多个请求，可以在calls中指定多个调用。此时，如果any设为true（默认为false），则只要一个请求成功，则最终结果为成功，其他请求的响应都丢弃；如果为false，则只要有一个响应失败，则返回失败，所有响应都成功的情况下，会将多个响应合并在一起返回。
 ```JSON
-    {
-        "name" : "dbs&partInfo",
-        "type" : "call",
-        "any":false,
-        "calls" : [
-            {
-                "service":"bios",
-                "method":"GET",
-                "url":"/db/serviceDbsDetail",
-                "tokenSign":"OM",
-                "parameters":"service=@{service}"
-            },
-            {
-                "service":"bios",
-                "method":"GET",
-                "url":"/company/partInfo",
-                "tokenSign":"OM",
-                "parameters":"id=@{cid}"
-            }
-        ]
-    }
+{
+	"name" : "dbs&partInfo",
+	"type" : "call",
+	"any":false,
+	"calls" : [
+		{
+			"service":"bios",
+			"method":"GET",
+			"url":"/db/serviceDbsDetail",
+			"tokenSign":"OM",
+			"parameters":"service=@{service}"
+		},
+		{
+			"service":"bios",
+			"method":"GET",
+			"url":"/company/partInfo",
+			"tokenSign":"OM",
+			"parameters":"id=@{cid}"
+		}
+	]
+}
 ```
 ### static
 
 始终返回静态内容，只有一个data配置项，定义一个静态的json串。
 ```JSON
-    {
-        "name" : "segs",
-        "type" : "static",
-        "data": {"segs":["name","taxid","address","business","creator","createAt"]}
-    }
+{
+	"name" : "segs",
+	"type" : "static",
+	"data": {"segs":["name","taxid","address","business","creator","createAt"]}
+}
 ```
 
 ### var
 
 定义一个或多个参数，在下一步可以当作普通参数使用，比如@{varName}。
 ```JSON
-    {
-        "name":"get\_user\_id",
-        "type" : "var",
-        "vars":{
-            {"name":"uid","val":"@{SEQUENCE|'userid',i}","toResp":true}
-        }
-    }
+{
+	"name":"get_user_id",
+	"type" : "var",
+	"vars":{
+		{"name":"uid","val":"@{SEQUENCE|'userid',i}","toResp":true}
+	}
+}
 ```
+
 ### 组合处理
 
-一个接口可能由多个processor组合而成，比如用户注册接口，首先校验验证码，然后判断用户是否已经存在，最后才是将用户名、密码录入数据库。每个processor可以是基本的数据库操作，也开始调用其他服务的接口。
+一个接口可能由多个processor组合而成，比如用户注册接口，首先校验验证码，然后判断用户是否已经存在，最后才是将用户名、密码录入数据库。每个processor可以是基本的数据库操作，也可以调用其他服务的接口。
 
 多个processor是逐个执行的，后面的processor可以使用前面processor的返回结果，通过@{!xxx}引用，与请求参数唯一不同的地方是在名称前加一个感叹号。
 
@@ -694,70 +687,71 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 下面是创建用户的例子，首先判断是否存在，如果存在，则在第一步就返回错误码了；然后生成用户id；再然后记录用户数据；最后产生模糊搜索的内容。
 
 四个步骤中，任何一个步骤出错，都会直接退出，并返回错误码。比如第三步创建用户数据成功后，但是创建搜索数据失败，则创建用户失败，但是用户数据并不会回退。
+
 ```JSON
-    {
-        "name": "add",
-        "method":"POST",
-        "property" : "private",
-        "feature" : "user",
-        "aclChecker" : "RBAC",
-        "tokenChecker":"USER",
-        "comment":"添加新用户",
-        "request": [
-            {"name":"account", "type":"string", "must":true, "regular": "^[a-zA-Z0-9\_]{1,40}$"},
-            {"name":"password", "type":"string", "must":true, "min":1, "max":40},
-            {"name":"nickName", "type":"string", "must":true, "min":1, "max":40, "comment":"昵称"}
-        ],
+{
+	"name": "add",
+	"method":"POST",
+	"property" : "private",
+	"feature" : "user",
+	"aclChecker" : "RBAC",
+	"tokenChecker":"USER",
+	"comment":"添加新用户",
+	"request": [
+		{"name":"account", "type":"string", "must":true, "regular": "^[a-zA-Z0-9_]{1,40}$"},
+		{"name":"password", "type":"string", "must":true, "min":1, "max":40},
+		{"name":"nickName", "type":"string", "must":true, "min":1, "max":40, "comment":"昵称"}
+	],
 
-        "process" : [
-            {
-                "name" : "judge\_whether\_user\_exists",
-                "type":"dataexists",
-                "db":"user",
-                "expect" : false, //如果存在，则返回EXISTS，否则返回OK
-                "numSeg":"rowNum",
-                "sqls" : [{
-                    "name":"countUser",
-                    "metas" : "each",
-                    "merge":true,
-                    "multi":false,
-                    "sql":"select count(\*) rowNum from user where account='@{account}'"
-                }]
-            },
+	"process" : [
+		{
+			"name" : "judge_whether_user_exists",
+			"type":"dataexists",
+			"db":"user",
+			"expect" : false, //如果存在，则返回EXISTS，否则返回OK
+			"numSeg":"rowNum",
+			"sqls" : [{
+				"name":"countUser",
+				"metas" : "each",
+				"merge":true,
+				"multi":false,
+				"sql":"select count(*) rowNum from user where account='@{account}'"
+			}]
+		},
 
-            {
-                "name":"get\_user\_id","type" : "var","toResp" : true,
-                "vars":{"uid":"@{SEQUENCE|'userid',i}"
-            }
+		{
+			"name":"get_user_id",
+			"type" : "var",
+			"toResp" : true,
+			"vars":{"uid":"@{SEQUENCE|'userid',i}"
+		},
+    
+		{
+			"name" : "register",
+			"type" : "rdb",
+			"db":"user",
+			"sqls" : [
+				"insert into user(id,account,nickName,pwd)
+				values(@{uid},'@{account}','@{nickName}','@{PBKDF|6,password}')"
+			]
+		},
 
-            },
+		{
+			"name" : "create_search",
+			"type" : "search",
+			"db":"user",
+			"action" : "put",
+			"table":"user",
+			"did" : "@{uid}",
+			"title":"@{account}",
+			"summary":"@{nickName}"
+		}
+	],
 
-            {
-                "name" : "register",
-                "type" : "rdb",
-                "db":"user",
-                "sqls" : [
-                    "insert into user(id,account,nickName,pwd)
-                    values(@{uid},'@{account}','@{nickName}','@{PBKDF|6,password}')"
-                ]
-            },
-
-            {
-                "name" : "create\_search",
-                "type" : "search",
-                "db":"user",
-                "action" : "put",
-                "table":"user",
-                "did" : "@{uid}",
-                "title":"@{account}",
-                "summary":"@{nickName}"
-            }
-        ],
-
-        "response":[
-            {"name":"uid", "type":"int", "comment":"用户id"}
-        ]
-    }
+	"response":[
+		{"name":"uid", "type":"int", "comment":"用户id"}
+	]
+}
 ```
 
 ## 响应response
@@ -768,29 +762,29 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 
 比如，下面这段是会员中的/vip/get接口的响应格式定义，因为mobile字段需要解密，所以需要定义response的格式。
 ```JSON
-    "response": [
-        {"name":"creator", "type":"string"},
-        {"name":"createAt", "type":"long", "comment":"建档时间"},
-        {"name":"name", "type":"string", "comment":"VIP称呼"},
-        {"name":"birth", "type":"int"},
-        {"name":"sex", "type":"string"},
-        {"name":"mobile", "type":"string", "codeMode":"decode", "keyName":"vipKey"},
-        {"name":"ext", "type":"json", "comment":"扩展信息，解析为json"}
-    ]
+"response": [
+	{"name":"creator", "type":"string"},
+	{"name":"createAt", "type":"long", "comment":"建档时间"},
+	{"name":"name", "type":"string", "comment":"VIP称呼"},
+	{"name":"birth", "type":"int"},
+	{"name":"sex", "type":"string"},
+	{"name":"mobile", "type":"string", "codeMode":"decode", "keyName":"vipKey"},
+	{"name":"ext", "type":"json", "comment":"扩展信息，解析为json"}
+]
 ```
 
 响应内容的解析是需要占用CPU的，如果不是特别需要，可以不用定义。考虑到有些服务希望自动生成文档，那么就需要定义response的字段，但是，可以设置在运行时不解析。这时就需要将response定义成一个json对象，例如：
 ```JSON
-    "response":{
-        "check":false, //默认为true，即，只要定义了response，就默认解析
-        "segments":[
-            {"name":"ver", "type":"int", "comment":"版本"},
-            {"name":"serviceId", "type":"int", "comment":"服务id"},
-            {"name":"digest", "type":"string", "comment":"版本校验码"},
-            {"name":"updateAt", "type":"string", "comment":"更新时间"},
-            {"name":"features", "type":"string", "list":true, "comment":"更新的点"}
-        ]
-    }
+"response":{
+	"check":false, //默认为true，即，只要定义了response，就默认解析
+	"segments":[
+		{"name":"ver", "type":"int", "comment":"版本"},
+		{"name":"serviceId", "type":"int", "comment":"服务id"},
+		{"name":"digest", "type":"string", "comment":"版本校验码"},
+		{"name":"updateAt", "type":"string", "comment":"更新时间"},
+		{"name":"features", "type":"string", "list":true, "comment":"更新的点"}
+	]
+}
 ```
 
 如果中间处理过程产生了响应内容，但是又不希望它们返回，可以定义一个空的response。
@@ -801,16 +795,16 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 
 所有响应的顶层结构都是一样的，包括返回码code、信息info，如果是查询类的请求，会包括数据data字段，每个查询类接口的data都不相同。data中存放的内容就是在response中定义的。
 ```JSON
-    {
-        code:0,
-        info:"Success",
-        data:{
-            a:1,
-            b:"xxx",
-            c:{…},
-            d:[…]
-        }
-    }
+{
+	code:0,
+	info:"Success",
+	data:{
+		a:1,
+		b:"xxx",
+		c:{…},
+		d:[…]
+	}
+}
 ```
 
 1. 如果定义了返回格式，在返回前，只返回定义了的字段内容，并且检查其合法性，其他内容都会丢弃；
@@ -867,7 +861,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 
 单纯的变量不能够满足某些特定的功能，比如要对字段加解密，这时需要用到一些函数，使用时，将函数名放在参数前面，并用“|”分隔，参数可以是请求参数、响应参数，也可以是系统参数、请求头，比如:
 ```
-    @{HASH|#token...,para,!resp,1,'xxx'}
+@{HASH|#token...,para,!resp,1,'xxx'}
 ```
 
 下表是系统可以支持的函数占位符：
@@ -1007,27 +1001,27 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 
 在至简网格中，RBAC在user服务中实现。在user服务中，为某个服务添加用户时，需要指定角色。 角色是服务实现时定义的，通常放在pub.json文件中，指定角色可以访问的接口范围，通过服务的/roles接口提供给user服务。
 ```JSON
-    "roles": {
-        "admin":{
-            "name":"企业主",
-            "rights":{
-            //sku是接口定义文件的名称(sku.cfg)，* 表示其中的所有特性的接口都可以调用
-            "sku":"*",
-            //如果接口定义中指定了feature，就可以更加细致的授权
-            "report":"featureA,featureB...",
-            "proxy":"*"
-        }
-    },
+"roles": {
+	"admin":{
+		"name":"企业主",
+		"rights":{
+		//sku是接口定义文件的名称(sku.cfg)，* 表示其中的所有特性的接口都可以调用
+		"sku":"*",
+		//如果接口定义中指定了feature，就可以更加细致的授权
+		"report":"featureA,featureB...",
+		"proxy":"*"
+	}
+},
 
-    "sales":{
-        "name":"销售",
-        "rights":{
-            //这里没有 指定任何接口文件，则，只能访问没有设置feature的接口
-        }
-    }
-    ...
+"sales":{
+	"name":"销售",
+	"rights":{
+		//这里没有 指定任何接口文件，则，只能访问没有设置feature的接口
+	}
+}
+...
 
-    }
+}
 ```
 为了实现对角色功能更加细致的限制，在每个接口中都可以定义feature，在角色定义时， 限制角色在某个接口定义文件中，只能执行特定的几类接口。详情请参照 [接口定义](#接口定义)。
 
@@ -1063,32 +1057,32 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 
 实现对内容进行分词以及模糊搜索的功能，使用方法请参照 “[处理](#处理process)”部分的描述。不涉及表结构定义，只需要在其中申明即可，type设为sdb，如下所示：
 ```JSON
-    {
-        "name":"crm",
-        "type":"sdb"
-    }
+{
+	"name":"crm",
+	"type":"sdb"
+}
 ```
 
 ### TDB树状数据库
 
 实现树状关系数据的增删改查，使用方法请参照 “[处理](#处理process)”部分的描述。不涉及表结构定义，只需要在其中申明即可，type设为tdb，如下所示：
 ```JSON
-    {
-        "name":"crm",
-        "type":"tdb"
-    }
+{
+	"name":"crm",
+	"type":"tdb"
+}
 ```
 
 ### RDB关系型数据库
 
 实现关系型数据的增删改查，使用方法请参照 “[处理](#处理process)”部分的描述。涉及多个版本表结构升级或定义：
 ```JSON
-    {
-        "name":"crm",
-        "version":"0.2.0", //升级后的目标版本
-        "type":"rdb",//固定为rdb
-        "versions":[] //每个版本对应map对象
-    }
+{
+	"name":"crm",
+	"version":"0.2.0", //升级后的目标版本
+	"type":"rdb",//固定为rdb
+	"versions":[] //每个版本对应map对象
+}
 ```
 
 versions中可以有多个map对象，在执行时会判断本地版本是否在 minVer（包括）、maxVer（包括）所指定的范围之中。如果包括，则执行其中sqls中每个数据库脚本。
@@ -1097,12 +1091,12 @@ versions中可以有多个map对象，在执行时会判断本地版本是否在
 
 DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继续后面version执行。
 ```JSON
-    {
-        "minVer":"0.0.0", //最新
-        "maxVer":"0.1.0",
-        "toVer":"0.2.0",
-        "sqls":[]
-    }
+{
+	"minVer":"0.0.0", //最新
+	"maxVer":"0.1.0",
+	"toVer":"0.2.0",
+	"sqls":[]
+}
 ```
 
 ## 数据分片
@@ -1136,19 +1130,19 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 
 实现时，需要用Java实现IProcessor接口，或继承AbsProcessor、AbsDBProcessor、AbsRDBProcessor、RDBProcessor、TreeDBProcessor等类进行扩展。 在process中，指定handler为自定义的实现类，比如：
 ```JSON
-    {
-        "name" : "get\_token",
-        "type" : "java",
-        //因为type为java，所以SampleDBProcessor必须继承自AbstractProcessor，或者IProcessor
-        "handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
-    },
-    {
-        "name" : "get\_token",
-        "type" : "rdb",
-        //因为type为rdb，所以SampleDBProcessor必须继承自RDBProcessor
-        //类似的情况，比如treedb、search必须分别继承自TreeDBProcessor、SearchProcessor
-        "handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
-    }
+{
+	"name" : "get\_token",
+	"type" : "java",
+	//因为type为java，所以SampleDBProcessor必须继承自AbstractProcessor，或者IProcessor
+	"handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
+},
+{
+	"name" : "get\_token",
+	"type" : "rdb",
+	//因为type为rdb，所以SampleDBProcessor必须继承自RDBProcessor
+	//类似的情况，比如treedb、search必须分别继承自TreeDBProcessor、SearchProcessor
+	"handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
+}
 ```
 
 至简网格中内置了加载第三方jar的能力，但是，因为安卓中需要对jar做转换后才能加载，对研发人员有很高要求，所以没有放开此能力。如果对此有强烈的需求，请联系至简网格，有三种方法可以解决此问题：
@@ -1186,7 +1180,7 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 
 ## 个人帐号服务
 
-面向个人的用户系统，它包括“[公司帐号服务](#公司帐号服务)” 的绝大部分功能。在端侧，可以同时登录个人帐号与多个企业帐号。个人帐号服务与公司帐号服务的区别有：
+面向个人的用户系统，它包括“[公司帐号服务](#公司帐号服务User)” 的绝大部分功能。在端侧，可以同时登录个人帐号与多个企业帐号。个人帐号服务与公司帐号服务的区别有：
 
 1. 不实现外网接入控制，因为本身就在外网；
 2. 一个端侧能有零个或一个个人帐号登录，但是可以有多个企业帐号登录；
@@ -1225,13 +1219,13 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 
 存放K-V形式存储的配置，每个公司是独立的，所以请求必须是公司级的。 端侧公司用户发起请求，会在请求头中携带cid，服务端接到请求后，将cid通过头部再转给config服务。
 
-提供了put、putIfAbsent、remove、get、list接口， 详细定义请直接在[码云](https://gitee.com/zhijian_net/enterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)、[Github](https://github.com/ZhiJianMesh/endterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)中查看接口定义文件config/api/root.cfg。
+提供了put、putIfAbsent、remove、get、list接口， 详细定义请直接在[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)中查看接口定义文件config/api/root.cfg。
 
 ## 工作流服务Workflow
 
 工作流中可以定义一个工作流程中步骤，在业务中控制工作的推进，工作可以向下一步推进， 也可以回退到上一步。每一步可以写入当前责任人的意见，并指定下一步的执行人（可多人）。 每一步操作，包括回退，都有详细的记录，在需要回溯工作时，可以清晰地查看每一步的记录。
 
-详细接口定义请直接在[码云](https://gitee.com/zhijian_net/enterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)、[Github](https://github.com/ZhiJianMesh/endterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)中的workflow里查看。
+详细接口定义请直接在[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)中的workflow里查看。
 
 /workflow/api/flow.cfg：定义工作流的相关接口，这类接口在业务的管理台中调用，工作流服务提供了默认的管理页面，业务中可以直接引用，样例请参照/crm/file/index.html。 router定义时，引入"/workflow/file/pub/settings.js"即可
 
@@ -1239,6 +1233,6 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 
 ![workflowset](imgs/server/workflowset.png)
 
-/workflow/api/root.cfg：启动或删除工作流、确认工作、查询任务的接口，这类接口在业务中调用，具体样例可以参照[码云](https://gitee.com/zhijian_net/enterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)、[Github](https://github.com/ZhiJianMesh/endterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)中的/crm/api下的一系列接口定义。
+/workflow/api/root.cfg：启动或删除工作流、确认工作、查询任务的接口，这类接口在业务中调用，具体样例可以参照[码云][码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)中的/workflow/api下的一系列接口定义。
 
 ![customerworkflow](imgs/server/customer_workflow.png)
