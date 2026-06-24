@@ -14,7 +14,8 @@ More about it, refer to the project [HomePage](http://www.zhijian.net.cn/).
 9. There are many applications in [Enterprise](https://github.com/ZhiJianMesh/endterprise), all can be used in your enterprise stably and freely. They are also good examples.
 
 ## Start/Stop command
-Switch into server directory at fisrt.
+Switch into server directory at fisrt in Linux/Termux/Windows.
+
 | OS           | Start              | Stop              |
 |--------------|--------------------|-------------------|
 | Windows      | sbin/startup.bat   | ctrl + c          |
