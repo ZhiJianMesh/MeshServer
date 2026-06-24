@@ -34,9 +34,10 @@
 | Region | 区域，通常可理解为一个城市，如果用于异地容灾，建议距离大于500公里（取自唐山、汶川地震最远破坏距离） |
 | 分区 | Partition，分区是逻辑上的，一个分区一定在一个AZ中；同一个分区中的服务实例是共享的；除了公共分区（分区号0-1023），不同分区之间不可互访 |
 
-![IMG_256](imgs/server/terms.png)
+![terms](imgs/server/terms.png)
 
-# 简介
+---
+# 一、简介
 
 至简网格为解决企业信息化、自动化而生，服务侧与端侧配合，简化信息记录、统计等繁琐的日常工作。至简网格服务端可以安装在多个节点上实现大规模集群工作，承载巨大的访问量， 也可以安装在单个节点上，满足一些小流量的使用场景。
 
@@ -52,9 +53,10 @@
 
 以下是至简网格端云结合的总体框架：
 
-![IMG_256](imgs/server/networking.png)
+![networking](imgs/server/networking.png)
 
-# 为什么
+---
+# 二、为什么
 
 已经有很多服务端开发框架与端侧开发框架，为什么还要重复造这两个轮子？
 
@@ -95,7 +97,8 @@
 
 可靠与安全相关的设计实现，在至简网格随处可见，比如，分区隔离、公司隔离；传输都采用https，使用ECC256证书，安全性达到RSA3072的强度；每个服务实例都自动分配了独一无二的证书； 服务间访问都需要token，两个服务器即使在同一个局域网内，默认也不能窜访； 用户密钥经过PBKDF2加密存储，即使数据库泄露，也无法解开密码； 数据库两份拷贝，支持每日往云端备份……安全与可靠设计融入到至简网格的方方面面。
 
-# 服务开发概览
+---
+# 三、服务开发概览
 
 在至简网格中，每个服务对应一个独立的目录，目录中存放端侧界面实现，以及服务定义、数据库定义、接口定义，这些定义文件的内容都是json格式的，很容易理解。
 
@@ -103,7 +106,7 @@
 
 服务的根目录下有api、file两个子目录，以及service.cfg与database.cfg两个文件。
 
-![IMG_256](imgs/server/servicestruct.png)
+![servicestruct](imgs/server/servicestruct.png)
 
 1. api子目录中存放所有的接口定义文件，如果无接口定义，可以没有此目录，每个文件中可以定义多个接口；
 2. 在调用接口时，url需要携带文件名及接口名，比如调用user.cfg中的接口add，则url为/user/add;
@@ -244,7 +247,8 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 这样在其他服务中就可以通过调用”/roles“获得服务中支持的角色，以及角色可以执行哪些接口。
 
-# 接口定义
+---
+# 四、接口定义
 
 绝大部分服务都需要服务端接口配合客户端实现端云交互，接口定义的文件都在服务根目录的api子目录下，扩展名有cfg、def、json三种，每种文件记录的都是json格式的接口配置。def文件是宏定义，配合cfg完成接口定义，json文件中记录返回静态内容的接口，本章只讲解cfg文件中的接口定义。
 
@@ -445,7 +449,7 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
 
 TreeDB是记录树状关系数据的数据库，比如：
 
-![IMG_256](imgs/server/treedb.png)
+![treedb](imgs/server/treedb.png)
 
 ```JSON
     {
@@ -848,7 +852,8 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 | CLIENT\_ERROR | 100000 | 客户端发生错误 |
 | NO\_OPERATION | 200000 | 没有任何可以执行的操作，只用于服务侧 |
 
-# 占位符
+---
+# 五、占位符
 
 在sql、js脚本，以及一些配置项中（比如searchdb、 treedb的action、 title、 when中），可以引用请求参数、变量、响应参数、系统参数、请求头。
 
@@ -920,7 +925,8 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 | FILE | 将指定文件存到模板临时目录 | @{FILE\|para,path[,rootpath]} | 用在服务端模板中，存文件到指定目录，可以是base64格式，也可以是原始文件 |
 | BASE64IMG | 将指定图片存到模板临时目录 | @{BASE64IMG\|para,path[,rootpath]} | 用在服务端模板中，存图片到指定目录，可以是base64格式，也可以是原始文件 |
 
-# 认证&鉴权
+---
+# 六、认证&鉴权
 
 ## 服务间认证&鉴权
 
@@ -941,7 +947,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 
 OAUTH依赖oAuth2服务，如下图，Service1访问Service2：
 
-![IMG_256](service_auth.png)
+![serviceauth](imgs/server/service_auth.png)
 
 1. Service1先用自己的私钥签名生成AppToken，访问oAuth2；
 2. oAuth2从BIOS中获得Service1的公钥与可访问的features列表，并用公钥验证AppToken；
@@ -983,7 +989,7 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 
 公司服务的用户认证通过user服务实现，个人服务的用户认证通过uniuser服务实现，包括登录、验证等基本操作，uniuser还包括注册功能。
 
-![IMG_256](imgs/server/user_auth.png)
+![userauth](imgs/server/user_auth.png)
 
 上图示例展示CRM服务的用户认证鉴权过程：
 
@@ -1043,7 +1049,8 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 
 先基于角色鉴权，如果通过，再基于属性鉴权，如果都通过，则返回成功，否则返回失败。 注意，必须同时提供aclProcess配置，与ABAC一样。
 
-# 数据库开发
+---
+# 七、数据库开发
 
 ## 数据库定义
 
@@ -1112,7 +1119,7 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 
 其中的account是请求参数，或者接口中定义的变量；#tokenCaller是token中的字段；!custId是前面的响应结果；^agent是请求头中的字段。 参数定义请参照[占位符](#占位符)的介绍。数据库分片的实现原理，见下图所示：
 
-![IMG_256](imgs/server/sharding.png)
+![sharding](imgs/server/sharding.png)
 
 每个webdb实例负责一个分片范围，在它启动后会定期向bios服务上报自己的分片范围，调用方发起请求时需要先从bios中获得分片分布情况， 然后再根据接口定义中sharding计算结果，找到合适的webdb实例。
 
@@ -1122,7 +1129,8 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 2. 如果分片信息发生了调整，需要重启相关的webdb实例，调用方需要等待几分钟才会更新分片分布信息，如果需要及时调整，调用方也需重启；
 3. treedb、searchdb不支持分片。
 
-# 高阶开发
+---
+# 八、高阶开发
 
 如果sql脚本、js脚本已不能满足业务要求时，则需要做Java开发。 比如系统内置的user、oauth、webdb等服务，都内置了Java实现的逻辑。因为安卓的字节码不同于JVM字节码，Java编译后的class文件不能在安卓上直接使用，所以在安卓服务器不用使用。
 
@@ -1149,9 +1157,10 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 2. 至简网格将功能内置到系统中；
 3. 放弃兼容性，只提供java版本，这是最不希望看到的。
 
-# 基础服务
+---
+# 九、基础服务
 
-## 公司帐号服务
+## 公司帐号服务User
 
 维护一个企业内部的用户数据，包括对用户数据、群组数据的增删改查，以及用户授权。
 
@@ -1184,7 +1193,7 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 3. 帐号通过注册获得，而不是管理员添加；
 4. 只有面向个人用户的服务才可以使用个人帐号，比如密码箱、计算器、专注力等，就是面向个人的服务。
 
-## 序列ID服务
+## 序列ID服务Seq
 
 实现一个持续增长（不保证连续）的ID服务，通过SEQUENCE占位符获得。 此占位符可以用在sql、js脚本中，也可以用在 [vars的val](#vars)中， 或者[var处理](#var)中。
 
@@ -1205,7 +1214,7 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 | maxRetry | 最大失败重试次数，每重试一次减1，到0时，本轮周期内停止尝试 | 3 |
 | url | 给定时服务调用的服务接口url，特别注意：此接口的tokenChecker为"APP-schedule"，且必须尽快返回，否则会堵塞定时任务服务 | /om/backup |
 
-## 验证码服务
+## 验证码服务VerifyCode
 
 当前只提供图片验证码。
 
@@ -1218,7 +1227,7 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 
 提供了put、putIfAbsent、remove、get、list接口， 详细定义请直接在[码云](https://gitee.com/zhijian_net/enterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)、[Github](https://github.com/ZhiJianMesh/endterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)中查看接口定义文件config/api/root.cfg。
 
-## 工作流服务
+## 工作流服务Workflow
 
 工作流中可以定义一个工作流程中步骤，在业务中控制工作的推进，工作可以向下一步推进， 也可以回退到上一步。每一步可以写入当前责任人的意见，并指定下一步的执行人（可多人）。 每一步操作，包括回退，都有详细的记录，在需要回溯工作时，可以清晰地查看每一步的记录。
 
@@ -1228,8 +1237,8 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 
 {path: '/flowdef', component:() => import('/workflow/pub/settings.js')}
 
-![IMG_256](imgs/server/workflowset.png)
+![workflowset](imgs/server/workflowset.png)
 
 /workflow/api/root.cfg：启动或删除工作流、确认工作、查询任务的接口，这类接口在业务中调用，具体样例可以参照[码云](https://gitee.com/zhijian_net/enterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)、[Github](https://github.com/ZhiJianMesh/endterprise%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)中的/crm/api下的一系列接口定义。
 
-![IMG_257](imgs/server/customer_workflow.png)
+![customerworkflow](imgs/server/customer_workflow.png)

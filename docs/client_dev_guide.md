@@ -1,8 +1,6 @@
 **至简网格客户端使用与UI开发指导**
 
-<div align="center">
-<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAARsAAADMCAMAAAB0v/cwAAACMVBMVEUAAAD////AAADAAQHAAgLBBATBBgbCBwfCCAjCCQnDCgrDDAzDDg7EDw/DEBDEERHEEhLFFRXFFhbGFxfFGBjGGRnGGhrHHBzIHx/HHx/HICDIISHIIyPJJCTJJibKJyfJKCjKKSnKKirLLS3LLi7LLy/LMDDMMTHMMzPNNTXNNjbNNzfOODjOOTnOOzvPPT3QPz/PPz/QQEDPQEDQQ0PRRETSR0fRR0fSSUnRSUnSSkrTTU3UT0/TT0/UUFDUUVHVVFTUU1PVVlbVV1fVWFjWWVnWW1vWXFzXX1/YYWHXYWHYYmLZZGTaZ2fZZmbaaGjZaGjba2vbbW3bbm7bcHDccXHccnLddXXddnbeeHjeeXneenrefX3ff3/ggYHggoLfgYHgg4PhhIThh4fiiIjhiIjiiorjjIzjjo7kkZHjkJDkkpLjkpLllZXllpbll5fmmZnmm5vmnZ3nnp7ooKDnoKDoo6PppaXpp6fqqanpqKjpqqrqq6vrrq7qra3rsLDssbHssrLrsrLut7fttrbstbXuubntuLjuurruu7vuvLzvvr7wwcHvwcHww8PxxsbwxcXyycnxyMjyysryzMzzzs700dHz0ND009Pz0tL01NT11tb22dn12Nj22tr12tr23Nz33t744eH44uL34eH44+P55ub45eX56Oj56en66+v56ur67e377+/88fH88vL78fH88/P99vb89fX++fn9+Pj++/v9+vr//v7+/f3////yhARwAAAAu3RSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AYfL+aAAAAAlwSFlzAAALEwAACxMBAJqcGAAABO1pVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDYuMC1jMDAyIDc5LjE2NDQ4OCwgMjAyMC8wNy8xMC0yMjowNjo1MyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdEV2dD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlRXZlbnQjIiB4bWxuczpwaG90b3Nob3A9Imh0dHA6Ly9ucy5hZG9iZS5jb20vcGhvdG9zaG9wLzEuMC8iIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIDIyLjAgKFdpbmRvd3MpIiB4bXA6Q3JlYXRlRGF0ZT0iMjAyNi0wNi0yNFQwOTo1OTo0MiswODowMCIgeG1wOk1ldGFkYXRhRGF0ZT0iMjAyNi0wNi0yNFQwOTo1OTo0MiswODowMCIgeG1wOk1vZGlmeURhdGU9IjIwMjYtMDYtMjRUMDk6NTk6NDIrMDg6MDAiIGRjOmZvcm1hdD0iaW1hZ2UvcG5nIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOmYwYzE3MjgxLTFlYWEtNmI0NS1iMDk0LTE3ZTc0ZmY5YWE1MyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpmMGMxNzI4MS0xZWFhLTZiNDUtYjA5NC0xN2U3NGZmOWFhNTMiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpmMGMxNzI4MS0xZWFhLTZiNDUtYjA5NC0xN2U3NGZmOWFhNTMiIHBob3Rvc2hvcDpDb2xvck1vZGU9IjIiPiA8eG1wTU06SGlz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">
-</div>
+![logo](imgs/zhijian_logo.png)
 
 | 作者 | flyinmind |
 | --- | --- |
@@ -14,6 +12,7 @@
 | --- | --- | --- |
 | 2024.3.1 | 创建文档 | flyinmind |
 | 2024.3.22 | 增加内置组件 | flyinmind |
+| 2026.6.24 | 转为md格式 | flyinmind |
 
 # **摘要**
 
@@ -21,8 +20,8 @@
 
 为了方便用户使用服务端的能力，必须要有与之配套的客户端。本文介绍至简网格客户端的安装使用与UI开发，UI开发中，需要开发人员具备基本的js、vue的技术积累。
 
-
-# 安装与使用
+---
+# 一、安装与使用
 
 ## 安装
 
@@ -42,11 +41,11 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 有些情况下，浏览器没有安装应用的权限，会提示确认是否赋予浏览器安装应用的权限，此时必须给予授权。
 
-![IMG_256](imgs/client/androidclient_install1.png)
+![aclient_install1](imgs/client/androidclient_install1.png)
 
 安装时，会有安全提醒，请选中“我已充分了解风险，并继续安装”。因为安卓手机品牌众多、版本众多， 提示不尽相同，总之需要容许安装才可以。
 
-![IMG_257](imgs/client/androidclient_install2.png)
+![aclient_install2](imgs/client/androidclient_install2.png)
 
 通过以上步骤，安装就完成了，与普通App安装是一样的。
 
@@ -62,11 +61,11 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 在使用一些个人服务时，比如密码箱、专注力等服务，它们不属于任何一家公司服务，所以必须使用个人帐号。
 
-![IMG_256](imgs/client/personal_reg1.png)
+![personalreg1](imgs/client/personal_reg1.png)
 
 个人帐号需要自己注册，当前只支持自建帐号，没有使用QQ、微信等第三方帐号。
 
-![IMG_257](imgs/client/personal_reg2.png)
+![personalreg2](imgs/client/personal_reg2.png)
 
 ### 公司帐号
 
@@ -74,17 +73,17 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 在登录公司帐号之前，需要先点击左上角的图标添加公司，待添加的公司必须已经注册过。
 
-![IMG_258](imgs/client/company_login1.png)
+![comlogin1](imgs/client/company_login1.png)
 
 公司ID：公司或组织注册时获得的ID；
 
 接入码：接入密码，需注意，它相当于WIFI密码，不可随意透露给公司外不相关的人员。
 
-![IMG_259](imgs/client/company_login2.png)
+![comlogin2](imgs/client/company_login2.png)
 
 如果工作环境不能访问外网，点击“确定”后，端侧无法知道连接哪个服务器，这时会要求输入“内网地址”。
 
-![IMG_260](imgs/client/company_login3.png)
+![comlogin3](imgs/client/company_login3.png)
 
 公司ID、接入码、内网地址，在[服务端设置](http://www.zhijian.net.cn/directions/server/settings) 都可以找到，请联系服务器维护人员获得这些信息。
 
@@ -94,15 +93,15 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 因为公司帐号是超级管理员添加的，系统默认的公司超级管理员帐号是admin，密码是123456。强烈建议在第一次登录时修改admin密码。
 
-![IMG_261](imgs/client/company_login4.png)
+![comlogin4](imgs/client/company_login4.png)
 
 系统支持同时登录一个个人帐号与多个公司帐号，登录时需要点击左上角的图标，选择个人或者某个公司。
 
-![IMG_262](imgs/client/company_login5.png)
+![comlogin5](imgs/client/company_login5.png)
 
 然后再点击右上角的登录，在弹出窗口中输入帐号、密码，点击“登录”即可。
 
-![IMG_263](imgs/client/company_login6.png)
+![comlogin6](imgs/client/company_login6.png)
 
 在使用服务时，如果是个人服务，则自动使用个人帐号身份。
 
@@ -120,13 +119,13 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 点击应用就可以进入详情界面，进行安装或卸载。
 
-![IMG_256](imgs/client/market_list.png)
+![mktlist](imgs/client/market_list.png)
 
 ### 应用详情
 
 在详情中有关于应用的详细介绍。如果没有安装，则下方显示“安装”按钮， 否则显示“卸载”按钮；当检测到新版本时，会多一个“升级”按钮。
 
-![IMG_257](imgs/client/market_appdtl.png)
+![mktappdtl](imgs/client/market_appdtl.png)
 
 注：以上图例只作为样例，并不代表实际情况。
 
@@ -136,13 +135,13 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 每种应用的主界面不同，下图为CRM的主界面。
 
-![IMG_256](imgs/client/icrm_home.png)
+![icrmhome](imgs/client/icrm_home.png)
 
 打开一个应用，使用一段时间后，再次点击“应用”按钮，可以切换到其他应用。 如果退出程序，下次打开程序时，会自动进入上次打开程序时进入的应用。
 
 Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
-![IMG_257](data:image/png;base64...)
+![winabout](imgs/client/win_about.png)
 
 ## 公司帐号管理
 
@@ -152,13 +151,13 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
 公司级员工帐号只有超级管理员可以增加、删除，在界面的右上角有“服务授权”与“群组管理”两个图标。
 
-![IMG_256](data:image/png;base64...)
+![userhome](imgs/client/user_home.png)
 
 点击某个员工帐号，进入帐号详情界面，在此可以修改员工的邮箱、电话号码等信息。忘记密码时，可以在此重置密码。
 
 注意：重置的密码是随机生成的6个字符，在使用此密码登录后，需及时更改。
 
-![IMG_257](data:image/png;base64...)
+![employeedtl](imgs/client/employee_dtl.png)
 
 在此还可以禁用帐号，禁用的帐号无法登录系统，也可以重新启用。在此还可以查看帐号从属于哪些组织、在服务中拥有的授权。 如果需要调整，可以删除从属关系与授权。
 
@@ -166,26 +165,12 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
 员工拥有帐号后，还不能在任何服务中进行操作，只有经过超级管理员授权后，才可以使用相应的服务。 授权时指定的角色，需要服务的开发人员在角色定义接口中定义。
 
-![IMG_258](data:image/png;base64...)
+![userauthhome](imgs/client/user_authhome.png)
 
 授权时可以指定是否可以在公网访问内网的服务，如果未授权公网访问，则只能在内网访问服务。
 
-### 群组管理
-
-管理公司的各类群组，最为常用的是部门划分。作为一个为中小企业服务的开发框架，我们推荐使用弱矩阵方式进行管理， 有明确的组织结构，同时按项目方式推动公司的运作，还可以存在一些虚拟“群组”作为补充。
-
-![IMG_260](data:image/png;base64...)
-
-点击组织，进入下一层组织，比如进入“部门”，可以配置下一层组织结构，也可以在组织中增删成员。
-
-![IMG_261](data:image/png;base64...)
-
-## 个人帐号管理
-
-个人帐号不可以用在公司服务中，它需要用户自己注册产生。
-
-
-# UI开发
+---
+# 二、UI开发
 
 ## 概述
 
@@ -572,7 +557,6 @@ var jsCbId=\_\_regsiterCallback(resp => {
 		this.$refs.alertDlg.showErr(resp.code, resp.info);
 		return;
 	}
-
 	var data = JSON.parse(resp.data.value);
 	......
 });
@@ -580,7 +564,7 @@ Platform.scanCode(jsCbId);
 ```
 ### 生成二维码
 
-如果需要生成二维码，必须在起始页index.html中包含qrcode，已内置到客户端版本中。
+如果需要生成二维码，必须在起始页index.html中包含qrcode（已内置到客户端版本中）。
 ```JavaScript
 <script src="/assets/v3/qrcode.js"></script>
 
@@ -767,13 +751,17 @@ this.$refs.errMsg.showErr(errCode, errInfo);
 | service | 限定的服务，字符串类型，如果不为空，则只返回在这个服务中获得授权的帐号，默认为空，表示不限制 |
 | roles | 限定的角色，字符串数组类型，必须与service属性一起设置。如果不为空，则只返回在指定服务中获得相应角色的帐号，默认为空，表示不限制 |
 
+### user_input
+帐号输入框。调用企业用户服务中接口获得帐号信息，选择一个帐号。输入帐号、电话号码的部分或全部对帐号进行模糊搜索，并列出搜索结果供选择。
+一边输入帐号，一边过滤帐号的组件，返回{id:xxx,account:yyyyy}。与user_selector不同，此组件只能输入一个帐号。
+![userauth](imgs/client/user_auth.png)
+
 ### login\_dialog
 
 用户登录对话框。输入帐号、密码，调用企业用户服务中接口进行用户登录。支持以下属性：
 
-|  |  |
-| --- | --- |
 | 属性名称 | 备注 |
+| --- | --- |
 | label | 对话框的标题，字符串类型，默认为“登录” |
 | accType | 帐号类型，字符串类型，默认为"N"，表示为普通帐号，公司帐号时只能为N |
 | account | 帐号，字符串类型 |
@@ -800,7 +788,7 @@ this.$refs.errMsg.showErr(errCode, errInfo);
 
 | 方法名 | 备注 |
 | --- | --- |
-| show(title, info, icon, action, actionDone) | title：对话框的标题 info：进度提示信息 icon：圆形进度条中间的图标 action：点击确定按钮时需要执行的任务，必须为异步函数，传入参数为进度对话框本身，可以调用它的函数，比如setInfo。action可以为空 actionDone：任务完成时的回调，会传递两个参数，第一个为进度对话框本身，第二个为action执行之后的返回值。可以为空 |
+| show(title, info, icon, action, actionDone) | title：对话框的标题<br>info：进度提示信息<br>icon：圆形进度条中间的图标<br>action：点击确定按钮时需要执行的任务，必须为异步函数，传入参数为进度对话框本身，可以调用它的函数，比如setInfo。action可以为空<br>actionDone：任务完成时的回调，会传递两个参数，第一个为进度对话框本身，第二个为action执行之后的返回值。可以为空 |
 | setInfo(info) | info参数为进度提示信息，可以在action、actionDone中调用，显示与进度有关的信息 |
 
 支持以下属性：
@@ -812,8 +800,9 @@ this.$refs.errMsg.showErr(errCode, errInfo);
 | close | 关闭按钮的标签，字符串类型，默认为“关闭” |
 
 使用时先引入组件，注意要增加ref属性，比如procDlg。
-
+```HTML
 <component-process-dialog ref="procDlg"></component-process-dialog>
+```
 
 需要显示进度条时，引用ref，调用show函数：
 ```JavaScript
@@ -831,6 +820,7 @@ this.$refs.procDlg.show('数据备份', '确定要执行备份吗？', 'cloud\_d
 	}
 )
 ```
+
 ## 报表开发
 
 至简网格内置了echarts，并默认使用echarts生成图表。
@@ -841,11 +831,8 @@ this.$refs.procDlg.show('数据备份', '确定要执行备份吗？', 'cloud\_d
 ```
 echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apache.org/zh/index.html%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)
 
-与公司帐号不同，多个公司帐号，会使用当前选中的公司帐号；但是在个人服务中，端侧会自动选择个人帐号，用户不会感知。
-
-![IMG_259](data:image/png;base64...)
-
-# 服务举例
+---
+# 三、服务举例
 
 ## 极简CRM
 
@@ -857,13 +844,13 @@ echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apa
 
 会员管理系统，为服务行业提供的客户会员软件，与CRM不同，这类服务直接面向个人，所以其中不包括企业信息，只有会员信息，完成会员登记、订单管理、消费记录，能够输出实时的图形化报表，针对每个会员都可以一键导出所有服务记录存入word文档中，便于新员工学习，提升服务水平。
 
-![](data:image/png;base64...)
+![member1](imgs/client/member1.png)
 
-![](data:image/png;base64...)
+![member2](imgs/client/member2.png)
 
 会员详情页，可以创建订单、增加消费记录，当会员对消费记录有不同意见时，可以输入密码校验订单是否被恶意修改过。
 
-![](data:image/png;base64...)
+![member3](imgs/client/member3.png)
 
 一键导出消费记录到本地的一个word文档。
 
@@ -871,38 +858,18 @@ echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apa
 
 课时管理系统，为课外辅导班、兴趣班开发的学员课时管理服务。能够实现学员登记、订单管理、课时管理等，并且能够输出实时的报表。结合一些辅导中心的激励级制，提供了简单的积分奖励机制。
 
-![main](data:image/png;base64...)
+![classhour1](imgs/client/classhour1.png)
 
 学员信息可以通过模糊搜索查找，也可以在这里为一个或多个学员创建课时记录，课时会自动扣减。
 
-![detail](data:image/png;base64...)
+![classhour2](imgs/client/classhour2.png)
 
 点击学员可以看到学员详情，在这个界面可以创建订单，在订单上记录课时等。
 
-![consumes](data:image/png;base64...)
+![classhour3](imgs/client/classhour3.png)
 
 在课时记录中，可以了解学员的学习进度。与会员管理系统类似，这里也可以一键导出学员的上课记录到一个word文档中，可以将这个文档转给学员家长。
 
-![report](data:image/png;base64...)
+![classhour4](imgs/client/classhour4.png)
 
 报表中有总体的报表，也有单个套餐的报表，点击报表上面蓝色的图标就可以查看生成报表的原始详细数据，那里包括更多的信息。
-
-## 系统管理SystemOM
-
-完成公司设置、服务设置。打开此应用必须输入公司的登录密码（在服务器中登录公司的密码），否则无法使用。
-
-下图所示，在设置界面中，选中一个公司。至简网格支持同时登录多个公司以及一个个人帐号，所以需要选中哪个公司作为当前工作的公司。
-
-![1](data:image/png;base64...)
-
-然后点击进入“公司信息”，右上角有“高级”菜单。如下图所示，选中任何一个，都需要输入公司密钥。
-
-![2](data:image/png;base64...)
-
-输入正确的公司密码即可进入设置界面。“公司设置”中包括服务器的基本设置，与在服务器中直接设置是一样的。“维护工具”中有一些基本的维护工具，为高级用户提供，通常用户不会使用这些功能。
-
-![66](data:image/png;base64...)
-
-“应用管理”与服务器中的“应用市场”是相同的功能，可以在这里安装、升级或卸载服务。
-
-![77](data:image/png;base64...)
