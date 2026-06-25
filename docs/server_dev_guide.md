@@ -176,7 +176,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 ```
 如果数据库只用在当前实例，每个服务实例上的数据是独立的（比如地址查询，每个实例都有完整的地址信息记录），无需同步、备份，这种数据库可以用database.loc.cfg定义，定义方法与database.cfg完全相同。
 
-## 接口文件
+## 接口定义文件
 
 接口定义文件分成3类，扩展名分别为cfg、json、def。每个”.cfg“文件中，是一个json数组，数组中每个元素定义一个接口。访问时url有接口定义文件以及接口名称共同决定。比如，在接口文件customer.cfg中定义了create接口，则可以通过 "/customer/create" 访问。
 ```JSON
@@ -236,7 +236,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 这样在其他服务中就可以通过调用”/roles“获得服务中支持的角色，以及角色可以执行哪些接口。
 
 ---
-# 四、接口定义
+# 四、接口定义<a id="interfacedef"></a>
 
 绝大部分服务都需要服务端接口配合客户端实现端云交互，接口定义的文件都在服务根目录的api子目录下，扩展名有cfg、def、json三种，每种文件记录的都是json格式的接口配置。def文件是宏定义，配合cfg完成接口定义，json文件中记录返回静态内容的接口，本章只讲解cfg文件中的接口定义。
 
@@ -248,7 +248,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 	"name":"api名称",
 	"method":"可接受的请求方法，不设置表示不限,POST|GET|PUT|DELETE",
 	"property":"属性，private或public",
-	"tokenChecker": "认证方式，property有public时不必设置，[USER,UNIUSER,OAUTH,COMPANY,INIT,MNT,APP,APP-调用方服务名或/*](#服务间认证&鉴权)",
+	"tokenChecker": "认证方式，property有public时不必设置，[USER,UNIUSER,OAUTH,COMPANY,INIT,MNT,APP,APP-调用方服务名或/*](#serviceauth)",
 	"aclChecker": "接入检查，只支持RBAC(Role Based Access Control)或者自定义实现",
 	"sameAs":"如果接口的request、vars、process、response与某个其他的接口完全一致，则可以增加此配置，指定为那个接口的路径，比如与stats.cfg中的report接口相同，则可以写成/stats/report，此时request、vars、process、response不必配置",
 	"feature": "特性，与RBAC配合，用于更加细致的控制[角色授权](#鉴权)",
@@ -333,7 +333,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 组合一个或多个参数，经过复杂计算后，得到一个新的变量，得到的结果可以在脚本中像普通请求参数一样引用，多次引用并不会导致多次计算。
 
-1. val：配置中可以使用内置[占位符](#五、占位符)；
+1. val：配置中可以使用内置[占位符](#placeholder)；
 2. toResp：默认为false，如果设为true，生成的变量会插入到响应的data中。
 ```JSON
 "vars":[
@@ -345,7 +345,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 一个接口中，可以包括多个处理，常用的处理类型有 js、java、rdb、treedb、search、localrdb、localtreedb、localsearch、call、static、dataexists。
 
-也可以自定义类型，实现IProcessor接口，或继承已有的实现类，再通过AbstractProcessor.register注册到至简网格中； 配置接口时，将处理的type设置成注册的名称后，就可以使用。 或者不注册，直接将handler设置成对应的类即可。 相应的class文件要打包成jar，放在服务根目录下的libs文件夹中，这属于 [高阶开发](#八、高阶开发)，在此不赘述。
+也可以自定义类型，实现IProcessor接口，或继承已有的实现类，再通过AbstractProcessor.register注册到至简网格中； 配置接口时，将处理的type设置成注册的名称后，就可以使用。 或者不注册，直接将handler设置成对应的类即可。 相应的class文件要打包成jar，放在服务根目录下的libs文件夹中，这属于 [高阶开发](#advancedev)，在此不赘述。
 
 除static处理外，其他处理类型都有四个共同配置：
 | 属性    |  说明   |
@@ -371,7 +371,7 @@ RDB是使用最多的处理类型，调用webdb/api/rdb/request实现数据库�
 | ------- | ---  |
 | db      |指定需要操作的数据库 |
 | sharding|指定分片计算方法，可以引用请求参数、变量、请求头或者上一步的返回结果， 也可以使用token中的数据或请求头中的数据，但是最终结果要转换为一个无符号整型数，更多详情在 [数据分片](#数据分片)中|
-| sqls    |可以只有一个sql，也可以有多个；<br>A) 多个sql是顺序执行的；<br>B) 下一个sql可以使用上一个sql的查询结果，通过[占位符](#五、占位符)@\[!xxx\]引用(注意是中括号不是大括号)；<br>C) 每个sql的配置可以是一个字符串，也可以是一个map，通常增删改操作可以写成一个字符串，查询操作写成map，因为需要对返回结果进行定义；<br>D) 多个写sql是放在一个事务中执行的，如果一个发生了错误，则所有操作都会回滚|
+| sqls    |可以只有一个sql，也可以有多个；<br>A) 多个sql是顺序执行的；<br>B) 下一个sql可以使用上一个sql的查询结果，通过[占位符](#placeholder)@\[!xxx\]引用(注意是中括号不是大括号)；<br>C) 每个sql的配置可以是一个字符串，也可以是一个map，通常增删改操作可以写成一个字符串，查询操作写成map，因为需要对返回结果进行定义；<br>D) 多个写sql是放在一个事务中执行的，如果一个发生了错误，则所有操作都会回滚|
 | any     |多个sql的情况，如果any为true，则，任意一个执行成功就返回结果，否则将所有sql的执行结果都汇总后再返回|
 
 #### 普通SQL
@@ -842,7 +842,7 @@ toResp为true时，内容会作为响应的字段返回。
 | NO\_OPERATION | 200000 | 没有任何可以执行的操作，只用于服务侧 |
 
 ---
-# 五、占位符
+# 五、占位符<a id="placeholder"></a>
 
 在sql、js脚本，以及一些配置项中（比如searchdb、 treedb的action、 title、 when中），可以引用请求参数、变量、响应参数、系统参数、请求头。
 
@@ -917,7 +917,7 @@ toResp为true时，内容会作为响应的字段返回。
 ---
 # 六、认证&鉴权
 
-## 服务间认证&鉴权
+## 服务间认证&鉴权<a id="serviceauth"></a>
 
 服务间调用如果不加限制，会导致滥用却难以定位的问题。认证后，可以清晰地知道请求方是谁，并能做相应的限制，比如流控、鉴权等。
 
@@ -990,11 +990,13 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 
 ### 鉴权
 
-鉴权分为RBAC(Role Based Access Control基于角色的接入控制)与ABAC(Attribute Based Access Control基于属性的接入控制)。
+鉴权分为RBAC(Role Based Access Control基于角色的访问控制)与ABAC(Attribute Based Access Control基于属性的访问控制)。
 
 #### RBAC
 
-在至简网格中，RBAC在user服务中实现。在user服务中，为某个服务添加用户时，需要指定角色。 角色是服务实现时定义的，通常放在pub.json文件中，指定角色可以访问的接口范围，通过服务的/roles接口提供给user服务。
+在至简网格中，RBAC在user服务中实现。在user服务中，为某个服务添加用户时，需要指定角色。 
+角色是服务实现时定义的，通常放在pub.json文件中，指定角色可以访问的接口范围，通过服务的/roles接口提供给user服务。
+
 ```JSON
 "roles": {
 	"admin":{
@@ -1018,17 +1020,17 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 
 }
 ```
-为了实现对角色功能更加细致的限制，在每个接口中都可以定义feature，在角色定义时， 限制角色在某个接口定义文件中，只能执行特定的几类接口。详情请参照 [接口定义](#接口定义)。
+为了实现对角色功能更加细致的限制，在每个接口中都可以定义feature，在角色定义时，限制角色在某个接口定义文件中，只能执行特定的几类接口。详情请参照 [接口定义](#interfacedef)。
 
 #### ABAC
 
-ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一的实现，每个服务需要自己实现。有两种实现方式：
+ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一实现，每个服务需要自己实现，有两种实现方式：
 
-1. aclChecker设置为ABAC：同时配置aclProcess，与process配置方法完全相同，返回OK则表示通过；
+1. aclChecker设置为ABAC：配置aclProcess（与process配置方法完全相同），返回OK则表示通过；
 2. 不设置aclChecker：在process中自行判断。
 
-方法1只是将鉴权部分从process中分离出来，放在aclProcess中。
-比如，CRM中有独立的powers表，控制每个用户可以访问哪些数据，权限控制达到行级别授权。 比如，数据分享以及工作流赋权，都可以控制到单个客户、联系人、订单级别。
+方法1只是将鉴权部分从process中分离出来，放在aclProcess中，但是，aclProcess中的返回结果集都不会被放到响应中，系统只判断它的返回码是否为OK。
+比如，CRM中有独立的powers表，控制每个用户可以访问哪些数据，权限控制达到行级别。数据分享、工作流赋权等使用aclProcess可以控制到单个客户、联系人、订单级别。
 
 #### RoAAC
 
@@ -1043,15 +1045,18 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 
 ## 数据库定义
 
-至简网格支持三种数据库，分别是RDB、SDB、TDB，其中RDB关系型数据库最为常用，分为本地与通用两种。
+至简网格支持三种数据库，分别是RDB、SDB、TDB，其中RDB关系型数据库最为常用，分为本地与webdb两种。
 
-1. 通用（在服务根目录的database.cfg文件中定义）
-	由webdb服务统一管理，所以可以跨实例访问，支持数据跨实例同步与定期异地备份；
-	如果用sqlite，由webdb实现同步与定期备份，如果是mysql、sqlserver等类型的数据库，需要数据库自身实现同步与备份；
-2. 本地（在database.loc.cfg文件中定义）
-	这类数据只存在于本服务目录，数据库实例存在数据库根目录dbs下，比如address服务的数据库。
-	因为数据是存在本地的，不会对数据执行写操作，每个服务实例上数据初始化时都一样。服务接口实现时，直接读本地数据库，所以它性能更好，但是它不会同步与定期备份。
-	适合存放需要经常访问，但是极少变更的数据，变更操作放到线下操作。
+1. webdb数据库（在服务根目录的database.cfg文件中定义）
+	- 由webdb服务统一管理，所以可以跨实例访问，支持数据跨实例同步与定期异地备份；
+	- 如果用sqlite，由webdb实现同步与定期备份；
+	- 如果是mysql、sqlserver等大型数据库，需要数据库自身实现同步与备份，webdb实现数据库连接的收敛。
+
+2. 本地数据库（在database.loc.cfg文件中定义）
+	- 数据只存在于本服务根目录dbs下，比如address服务的数据库，只能用sqlite；
+	- 因为数据是存在本地的，每个服务实例上数据初始化时都一样，如果有写入操作，实例间数据会出现差异；
+	- 服务接口实现时，直接读本地数据库，所以它性能更好，但是它不会同步与定期备份；
+	- 适合存放需要经常访问，但是极少变更的数据，变更操作放到线下不定期操作。
 
 ### SDB搜索数据库
 
@@ -1095,40 +1100,42 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 	"minVer":"0.0.0", //最新
 	"maxVer":"0.1.0",
 	"toVer":"0.2.0",
-	"sqls":[]
+	"sqls":[...]
 }
 ```
 
 ## 数据分片
 
-数据量较小时（Sqlite：<1百万行记录，MySQL：<1千万行记录）不必分库，大数据量时建议分库。 单个数据库太大会引起性能下降、维护困难。
+数据量较小时（Sqlite：<1百万行记录，MySQL：<1千万行记录）不必分库，超过此量级时建议分库，因为单个实例数据量太大会引起性能下降、维护困难。
 
-分库是针对某个服务的某个数据库的。分库需要计算每行数据的分片号，并将其分配到不同的数据库中。 至简网格的分片号范围为大于或等于0，小于或等于32767，也就是最大支持32768个分片。
+分库是针对某个服务的某个数据库的，分库首先要计算每行数据的分片号，再将其分配到不同的数据库中。 至简网格的分片号范围为大于或等于0，小于或等于32767，也就是最大支持32768个分片。
 
-多个分片可以放在一个库中，也可以一个分片单独放在一个库中，即，最多可支持32768个分库，如果一个分片存放最大1百万行记录，最大可容纳约327亿行记录。
+多个分片可以放在一个实例中，也可以一个分片单独放在一个实例中，即，最多可支持32768个分库实例，如果一个实例最大存1百万行记录，最大可容纳约327亿行记录。
 
-分片号可以用多个字段共同计算得到，分片号计算结果只能是一个整型数，所以通常要用到ABSHASH占位符，计算字段可以是请求参数、系统参数或前面处理的响应结果，比如：
-
+分片号计算结果只能是一个整型数，可以用多个字段共同计算得到，所以通常用ABSHASH占位符。参与计算字段可以是请求参数、系统参数或前面处理的响应结果，比如：
+```JSON
 "sharding" : "@{ABSHASH | account, #tokenCaller, !custId, ^agent...}"
+```
 
-其中的account是请求参数，或者接口中定义的变量；#tokenCaller是token中的字段；!custId是前面的响应结果；^agent是请求头中的字段。 参数定义请参照[占位符](#五、占位符)的介绍。数据库分片的实现原理，见下图所示：
+其中的account是请求参数，或者接口中定义的变量；#tokenCaller是token中的字段；!custId是前面的响应结果；^agent是请求头中的字段。参数定义请参照[占位符](#placeholder)的介绍。
+数据库分片的实现原理，如下图所示：
 
 ![sharding](imgs/server/sharding.png)
 
-每个webdb实例负责一个分片范围，在它启动后会定期向bios服务上报自己的分片范围，调用方发起请求时需要先从bios中获得分片分布情况， 然后再根据接口定义中sharding计算结果，找到合适的webdb实例。
+每个webdb实例负责一个连续的分片范围，在它启动后会定期向bios服务上报自己的分片范围，调用方发起请求时需要先从bios中获得分片分布情况，然后再根据接口定义中sharding计算结果，找到合适的webdb实例。
 
 【注意】
-
 1. webdb只管记录数据，如果调用端选择了错误的分片号，webdb只会返回INVALID\_NODE(113)错误，此错误需要调用方自己处理；
 2. 如果分片信息发生了调整，需要重启相关的webdb实例，调用方需要等待几分钟才会更新分片分布信息，如果需要及时调整，调用方也需重启；
-3. treedb、searchdb不支持分片。
+3. 无论是使用sqlite还是mysql等大型数据库，都支持此分片逻辑；
+4. treedb、searchdb不支持分片。
 
 ---
-# 八、高阶开发
+# 八、高阶开发<a id="advancedev"></a>
 
-如果sql脚本、js脚本已不能满足业务要求时，则需要做Java开发。 比如系统内置的user、oauth、webdb等服务，都内置了Java实现的逻辑。因为安卓的字节码不同于JVM字节码，Java编译后的class文件不能在安卓上直接使用，所以在安卓服务器不用使用。
+如果sql脚本、js脚本已不能满足业务要求，则需要做Java开发。 比如系统内置的user、oauth、webdb等服务，都内置了Java实现的逻辑。因为安卓的字节码不同于JVM字节码，Java编译后的class文件不能在安卓上直接使用，所以在安卓服务器不能使用。
 
-实现时，需要用Java实现IProcessor接口，或继承AbsProcessor、AbsDBProcessor、AbsRDBProcessor、RDBProcessor、TreeDBProcessor等类进行扩展。 在process中，指定handler为自定义的实现类，比如：
+实现时，需要用Java实现IProcessor接口，或继承AbsProcessor、AbsDBProcessor、AbsRDBProcessor、RDBProcessor、TreeDBProcessor等类进行扩展。 在process中，指定handler为自定义的实现类即可，比如：
 ```JSON
 {
 	"name" : "get\_token",
@@ -1154,23 +1161,53 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 ---
 # 九、基础服务
 
+给其他服务调用的基本能力，如果没有这些基础服务，所有业务都无法正常运行起来。
+以下基础服务都已上传至[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)。
+
+## bios
+系统中最为基础的服务，记录了所有服务节点、数据库节点的信息，以及当前的运行状态，它与服务的Watcher进程配合，完成服务、数据库节点的注册发现工作。
+主要完成以下功能：
+1. 服务节点的注册、发现；
+2. 数据库节点的注册、发现；
+3. 服务公共配置维护，比如oAuth的密码本。
+
+
+## webdb
+webdb是一个特殊的服务，它实现在数据库实例上执行DDL\DML。执行这些语句时，会根据sql的不同，增加一些可靠性操作。
+1. 使用内置的sqlite作为数据库引擎时，webdb提供跨实例同步、备份能力。
+	- A）sqlite数据库适合小型系统使用，配合分库逻辑，极限可以做到100亿级数据记录；
+	- B）数据库的分库操作需要bios配合，在调用方实现，webdb不实现分库，但是会拒绝不属于当前实例的分片请求；
+	- C）使用update_time阻止主备库双写混乱，每次增、改，都会更新update_time字段，目的端重放时，只对大于本地update_time的记录进行重放，update_time字段是webdb自动为每个表添加的。
+2. 使用MySQL、Oracle等大型数据库时，建议使用它自身的同步能力。
+
+## oauth2
+提供服务间调用的认证与鉴权。
+比如A服务需要调用B服务，可以在bios中B服务的caller下，增加A服务信息，并指定可以调用B服务的哪些feature（每个接口中可以指定feature，不指定，则表示不限制）。
+
+## assets
+assets不是通常意义的服务，不运行于服务侧，只用于给每个服务对应的端侧提供公共库。
+它没有任何接口，只提供了vue、quasar、echarts等基本的UI库，以及一些内置的vue组件、公共函数等。
+
+---
+# 十、公共服务
+
+公共服务为企业服务提供支撑，降低企业服务开发的难度、工作量。
+以下公共服务都已上传至[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)。比如公司帐号服务对应user目录、序列ID服务对应seq目录...
+
+
 ## 公司帐号服务User
 
 维护一个企业内部的用户数据，包括对用户数据、群组数据的增删改查，以及用户授权。
 
-### 用户数据维护
+### 帐号数据维护
 
 系统初始化时，已经创建了超级用户admin，密码默认为“123456”， 建议第一次使用时就更改这个密码，并且记住它。
 
 默认情况，超级用户可以对用户数据进行增删改查，admin可以初始化任何一个用户的密码（解决忘记密码的情况），admin也可以添加其他的超级用户，但是admin不可以删除自己。
 
-### 群组数据维护
-
-admin可以对群组数据增删改查，调整结构；一个群组的管理员可以对下一层群组进行增删改查。群组功能在当前系统中使用较少，业务可以自行决定怎样使用群组数据。
-
 ### 用户授权
 
-只实现按角色的授权(RBAC)，管理员在为每个服务添加用户时，可以指定它在其中的角色， 根据角色决定用户可以执行哪些操作。
+只实现按角色的授权(RBAC)，管理员在为每个服务添加用户时，可以指定它在其中的角色，根据角色决定用户可以执行哪些操作。
 
 为了实现这点，需要服务在实现时，对接口做功能划分， 并在角色定义中指定可执行的功能范围。
 
@@ -1178,20 +1215,12 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 
 用户在调用服务接口时，必须携带服务token，此token会在用户系统中进行验证，通过后才可以访问。
 
-## 个人帐号服务
-
-面向个人的用户系统，它包括“[公司帐号服务](#公司帐号服务User)” 的绝大部分功能。在端侧，可以同时登录个人帐号与多个企业帐号。个人帐号服务与公司帐号服务的区别有：
-
-1. 不实现外网接入控制，因为本身就在外网；
-2. 一个端侧能有零个或一个个人帐号登录，但是可以有多个企业帐号登录；
-3. 帐号通过注册获得，而不是管理员添加；
-4. 只有面向个人用户的服务才可以使用个人帐号，比如密码箱、计算器、专注力等，就是面向个人的服务。
 
 ## 序列ID服务Seq
 
 实现一个持续增长（不保证连续）的ID服务，通过SEQUENCE占位符获得。 此占位符可以用在sql、js脚本中，也可以用在 [vars的val](#vars)中， 或者[var处理](#var)中。
 
-## 定时任务
+## 定时任务Schedule
 
 如果需要定期执行一个任务，比如定期备份等，可以在service.cfg中申明依赖schedule服务完成。
 
@@ -1215,24 +1244,26 @@ admin可以对群组数据增删改查，调整结构；一个群组的管理员
 1. /image?w=xx&h=yy：返回一个base64形式的验证码图片img，与一个session；
 2. /verify?session=xxx&code=yyy：在服务端验证输入是否正确，session是/image接口返回的。
 
-## 配置服务
+## 配置服务Config
 
 存放K-V形式存储的配置，每个公司是独立的，所以请求必须是公司级的。 端侧公司用户发起请求，会在请求头中携带cid，服务端接到请求后，将cid通过头部再转给config服务。
 
-提供了put、putIfAbsent、remove、get、list接口， 详细定义请直接在[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)中查看接口定义文件config/api/root.cfg。
+提供了put、putIfAbsent、remove、get、list接口，详细定义请查看接口定义文件config/api/root.cfg。
 
 ## 工作流服务Workflow
 
 工作流中可以定义一个工作流程中步骤，在业务中控制工作的推进，工作可以向下一步推进， 也可以回退到上一步。每一步可以写入当前责任人的意见，并指定下一步的执行人（可多人）。 每一步操作，包括回退，都有详细的记录，在需要回溯工作时，可以清晰地查看每一步的记录。
 
-详细接口定义请直接在[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)中的workflow里查看。
+详细接口定义请workflow/api目录。
 
-/workflow/api/flow.cfg：定义工作流的相关接口，这类接口在业务的管理台中调用，工作流服务提供了默认的管理页面，业务中可以直接引用，样例请参照/crm/file/index.html。 router定义时，引入"/workflow/file/pub/settings.js"即可
+/workflow/api/flow.cfg：定义工作流的相关接口，这类接口在业务的管理台中调用，工作流服务提供了默认的管理页面，业务中可以直接引用，样例请参照/crm/file/index.html。 router定义时，引入"/workflow/file/pub/settings.js"即可。
 
+```JavaScript
 {path: '/flowdef', component:() => import('/workflow/pub/settings.js')}
+```
 
 ![workflowset](imgs/server/workflowset.png)
 
-/workflow/api/root.cfg：启动或删除工作流、确认工作、查询任务的接口，这类接口在业务中调用，具体样例可以参照[码云][码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)中的/workflow/api下的一系列接口定义。
+/workflow/api/root.cfg：启动或删除工作流、确认工作、查询任务的接口，这类接口在业务中调用。
 
 ![customerworkflow](imgs/server/customer_workflow.png)
