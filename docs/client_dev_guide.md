@@ -1,10 +1,8 @@
-**至简网格客户端使用与UI开发指导**
+<div align="center" style="font-size:2em;font-weight:bold;">
+  至简网格客户端使用与UI开发指导<br>
+  <img src="imgs/zhijian_logo.png" width="50">
+</div>
 
-![logo](imgs/zhijian_logo.png)
-
-| 作者 | flyinmind |
-| --- | --- |
-| 日期 | 2024.3.1 |
 
 # **修订记录**
 
@@ -350,12 +348,14 @@ request({method:"POST", url:"/api/customer/create", data:dta}, "crm").then(resp 
 
 request、download的service参数为被请求的服务名称，opts为请求选项，包括method、url、data、private四项，file\_name是download特有的。
 
-1. method：支持GET/POST/PUT/DELETE方法，如果是GET/DELETE；
-2. url：请求URL，可以在"?"后面带参数；
-3. data：请求参数，必须是json对象，如果method是GET/DELETE，则无需传opts.data参数；
-4. isCloud：表示无论当前选中的是哪个公司，请求都会发到根公司的云上服务中；
-5. private：可以不传递，默认为true，表示需要做用户鉴权，如果访问public接口，将private设为false即可； 如果客户端已登录，则会自动使用用户token获取服务token，然后用服务token访问服务接口；如果用户未登录，则操作失败，建议在收到NO\_RIGHT错误码时，跳出提醒登录的窗口；
-6. timeout：单位毫秒，不设置或设成小于或等于8000的值，则使用默认的HttpClient，超时为8秒，否则创建一个临时HttpClient，使用此timeout值；不推荐使用此设置，除非万不得已，比如安装服务、备份数据等请求，因为每次都会新建一个HttpClient，既耗时又耗资源。
+| 选项   |  说明 |
+| ---   | ---   |
+|method |支持GET/POST/PUT/DELETE方法，如果是GET/DELETE|
+|url    |请求URL，可以在"?"后面带参数|
+|data	|请求参数，必须是json对象，如果method是GET/DELETE，则无需传opts.data参数|
+|isCloud|表示无论当前选中的是哪个公司，请求都会发到根公司的云上服务中|
+|private|可以不传递，默认为true，表示需要做用户鉴权，如果访问public接口，将private设为false即可；<br>如果客户端已登录，则会自动使用用户token获取服务token，然后用服务token访问服务接口；如果用户未登录，则操作失败，建议在收到NO\_RIGHT错误码时，跳出提醒登录的窗口|
+|timeout|单位毫秒，不设置或设成小于或等于8000的值，则使用默认的HttpClient，超时为8秒，否则创建一个临时HttpClient，使用此timeout值；<br>不推荐使用此设置，除非万不得已，比如安装服务、备份数据等请求，因为每次都会新建一个HttpClient，既耗时又耗资源|
 
 #### 响应处理
 
@@ -488,10 +488,10 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 | Secure类    | |
 | pbkdf2(pwd, iterationCount) | 使用pbkdf2算法，将pwd迭代iterationCount次 |
 | pbkdf2Check(pwd, savedPwd) | 检查输入的pwd与savedPwd是否一致，savedPwd由pbkdf2函数生成 |
-| cbcEncrypt(plain, key, kenLen) | 使用AES-CBC算法加密，plain为明文，key为密钥，keyLen可以选择16/24/32。IV为随机产生，并记录在密文的前面16字节中。 |
-| cbcDecrypt(cipher, key, kenLen) | 使用AES-CBC算法解密，cipher为密文，其中包括了随机IV |
-| gcmEncrypt(plain, key, kenLen) | 使用AES-GCM算法加密，plain为明文，key为密钥，keyLen可以选择16/24/32。IV为随机产生，并记录在密文的前面16字节中。 |
-| gcmDecrypt(cipher, key, kenLen) | 使用AES-GCM算法解密，cipher为密文，其中包括了随机IV |
+| cbcEncrypt(plain, key) | 使用AES-CBC算法加密，plain为明文，key为密钥。IV为随机产生，并记录在密文的前面16字节中。 |
+| cbcDecrypt(cipher, key) | 使用AES-CBC算法解密，cipher为密文，其中包括了随机IV |
+| gcmEncrypt(plain, key) | 使用AES-GCM算法加密，plain为明文，key为密钥。IV为随机产生，并记录在密文的前面16字节中。 |
+| gcmDecrypt(cipher, key) | 使用AES-GCM算法解密，cipher为密文，其中包括了随机IV |
 | keyPair(pwd) | 产生ECC密钥对，pwd为加密密钥对的密钥；返回内容为一个字符串 |
 | publicKey(kp) | keyPair产生密钥后，通过此函数导出公钥 |
 | privateKey(kp,pwd) | keyPair产生密钥后，通过此函数导出私钥，因为私钥是加密的，所以必须提供密码 |
@@ -521,7 +521,8 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 ```JavaScript
 var db='test_db';
 if(Database.open(db)>0) {
-	alert(xxx);return;
+	alert(xxx);
+	return;
 }
 Database.initialize(db,"create table if not exists testtab(...);create index if not exists ...").then(res=>{
 	if(res.code!=RetCode.OK){
