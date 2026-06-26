@@ -70,21 +70,19 @@ public final class HandleResult {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(4096);
-        sb.append("{\"").append(CODE).append("\":").append(code)
-                .append(",\"").append(INFO).append("\":\"");
+        String s = "{\"" + CODE + "\":" + code + ",\"" + INFO + "\":\"";
 
         if(this.info != null) { //info中不可以包括'\'与'"'
-            sb.append(this.info);
+            s += this.info;
         } else {
-            sb.append(RetCode.INFO_UNKNOWN);
+            s += RetCode.INFO_UNKNOWN;
         }
-        sb.append('\"');
+        s += '\"';
         if(!this.data.isEmpty()) {
-            sb.append(",\"").append(DATA).append("\":").append(JsonUtil.objToJson(data));
+            s += ",\"" + DATA + "\":" + JsonUtil.objToJson(data);
         }
-        sb.append('}');
-        return sb.toString();
+        s += '}';
+        return s;
     }
     
     /**
@@ -93,7 +91,7 @@ public final class HandleResult {
      * @return 字符串
      */
     public String toString(int max) {
-        StringBuilder sb = new StringBuilder(4096);
+        StringBuilder sb = new StringBuilder(1024);
         sb.append("{").append(CODE).append(':').append(RetCode.name(code))
                 .append(',').append(INFO).append(":\"");
 
@@ -112,17 +110,10 @@ public final class HandleResult {
     }
     
     public String brief() {
-        StringBuilder sb = new StringBuilder(1024);
-        sb.append('{').append(CODE).append(":").append(RetCode.name(code))
-                .append(",").append(INFO).append(":");
-
-        if(this.info != null) {
-            sb.append(this.info);
-        } else {
-            sb.append(RetCode.INFO_UNKNOWN);
-        }
-        sb.append("}");
-        return sb.toString();
+        return "{" + CODE + ':' + RetCode.name(code)
+               + ','+ INFO + ':'
+               + (this.info != null ? this.info : RetCode.INFO_UNKNOWN)
+               + '}';
     }
     
     public static HandleResult fromStr(String s) {

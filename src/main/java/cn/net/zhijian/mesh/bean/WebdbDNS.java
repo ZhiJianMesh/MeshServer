@@ -189,7 +189,7 @@ public final class WebdbDNS extends AbstractDNS {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(1024);
+        StringBuilder sb = new StringBuilder();
         sb.append('[');
         toString(sb);
         sb.append(']');

@@ -151,20 +151,18 @@ public final class Watcher extends DefaultServiceWatcher {
             ACCESS.info("T\tGET\t{}\t{}\t{}\t{}\t{}", 
                  System.currentTimeMillis() - start, statusCode, code, url, trace);
 
-            StringBuilder body = new StringBuilder(1024);
-            body.append("{\"taskId\":").append(taskId)
-                .append(",\"code\":").append(code)
-                .append(",\"info\":\"").append(info)
-                .append("\",\"tag\":\"").append(tag)
-                .append("\",\"sync\":\"").append(sync)
-                .append("\"}");
+            String body =  "{\"taskId\":" + taskId
+                + ",\"code\":" + code
+                + ",\"info\":\"" + info
+                + "\",\"tag\":\""+ tag
+                + "\",\"sync\":\""+ sync + "\"}";
 
             ServiceReqBuilder resultReq = new ServiceReqBuilder(caller, SERVICE_SCHEDULE);
             resultReq.url("/task/result")
                .traceId("schedule_" + (traceId++))
                .cid(cid)
                .appToken("*")
-               .body(body.toString());
+               .body(body);
             ServiceClient.servicePost(resultReq);
         }, Pool);        
     }
@@ -269,18 +267,16 @@ public final class Watcher extends DefaultServiceWatcher {
             ACCESS.info("T\tGET\t{}\t{}\t{}\t{}\t{}", 
                  System.currentTimeMillis() - start, statusCode, code, url, trace);
 
-            StringBuilder body = new StringBuilder(1024);
-            body.append("{\"taskId\":").append(taskId)
-                .append(",\"code\":").append(code)
-                .append(",\"info\":\"").append(info)
-                .append("\"}");
+            String body = "{\"taskId\":" + taskId 
+                + ",\"code\":" + code
+                + ",\"info\":\"" + info+ "\"}";
 
             ServiceReqBuilder resultReq = new ServiceReqBuilder(caller, SERVICE_SCHEDULE);
             resultReq.url("/proxy/result")
                .traceId("proxy_" + (traceId++))
                .cid(cid)
                .appToken("*")
-               .body(body.toString());
+               .body(body);
             ServiceClient.servicePost(resultReq);
         }, Pool);        
     }

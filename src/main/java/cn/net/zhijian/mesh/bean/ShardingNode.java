@@ -240,7 +240,7 @@ public final class ShardingNode implements IDBConst {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(1024);
+        StringBuilder sb = new StringBuilder();
         toString(sb);
         return sb.toString();
     }

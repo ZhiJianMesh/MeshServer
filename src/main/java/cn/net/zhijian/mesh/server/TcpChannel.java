@@ -278,10 +278,9 @@ public final class TcpChannel implements ITcpProtocol, IThreadPool {
         private void removeResource(ChannelHandlerContext ctx) {
             Attribute<String> attr = ctx.channel().attr(RESOURCE_KEY);
             String rid = attr.get();
-            TcpConnection conn = resources.get(rid);
+            TcpConnection conn = resources.remove(rid); //先删除
             if(conn != null) {
                 conn.close();
-                resources.remove(rid);
                 LOG.debug("Connection {} closed", rid);
             }            
         }

@@ -219,7 +219,7 @@ public final class ServiceDNS extends AbstractDNS {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(4096);
+        StringBuilder sb = new StringBuilder(512);
         sb.append("{\"name\":\"").append(name()).append("\",\"addrs\":[");
         for(int i = 0; i < realNodes.length; i++) {
             NodeAddress n = realNodes[i];

@@ -572,7 +572,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     public List<Object[]> visitStats(int cid, String service, int from, int to) {
         return visitStats.queryArrays(
                 "select at,api,exc,fail from requests where cid=" + cid
-                + " and service='" + service + "' and at>"
+                + " and service='" + service.replace("'", "''") + "' and at>"
                 + (from - 1) + " and at<" + (to + 1)
                 + " order by at asc");
     }

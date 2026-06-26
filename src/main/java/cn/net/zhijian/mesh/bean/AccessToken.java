@@ -364,19 +364,17 @@ public final class AccessToken extends DeferrableEle implements IOAuth {
     private String assemble(byte[] sign) {
         byte[] extBytes = ext.getBytes(IUtil.DEFAULT_CHARSET);
         String extBase64 = ByteUtil.bin2base64(extBytes);
-
-        StringBuilder sb = new StringBuilder(4096);
-        sb.append(ByteUtil.getBase64CharByVal(VERSION_0))
-          .append(ByteUtil.getBase64CharByVal(tokenType()))
-          .append(ByteUtil.getBase64CharByVal(signType()))
-          .append(ByteUtil.int2Base64(partition, 18, true)) //3字节
-          .append(ByteUtil.long2Base64(expiresAt / 1000, 36, true)) //6字节，单位秒，最多到2173年
-          .append(TOKEN_SEPARATOR).append(caller)
-          .append(TOKEN_SEPARATOR).append(callee)
-          .append(TOKEN_SEPARATOR).append(ByteUtil.int2Base64(extBase64.length(), 12, true)) //2字节，最长4096
-          .append(extBase64).append(ByteUtil.bin2base64(sign));
-
-        return sb.toString();
+        String signBase64 = ByteUtil.bin2base64(sign);
+        
+        return "" + ByteUtil.getBase64CharByVal(VERSION_0)
+          + ByteUtil.getBase64CharByVal(tokenType())
+          + ByteUtil.getBase64CharByVal(signType())
+          + ByteUtil.int2Base64(partition, 18, true) //3字节
+          + ByteUtil.long2Base64(expiresAt / 1000, 36, true) //6字节，单位秒，最多到2173年
+          + TOKEN_SEPARATOR + caller
+          + TOKEN_SEPARATOR + callee
+          + TOKEN_SEPARATOR + ByteUtil.int2Base64(extBase64.length(), 12, true) //2字节，最长4096
+          + extBase64 + signBase64;
     }
     
     public int ver() {
