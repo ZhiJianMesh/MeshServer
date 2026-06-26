@@ -27,13 +27,13 @@
 
 ### windows客户端
 
-从网站下载后，双击安装即可。
+从网站下载安装程序后，双击安装即可。
 
-windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以上版本都可以安装，windows 10、11中已默认安装。如果未安装，则需要手动下载安装 [Edege浏览器](https://www.microsoft.com/zh-cn/edge/download)。
+windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以上版本都可以安装，windows10、windows11中已默认安装。如果未安装，则需要手动下载安装 [Edege浏览器](https://www.microsoft.com/zh-cn/edge/download)。
 
 ### android客户端
 
-至简网格客户端至少需要在安卓8.0中安装（2017年8月22日发布）。
+至简网格安卓客户端至少需要在安卓8.0中安装（2017年8月22日发布）。
 
 至简网格客户端没有上传到各大应用市场，需要使用安卓手机的浏览器扫码下载，然后再安装。
 
@@ -41,7 +41,7 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 ![aclient_install1](imgs/client/androidclient_install1.png)
 
-安装时，会有安全提醒，请选中“我已充分了解风险，并继续安装”。因为安卓手机品牌众多、版本众多， 提示不尽相同，总之需要容许安装才可以。
+安装时，会有安全提醒，请选中“我已充分了解风险，并继续安装”。因为安卓手机品牌众多、版本众多，提示不尽相同，总之需要容许安装才可以。
 
 ![aclient_install2](imgs/client/androidclient_install2.png)
 
@@ -49,15 +49,15 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 ## 端侧设置
 
-设置中可以进行个人帐号注册与登录，或者公司帐号的登录，登录完成后，可以设置个人信息。
+帐号分为两类：个人帐号、公司帐号，用户可以登录一个个人账号，登录一个或多个公司的公司账号，比如，一个会计为多家公司代账的情况，就需要登录多家公司的服务，使用时根据需要切换到不同公司的公司帐号。
 
-帐号分为两类：个人帐号、公司帐号，用户可以登录一个个人账号，同时可以登录一个或多个公司的公司账号（比如，一个会计为多家公司代账的情况，就需要登录多家公司的服务）。
+“设置”中可以进行个人帐号注册与登录，或者公司帐号的登录。
 
-在服务中使用账号时，如果当前打开的服务是一个公司服务，则自动使用当前选中的公司的账号；如果是一个个人服务，无论当前选中的是哪个公司的账号，都使用个人账号。
+如果当前打开的服务是一个公司服务，则自动使用当前选中的公司的账号；如果是一个个人服务，无论当前选中的是哪个公司的账号，都使用个人账号。
 
 ### 个人帐号
 
-在使用一些个人服务时，比如密码箱、专注力等服务，它们不属于任何一家公司服务，所以必须使用个人帐号。
+在使用一些个人服务时，比如密码箱、专注力等服务，它们不属于任何一家公司，所以必须使用个人帐号。
 
 ![personalreg1](imgs/client/personal_reg1.png)
 
@@ -67,23 +67,21 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 ### 公司帐号
 
-公司帐号及其初始密码是公司的超级管理员创建的，创建方法请参照 [用户服务](http://www.zhijian.net.cn/directions/server/register)中的描述。
+公司帐号及其初始密码是公司的超级管理员创建的，创建方法请参照[公司帐号管理](#公司帐号管理)。
 
-在登录公司帐号之前，需要先点击左上角的图标添加公司，待添加的公司必须已经注册过。
+在登录公司帐号之前，需要先点击左上角的图标添加公司，待添加的公司必须已经注册过，可以询问公司相关负责人获得公司id与接入码。
 
 ![comlogin1](imgs/client/company_login1.png)
 
 公司ID：公司或组织注册时获得的ID；
 
-接入码：接入密码，需注意，它相当于WIFI密码，不可随意透露给公司外不相关的人员。
+接入码：接入密码，需注意，它相当于WIFI密码，不可随意透露给公司外不相关人员。
 
 ![comlogin2](imgs/client/company_login2.png)
 
-如果工作环境不能访问外网，点击“确定”后，端侧无法知道连接哪个服务器，这时会要求输入“内网地址”。
+如果服务器置于内网环境，点击“确定”后，端侧无法知道连接哪个服务器，这时会要求输入“内网地址”。
 
 ![comlogin3](imgs/client/company_login3.png)
-
-公司ID、接入码、内网地址，在[服务端设置](http://www.zhijian.net.cn/directions/server/settings) 都可以找到，请联系服务器维护人员获得这些信息。
 
 ### 登录
 
@@ -101,20 +99,16 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 ![comlogin6](imgs/client/company_login6.png)
 
-在使用服务时，如果是个人服务，则自动使用个人帐号身份。
-
-如果是公司级服务，则使用当前选中的公司帐号，在左上角可以切换当前的公司。 如果当前帐号是个人帐号，且有多个公司帐号，则无法访问，因为个人帐号无法在公司级服务中使用， 也无法自动从多个公司帐号中自动挑选一个，所以只能失败。
-
-此特性可以满足一个员工同时为多家企业服务的场景。
+在使用服务时，如果是个人服务，则自动使用个人帐号身份。如果是公司服务，则使用当前选中的公司帐号，在左上角可以切换当前的公司。 如果当前帐号是个人帐号，且有多个公司帐号，因为个人帐号无法在公司级服务中使用，所以默认使用排在最前面的公司帐号。
 
 ## 应用市场
 
-应用分成两类，一类是公司级应用，如CRM、会员等。公司级应用需要单独部署公司服务器才可以使用，服务器程序可以部署在一部安卓手机上，也可以部署在服务器上，或者部署在云端。
+应用分成两类，一类是公司应用，如CRM、会员等。公司应用需要单独部署公司服务器才可以使用，服务器程序可以部署在一部安卓手机上，也可以部署在服务器上，或者部署在云端。
 一类是个人应用，比如密码箱、专注力等。个人应用为生活提供便利，比如记密码、练习专注力、记单词、算账、杂记等，这些功能不需要部署服务器，安装即可使用。
 
 ### 应用列表
 
-点击应用就可以进入详情界面，进行安装或卸载。
+在应用列表中点击应用就可以进入详情界面，进行安装或卸载。
 
 ![mktlist](imgs/client/market_list.png)
 
@@ -128,13 +122,13 @@ windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以�
 
 ## 打开应用
 
-在应用主界面的最下方，点击“应用”按钮，出现一个应用栏，里面显示了所有已安装的应用，比如CRM、会员等。 点击一个应用，就可以进入应用的主界面。
+在应用主界面的最下方，点击“应用”按钮，出现一个应用栏，里面列出了所有已安装的应用，比如CRM、会员等。 点击一个应用，就可以进入应用的主界面。
 
 每种应用的主界面不同，下图为CRM的主界面。
 
 ![icrmhome](imgs/client/icrm_home.png)
 
-打开一个应用，使用一段时间后，再次点击“应用”按钮，可以切换到其他应用。 如果退出程序，下次打开程序时，会自动进入上次打开程序时进入的应用。
+打开一个应用，使用一段时间后，再次点击“应用”按钮，可以切换到其他应用。 如果退出程序，下次打开程序时，会自动进入上次打开过的应用。
 
 Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
@@ -171,23 +165,22 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
 ## 概述
 
-至简网格客户端是一个轻应用开发的平台，端侧的开发，本质就是使用html+js+vue+quasar开发网页，如果需要输出报表，可以使用echarts。至简网格在客户端中提供了一些原生接口，使得与至简网格的服务端对接变得非常方便。
+至简网格客户端本质是一个轻应用开发平台，端侧的开发，就是使用html+js+vue+quasar开发网页，如果需要输出报表，可以使用echarts。至简网格在客户端中提供了一些原生接口，使得与至简网格的服务端对接变得非常方便，其他开发与普通网页开发是完全一致的。
 
-至简网格并没有限制使用什么类型的js前端框架，但是推荐使用vue+quasar，并且内置了vue与quasar，服务开发时，可以直接引用它们。
+至简网格并没有限制使用什么前端js框架，但是推荐使用vue+quasar，并且内置了vue与quasar，服务开发时，可以直接引用它们。
 
 ### 服务目录结构
 
-端侧UI开发是放在服务的file子目录中的，比如下图是CRM服务的结构，其中file目录就是端侧UI实现。服务在启动时会自动生成一个app.cfg文件，并将它们一起打包成一个zip文件。客户端在安装、升级时，用的就是这个zip文件。
+端侧UI开发是放在服务的file子目录中的，比如下图是CRM服务的目录结构，其中file目录就是端侧UI的实现。服务在启动时会自动生成一个app.cfg文件，并将它们一起打包成一个zip文件。客户端在安装、升级时，用的就是这个zip文件。
 
 ![uistruct](imgs/client/ui_struct.png)
 
-端侧ui在安装时，下载此zip文件，并且解压到本地目录，然后加载其中的index.html文件，显示服务的UI。所以，如果服务需要在客户端显示内容，则，file目录下必须有一个index.html文件。在index.html文件中，完成vue、quasar的初始化，如果使用了报表，还需要做echarts的加载工作。
+端侧ui在安装、升级时，下载此zip文件，并且解压到本地目录，然后加载其中的index.html文件，显示服务的UI。所以，如果服务需要在客户端显示内容，则，file目录下必须有一个index.html文件。在index.html文件中，完成vue、quasar的初始化加载，如果要用报表，还需要加载echarts。
 
-至简网格服务客户端开发本质是网页开发，所以在首页index.html中，与普通网页开发是完全一致的。
 
 ### 服务中的网络请求
 
-在端侧开发中，对网络的请求不可以使用任何一种ajax框架，比如axios、jquery等，因为为了实现至简网格服务端的灵活部署，内置webview时，禁用了它的网络访问能力。如果需要实现网络请求，必须使用原生类Http的函数，request是用来请求至简网格服务端接口的，download是用来下载文件的，getExternal是用来访问非至简网格服务的。
+在端侧开发中，对网络的请求不可以使用任何一种ajax框架，比如axios、jquery等，因为为了实现至简网格服务端的灵活部署，内置webview时，禁用了它的网络访问能力。如果需要实现网络请求，必须使用原生的Http函数，request是用来请求至简网格服务端接口的，download是用来下载文件的，getExternal是用来访问非至简网格服务中的内容的。
 
 ### 服务起始页样例
 ```HTML
@@ -328,11 +321,11 @@ template:`
 
 ## Http请求
 
-在内置浏览器中禁用了所有网络访问能力，即使使用axios也不能访问，必须通过request(opts, service)、download(opts, service)、getExternal(url)三个接口实现。
+在内置浏览器中禁用了所有网络访问能力，即使使用axios也不能访问，必须通过request(opts, service)、download(opts, service)、getExternal(url)三个接口实现。它们在assets/v3/osadapter.js中定义，调用内置的Http类。
 
 ### request
 
-request函数中不可以传入完整的url，只需传入服务名、服务接口，request内部根据网络分布情况，会选择合适的服务器，自动拼接出完整的请求url。
+request函数中不可以传入完整的url，只需传入服务名、接口名，request内部根据网络分布情况，选择合适的服务器，自动拼接出完整的请求url。
 ```JavaScript
 request({method:"POST", url:"/api/customer/create", data:dta}, "crm").then(resp => {
 	if(resp.code != RetCode.OK) {
@@ -358,13 +351,13 @@ request、download的service参数为被请求的服务名称，opts为请求选
 
 #### 响应处理
 
-Http.request是用来请求接口的，返回都是json格式。如果响应中需要携带数据内容，必须放在data字段中，没有响应数据内容，data可以省略。
+request是用来请求接口的，返回都是json格式。如果响应中需要携带数据内容，必须放在data字段中，没有响应数据时，data可以省略。
 
-响应处理中，首先判断code是否为RetCode.OK，只有OK是正常处理，其他错误码则根据情况处理，比如EXISTS，在某些情况下是正常的响应码，这需要业务实现时判断。响应数据在resp.data中，data是一个Map对象。
+响应处理中，首先判断code是否为RetCode.OK，只有OK是正常处理，其他错误码则根据情况处理，比如EXISTS，在某些情况下是正常的响应码，这需要业务实现时判断。响应数据在resp.data中，data是一个js对象。
 
 ##### 响应整体结构
 
-所有响应的顶层结构都是一样的，包括返回码code、信息info，如果是查询类的请求，会包括数据data字段，每个查询类接口的data都不相同。
+所有响应的顶层结构都是一样的，包括返回码code、信息info；如果是查询类的请求，会包括data字段，每个查询类接口的data都不相同。
 ```JSON
 {
 	code:0,
@@ -412,10 +405,9 @@ request用来请求服务端接口，返回都是json格式的，download是用�
 
 opts中，除了支持request的所有选项外，还需要增加一个file\_name参数，用来指定被下载的文件在存到本地时的名称，如果不指定，就用url中的uri作为文件名。
 
-如果不是通过接口访问获得文件，还可以增加一个file参数，设为true时，使用的url中将不会携带api。 其他参数与request完全相同。
+如果不是通过接口访问获得文件，还可以增加一个file参数，设为true时，使用的url中将不会携带api。 其他参数与request相同。
 ```JavaScript
 download({file_name: fn,/*attatchment*/ url:'/downloadlog?n=' + encodeURIComponent(f)}, "crm").then(resp => {
-	Console.debug(JSON.stringify(resp));
 	if(resp.code == RetCode.OK) {
 		this.dlList.splice(0, 0, {file:resp.data.saveAs, size:resp.data.size, bg:'#00000000'})
 	} else {
@@ -438,11 +430,11 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 
 ## 内置函数
 
-在端侧，除了内置浏览器本身js支持的能力外，至简网格还提供了一些内置的函数，随着系统的完善，会有更多的内置能力通过js函数方式开放出来。
+在端侧，至简网格提供了一些内置的函数，随着系统的完善，会有更多的内置能力通过js函数方式开放出来。
 
 ### 函数列表
 
-在客户端UI编程中，有些功能js不能或不易实现，比如加解密、文件读写等，这些功能在平台中已经通过原生的方式实现，并提供了相应的js接口。
+在客户端UI编程中，有些功能js不能或不易实现，比如加解密、文件读写等，只能在平台中通过原生的方式实现。
 
 | 函数 | 备注 |
 | --- | --- |
@@ -460,7 +452,7 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 | isSupported(feature) | 判断一个功能是否被支持，当前只有scancode(识别二维码、条形码)、orientation(改变屏幕显示方向)可选 |
 | showTools() | 显示工具栏 |
 | hideTools() | 隐藏工具栏，注意，此功能在windows客户端不起作用 |
-| scanCode(jsCbId) | 扫描二维码、条码，jsCbId请参照 [扫码案例](#扫码案例)，通过\_\_regsiterCallback(callback)注册回调时获得 |
+| scanCode(jsCbId) | 扫描二维码、条码，jsCbId请参照 [扫码案例](#scan2dbar)，通过\_\_regsiterCallback(callback)注册回调时获得 |
 | Console类  | 日志输出到端侧的日志文件中，而不是浏览器的控制台上；输出到控制台请使用小写的console |
 | debug(s) | 输出debug级别的日志 |
 | info(s) | 输出info级别的日志 |
@@ -516,7 +508,8 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 | queryMaps(db,sql) | 执行一条查询sql，结果以对象数组方式返回，包括列名，比如，data[{c1:a,c2:b,c3:c},{c1:d,c2:e,c3:f}...] |
 | queryMap(db,sql) | 执行一条查询sql，结果以对象方式返回，比如，data:{c1:a,c2:b,c3:c} |
 
-### 数据库案例
+### 使用举例
+#### 数据库案例
 ```JavaScript
 var db='test_db';
 if(Database.open(db)>0) {
@@ -550,7 +543,7 @@ Database.queryMaps(db, "select c1,c2 from testtab where ...").then(res=>{
 });
 ```
 
-### 扫码案例
+#### 扫码案例<a id="scan2dbar"></a>
 ```JavaScript
 var jsCbId=__regsiterCallback(resp => {
 	if(resp.code!=RetCode.OK) {
@@ -562,7 +555,7 @@ var jsCbId=__regsiterCallback(resp => {
 });
 Platform.scanCode(jsCbId);
 ```
-### 生成二维码
+#### 生成二维码
 
 如果需要生成二维码，必须在起始页index.html中包含qrcode（已内置到客户端版本中）。
 ```JavaScript
@@ -592,9 +585,9 @@ showQrCode() {
 
 ## 内置组件
 
-端侧内置了一些常用组件，有地址选择、alert对话框、确认对话框等。
+端侧内置了一些常用组件，有地址选择、告警对话框、确认对话框等。
 
-首先，在UI实现时先import它们，比如：
+使用时，首先在UI实现时先import它们，比如：
 ```JavaScript
 import DateInput from "/assets/v3/components/date_input.js"
 import UserSelector from "/assets/v3/components/user_selector.js"
@@ -602,7 +595,7 @@ import AlertDialog from "/assets/v3/components/alert_dialog.js"
 import ConfirmDialog from "/assets/v3/components/confirm_dialog.js"
 ```
 
-其次，在app.mount('#app')之前将这些组件都注册进去
+其次，在app.mount('#app')之前将这些组件都注册进去：
 ```JavaScript
 app.component('component-user-selector', UserSelector);
 app.component('component-alert-dialog', AlertDialog);
@@ -610,7 +603,7 @@ app.component('component-confirm-dialog', ConfirmDialog);
 app.component('component-date-input', DateInput);
 ```
 
-最后，在使用时当作普通的标签使用
+最后，在使用时当作标签使用
 ```HTML
 <component-user-selector :label="tags.signers" :accounts="newCust.nextSigners"></component-user-selector>
 ```
@@ -628,17 +621,17 @@ app.component('component-date-input', DateInput);
 
 ### addr\_input
 
-以一个输入框的形式，提供多级的地址选择，输入任意关键字，会模糊搜索一个完整的地址。
-
-此组件在安卓7中无法正常显示，并且，oppo的安卓8中也会无法显示。如果考虑兼容，请使用addr\_dialog。支持以下属性：
+以一个输入框的形式，提供多级的地址选择，输入任意关键字，会模糊搜索一个完整的地址。它支持以下属性：
 
 | 属性名称 | 备注 |
 | --- | --- |
 | label | 标签，字符串类型，显示在地址选择框上方，默认为空 |
 
+注意：此组件在安卓7中无法正常显示，并且，oppo的安卓8中也会无法显示。如果考虑兼容，请使用addr\_dialog。
+
 ### addr\_select
 
-用三个输入框选择地址，每一级选择后，后面的级会自动更新。支持以下属性：
+用三级输入框选择地址，每一级选择后，后面的级会自动更新。支持以下属性：
 
 | 属性名称 | 备注 |
 | --- | --- |
@@ -646,7 +639,7 @@ app.component('component-date-input', DateInput);
 
 ### alert\_dialog
 
-信息提示对话框，此对话框在点击空白处时会消失。支持以下方法：
+提示对话框，此对话框在点击空白处时会消失。支持以下方法：
 
 | 方法名 | 备注 |
 | --- | --- |
@@ -656,26 +649,30 @@ app.component('component-date-input', DateInput);
 支持以下属性：
 
 | 属性名称 | 备注 |
-| --- | --- |
+| ---     | --- |
 | errMsgs | 错误码与错误信息的对应关系，对象类型，比如{4000:"参数错误"} |
-| title | 标题，字符串类型，默认为“警告” |
-| close | 关闭按钮的标签，字符串类型，默认为“关闭” |
+| title   | 标题，字符串类型，默认为“警告” |
+| close   | 关闭按钮的标签，字符串类型，默认为“关闭” |
 
 使用时先引入组件，注意要增加ref属性，比如errMsg。
 ```HTML
 <component-alert-dialog ref="errMsg"></component-alert-dialog>
 ```
 
-需要显示错误信息时，引用ref，调用showErr函数：
+需要显示错误信息时，调用showErr函数：
 ```JavaScript
 this.$refs.errMsg.showErr(errCode, errInfo)
 ```
-或者直接显示信息：
+
+showErr会根据errCode查找对应的错误信息，这些信息是errMsgs属性传递进来的。找到后在加上errInfo一起输出。
+如果需要直接显示一段信息，可以调用show：
 ```JavaScript
 this.$refs.errMsg.show(info)
 ```
 
-如果是在其他组件中引用本组件，可以参照以下方法，首先引入本组件：
+如果是在其他组件中引用本组件，可以参照以下方法：
+
+首先引入本组件：
 ```JavaScript
 import AlertDialog from "/assets/v3/components/alert_dialog.js"
 ```
@@ -689,7 +686,6 @@ export default {
 	...
 }
 ```
-
 并在template中申明组件：
 ```JavaScript
 <alert-dialog :title="failToCall" :close="close" ref="errMsg"></alert-dialog>
@@ -698,21 +694,22 @@ export default {
 ```JavaScript
 this.$refs.errMsg.showErr(errCode, errInfo);
 ```
+
 ### confim\_dialog
 
-确认对话框，是否方法与alert\_dialog类似。支持以下方法：
+确认对话框，使用方法与alert\_dialog类似。支持以下方法：
 
 | 方法名 | 备注 |
-| --- | --- |
+| ---   | --- |
 | show(msg,callback) | 显示msg，并设置点击确认时的回调函数 |
 
 支持以下属性：
 
 | 属性名称 | 备注 |
-| --- | --- |
-| title | 标题，字符串类型，默认为“警告” |
-| ok | 确定按钮的标签，字符串类型，默认为“确定”，点击时会调用回调函数 |
-| close | 关闭按钮的标签，字符串类型，默认为“关闭” |
+| ---    | --- |
+| title  | 标题，字符串类型，默认为“警告” |
+| ok     | 确定按钮的标签，字符串类型，默认为“确定”，点击时会调用回调函数 |
+| close  | 关闭按钮的标签，字符串类型，默认为“关闭” |
 
 ### date\_input
 
@@ -730,7 +727,7 @@ this.$refs.errMsg.showErr(errCode, errInfo);
 
 ### datetime_input
 
-日期+时间输入框。quasar本身的日期组件已经很棒，提供此组件，是用于提供一些默认属性，另外在下方可同时输入时间。支持以下属性：
+日期+时间输入框。quasar本身的日期组件已经很棒，提供此组件，是用于提供一些默认属性，另外在下方可输入时间。支持以下属性：
 | 属性名称  | 备注 |
 | ---      | --- |
 |label     |输入框的标题，字符串类型|
@@ -763,29 +760,30 @@ this.$refs.errMsg.showErr(errCode, errInfo);
 | max | 最大可选择日期，字符串类型，默认为9999/1 |
 | monthName | 月份的标签，默认为“月” |
 
-min、max格式支持yyyy-MM、yyyy/MM、yyyy.MM，还支持cur（当前月份）、+/-m、+/-y（与当前月份相对偏移月份数或年数）。
+min、max格式支持yyyy-MM、yyyy/MM、yyyy.MM，还支持cur（当前月份）、+/-m、+/-y（与当前月份相对偏移的月份数或年数）。
 
 ### user\_selector
 
-用户选择输入框。调用企业用户服务中接口获得帐号信息，选择一个帐号。输入帐号、电话号码的部分或全部对帐号进行模糊搜索，并列出搜索结果供选择。支持以下属性：
+用户选择输入框。调用公司用户服务中接口获得帐号信息，选择一个帐号。输入帐号、电话号码的部分或全部对帐号进行模糊搜索，并列出搜索结果供选择。
 
+支持以下属性：
 | 属性名称 | 备注 |
-| --- | --- |
-| label | 输入框的标题，字符串类型 |
-| useid | 是否返回群组id，布尔类型，默认为false，返回帐号，否则返回帐号id |
-| accounts | 选中的帐号或帐号id，数组类型，如果是单选，则只有一个成员 |
-| multi | 是否多选，布尔类型，默认为true，表示可选择多个帐号，在accounts中返回 |
+| ---     | --- |
+| label   | 输入框的标题，字符串类型 |
+| useid   | 是否返回群组id，布尔类型，默认为false，返回帐号，否则返回帐号id |
+| accounts| 选中的帐号或帐号id，数组类型，如果是单选，则只有一个成员 |
+| multi   | 是否多选，布尔类型，默认为true，表示可选择多个帐号，在accounts中返回 |
 | service | 限定的服务，字符串类型，如果不为空，则只返回在这个服务中获得授权的帐号，默认为空，表示不限制 |
-| roles | 限定的角色，字符串数组类型，必须与service属性一起设置。如果不为空，则只返回在指定服务中获得相应角色的帐号，默认为空，表示不限制 |
+| roles   | 限定的角色，字符串数组类型，必须与service属性一起设置。如果不为空，则只返回在指定服务中获得相应角色的帐号，默认为空，表示不限制 |
 
 ### user_input
-帐号输入框。调用企业用户服务中接口获得帐号信息，选择一个帐号。输入帐号、电话号码的部分或全部对帐号进行模糊搜索，并列出搜索结果供选择。
+帐号输入框。调用公司用户服务中接口获得帐号信息，选择一个帐号。输入帐号、电话号码的部分或全部对帐号进行模糊搜索，并列出搜索结果供选择。
 一边输入帐号，一边过滤帐号的组件，返回{id:xxx,account:yyyyy}。与user_selector不同，此组件只能输入一个帐号。
 ![userauth](imgs/client/user_auth.png)
 
 ### login\_dialog
 
-用户登录对话框。输入帐号、密码，调用企业用户服务中接口进行用户登录。支持以下属性：
+用户登录对话框。输入帐号、密码，调用公司用户服务中接口进行用户登录。支持以下属性：
 
 | 属性名称 | 备注 |
 | --- | --- |
@@ -832,10 +830,10 @@ min、max格式支持yyyy-MM、yyyy/MM、yyyy.MM，还支持cur（当前月份�
 支持以下属性：
 
 | 属性名称 | 备注 |
-| --- | --- |
-| width | 对话框的宽度，单位可以是px、vw、vh、em、rem等，字符串类型，默认为“80vw” |
-| ok | 确定按钮的标签，字符串类型，默认为“执行”，点击时会调用action函数 |
-| close | 关闭按钮的标签，字符串类型，默认为“关闭” |
+| ---    | --- |
+| width  | 对话框的宽度，单位可以是px、vw、vh、em、rem等，字符串类型，默认为“80vw” |
+| ok     | 确定按钮的标签，字符串类型，默认为“执行”，点击时会调用action函数 |
+| close  | 关闭按钮的标签，字符串类型，默认为“关闭” |
 
 使用时先引入组件，注意要增加ref属性，比如procDlg。
 ```HTML
@@ -861,9 +859,8 @@ this.$refs.procDlg.show('数据备份', '确定要执行备份吗？', 'cloud_do
 
 ## 报表开发
 
-至简网格内置了echarts，并默认使用echarts生成图表。
-
-为了使用echarts，必须在起始页index.html中引用。echarts已集成到客户端版本中，业务无需自己下载。 除折线图、柱状图等基本图表外，还包括tree/relation/scatter/sunburst四个高级图表。
+至简网格内置了echarts，并默认使用echarts生成图表。为了使用echarts，必须在起始页index.html中引用。
+echarts已集成到客户端版本中，业务无需自己下载。 除折线图、柱状图等基本图表外，还包括tree/relation/scatter/sunburst四个高级图表。
 ```HTML
 <script src="/assets/v3/echarts.js"></script>
 ```
@@ -874,13 +871,13 @@ echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apa
 
 ## 极简CRM
 
-客户关系管理系统，为小微企业管理客户信息，实现客户信息、联系人信息、订单信息、回款信息、售后服务信息记录，实现了基本的业财一体化。
+客户关系管理系统，为中小微企业管理客户信息，实现客户信息、联系人信息、订单信息、回款信息、售后服务信息记录，实现了基本的业财一体化。
 
-提供了实时的简报，让每个销售人员能够掌握自己当前的销售进展。服务报表中，提供了公司范围的收支报表与按产品维度的收支报表。
+提供了实时的简报，让每个销售人员能够掌握自己当前的销售进展。服务报表中，提供了公司维度的收支报表与按产品维度的收支报表。
 
 ## 极简会员
 
-会员管理系统，为服务行业提供的客户会员软件，与CRM不同，这类服务直接面向个人，所以其中不包括企业信息，只有会员信息，完成会员登记、订单管理、消费记录，能够输出实时的图形化报表，针对每个会员都可以一键导出所有服务记录存入word文档中，便于新员工学习，提升服务水平。
+会员管理系统，为服务行业提供的客户会员软件，与CRM不同，这类服务直接面向个人，所以其中不包括企业信息，只有会员信息。可以完成会员登记、订单管理、消费记录，能够输出实时的图形化报表，针对每个会员都可以一键导出所有服务记录存入word文档中，形成服务案例，便于新员工学习，提升服务水平。
 
 ![member1](imgs/client/member1.png)
 
@@ -894,7 +891,7 @@ echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apa
 
 ## ClassHour
 
-课时管理系统，为课外辅导班、兴趣班开发的学员课时管理服务。能够实现学员登记、订单管理、课时管理等，并且能够输出实时的报表。结合一些辅导中心的激励级制，提供了简单的积分奖励机制。
+课时管理系统，为课外辅导班、兴趣班开发的学员课时管理服务。能够实现学员登记、订单管理、课时管理等，并且能够输出实时的报表。结合一些辅导中心的激励机制，提供了积分奖励功能。
 
 ![classhour1](imgs/client/classhour1.png)
 
@@ -906,8 +903,8 @@ echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apa
 
 ![classhour3](imgs/client/classhour3.png)
 
-在课时记录中，可以了解学员的学习进度。与会员管理系统类似，这里也可以一键导出学员的上课记录到一个word文档中，可以将这个文档转给学员家长。
+在课时记录中，可以了解学员的学习进度。与会员管理系统类似，它也可以一键导出学员的上课记录到一个word文档中，可以将这个文档转给学员家长。
 
 ![classhour4](imgs/client/classhour4.png)
 
-报表中有总体的报表，也有单个套餐的报表，点击报表上面蓝色的图标就可以查看生成报表的原始详细数据，那里包括更多的信息。
+报表中有总体的报表，也有单个套餐的报表，点击报表上面蓝色的图标就可以查看生成报表的原始详细数据。

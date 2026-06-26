@@ -86,7 +86,7 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 1. 用nano命令在home目录下编辑”.bashrc”文件（注意文件前面有个点），添加以下内容；
 ```bash
 alias ll=’ls -l’
-export LD\_LIBRARY\_PATH=$PREFIX/lib:/system/lib64:/system/lib
+export LD_LIBRARY_PATH=$PREFIX/lib:/system/lib64:/system/lib
 ```
 
 1. 修改$PREFIX/etc/apt/sources.list使用清华的镜像，提升安装速度；
@@ -156,7 +156,7 @@ export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
 运行命令aarch64-linux-android21-clang --version，如果能够正确返回，则说明安装成功。
 >注意：不能将NDK存在windows系统中，然后用/mnt/映射目录。
 
-## 2、原生库编译
+## 2、交叉编译与打包
 
 ### Sqlite-JDBC驱动原生库
 
@@ -189,8 +189,14 @@ Linux-Android-aarch64_SQLITE_FLAGS :=
 ### QuickJS原生库
 
 #### Linux/Windows/Android
-进入wsl环境，在QuickJs工程目录下运行make all生成windows、linux、android的原生库。
-Android需要在AndroidStudio中打包成aar文件。将so文件放在工程src/main/jniLibs相应芯片架构的目录下，然后点击右边栏gradle图标，选择项目的tasks\build\assemble生成aar文件。
+
+进入wsl环境，在QuickJs工程目录下运行make生成windows、linux、android的原生库。
+```bash
+make all
+```
+windows、linux的jar使用gradle jar命令生成。
+
+Android需要的是aar文件，所以先将so文件放在Android工程src/main/jniLibs相应芯片架构的目录下，然后点击右边栏gradle图标，选择项目的tasks\build\assemble生成aar文件。
 
 #### Termux
 
