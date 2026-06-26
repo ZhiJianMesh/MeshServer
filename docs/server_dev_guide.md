@@ -897,11 +897,11 @@ toResp为true时，内容会作为响应的字段返回。
 | CLEAN | 清除JSON中的字段名称 | @{CLEAN\|json} | 只可用于JSON类型的参数，将json字段名全部清除，返回一个字符串。通常用在生成全文索引中 |
 | SIZE | 返回参数的长度 | @{SIZE\|[!]para} | para可以是list、map或string |
 | SUM | 对列表中元素求和 | @{SUM\|type,[!]paraName[.segName|colNo]} 1)简单列表：@{SUM\|double,scores}； 2)对象列表：@{SUM\|d,students.score}； 3)列表的列表：@{SUM\|i,students.0} | 将所有成员求和，如果指定了字段名，则源数据必须为一个对象列表； 如果是列表的列表，segName可以指定为列号；都不指定，则认为传入的是数值列表。 <br>type支持long、double、int、float等，也可以用简写l、d、i、f，浮点数支持精度控制，比如f.3，与@{CALCULATE}相同 \|
-| MIN | 从列表中找到最小的一项 | @{MIN\|int,list}从列表list中取最小值 @{MIN\|int,list.a}列表元素是对象，取每行a字段的最小值 @{MIN\|int,list.0}列表元素是列表，取每行第1列的最小值 | @{MIN\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最小值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
-| MAX | 从列表中找到最大的一项 | @{MAX\|int,list}从列表list中取最大值 @{MAX\|int,list.a}列表元素是对象，取每行a字段的最大值 @{MAX\|int,list.0}列表元素是列表，取每行第1列的最大值 | @{MAX\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最大值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
-| FOR | 对一个变量进行循环处理 | 对list或数组参数进行循环，每个元素用e代替；如果e是对象，可以用e.开头引用成员； i是循环序数，从0开始； 所有需要用引号的地方，建议都使用"\`"，而不是单引号。sql本身使用单引号，特别是出现“;”或“)”的地方，不可以使用单引号，否则无法解析。 支持设置过滤条件，在pl后面加“()”，然后加过滤条件，条件判断与@{CONDITION}完全一致 \| @{FOR\|pl,\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} pl必须是一个list或数组，第二个参数是分隔符；后面都是要拼接的参数或常量，每循环一次，将他们拼接起来，然后加一个分隔符<br>例子中如果pl=[{a:11,b:"x"},{a:12,b:"y"}]，p2="hello",运行后将得到: (0,'hello',11,x,''),(1,'hello',12,y,'') {FOR|pl(e.a,'i.>',1 && e.a,'i.<',20),\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} 运行后将得到: (0,'hello',11,x,'') |
-| ADD、SUB、MULTI、DIV | 加减乘除运算 | @{ADD\|类型[.精度], para1, para2} | 类型有int、long、float、double，指定了参数类型与返回类型， 精度只有在类型为float、double时有效，范围在0-7，可以不指定； para1与para2必须是对应类型的数值 |
-| CALCULATE | 将type后面的所有内容拼接成一个四则算式并计算结果 | @{CALCULATE\|type,p1,'+(',p2,'-',p3,')-',p4} | type与ADD等的定义相同，p1、p2等必须是数值类型。 算式必须符合四则运算规则，可以很复杂；而ADD等只能执行两个数值的运算，但是比CALCULATE高效 |
+| MIN | 从列表中找到最小的一项 | @{MIN\|int,list}从列表list中取最小值<br>@{MIN\|int,list.a}列表元素是对象，取每行字段a的最小值<br>@{MIN\|int,list.0}列表元素是列表，取每行第1列的最小值 | @{MIN\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最小值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
+| MAX | 从列表中找到最大的一项 | @{MAX\|int,list}从列表list中取最大值<br>@{MAX\|int,list.a}列表元素是对象，取每行字段a的最大值<br>@{MAX\|int,list.0}列表元素是列表，取每行第1列的最大值 | @{MAX\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最大值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
+| FOR | 对变量进行循环处理 | @{FOR\|pl,\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} <br>pl必须是一个list或数组，第二个参数是分隔符；后面都是要拼接的参数或常量，每循环一次，将他们拼接起来，然后加一个分隔符<br>例子中如果pl=[{a:11,b:"x"},{a:12,b:"y"}]，p2="hello",运行后将得到: (0,'hello',11,x,''),(1,'hello',12,y,'')<br>@{FOR\|pl[e.a,'i.>',1 && e.a,'i.<',20],\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} 运行后将得到: (0,'hello',11,x,'') | 对list或数组参数进行循环。<br>每个元素用e代表；如果e是对象，可以用“e.”开头引用成员；<br>i是循环序数，从0开始； <br>所有需要用引号的地方，建议都使用"\`"，而不是单引号。sql本身使用单引号，特别是出现“;”或“)”的地方，不可以使用单引号，否则无法解析。 <br>支持设置过滤条件，在变量名后面加“[]”，在其中加过滤条件，条件判断与@{CONDITION}完全一致 |
+| ADD、SUB、MULTI、DIV | 加减乘除运算 | @{ADD\|类型[.精度], para1, para2} | 类型有int、long、float、double，指定了参数类型与返回类型， 类型为float、double时可以设置精度，范围在0-7，可以不指定； para1与para2必须是对应类型的数值 |
+| CALCULATE | 将类型后面的所有内容拼接成一个四则算式并计算结果 | @{CALCULATE\|类型[.精度],p1,'+(',p2,'-',p3,')-',p4} | 类型与ADD等的定义相同，参数必须是数值类型。 算式必须符合四则运算规则，可以很复杂，ADD等只能执行两个数值的运算，但是比CALCULATE高效 |
 | CONDITION | 条件判断 | @{CONDITION\|p1,relation,p2,o1,o2} @{CONDITION\|p1,'i.<',p2,o1,o2} @{CONDITION\|3,'i.>',5,o1,o2} @{CONDITION\|p1,'o.==',null,o1,o2} @{CONDITION\|p1,'b.==',true,o1,o2} | p1与p2必须是relation中给定类型的参数 relation为关系运算符，格式为"类型+'.'+比较运算符"，比较运算符支持>,<,>=,<=,==,!=。 如果是string，还支持~,!~，用于判断p1是否匹配正在表达式p2； 如果是object、bool，只支持!=,==，object可以支持null，bool支持true、false 类型有:int(i)、long(l)、float(f)、double(d)、string(s)、object(o)、bool(b)，可以用括号中的缩写 <br>如果p1、p2满足条件，则返回o1，否则返回o2，o1、o2可以不传，默认为1、0 @{CONDITION\|p1,'s.==',p2,'true','false'}, @{CONDITION\|p1,'i.>',p2,'1','0'}与@{CONDITION\|p1,'i.>',p2}等同 |
 | SWITCH | 将多个IF-ELSEIF-ELSEIF...-ELSE汇聚在一起，用“\|”分隔 | 每个判断与CONDITION中判断方式相同 如果为true，则将判断之后的内容拼接起来返回 在第一个为true的判断后结束，后面即使有true的也不会运行 | @{SWITCH\|p1,'i.>',p2,'a','b','c',\|,'def'}如果p1>p2则返回abc，否则返回def字符串 用'\|'分隔多个if、else if以及else。else分支必须有 |
 | VERCONVERT | 将字符串版本号转为一个整数，或者将整数转为版本号 | @{VERCONVERT\| \`11.22.33\`}、@{VERCONVERT\|1001,tostr} | 版本号的没段存成十进制数的3位，比如例子中转为整数11022033，所以版本号中每段不能超过三位数 |
@@ -960,9 +960,10 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 
 因为业务只能访问自己的数据库，所以不做C、R、U、D的权限限制，也就是说，业务对数据库具备所有权限，但是不建议数据库执行DDL类SQL，DML类SQL不建议单次做大批量操作。
 
-数据库有OM接口，可以指定数据库只读、可读写。只读状态下，写入都会失败。此特性可用于数据库升级等OM操作时。
-
+数据库有OM接口，拥有OM权限的服务才可以访问，可以指定数据库只读、可读写。只读状态下，写入都会失败。此特性可用于数据库升级等OM操作时。
+```URL
 /webdb/api/om/setWritable?service=xxx&db=yyy&writable=trueORfalse
+```
 
 ## 用户认证&鉴权
 

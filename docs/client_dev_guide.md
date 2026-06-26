@@ -564,13 +564,13 @@ Platform.scanCode(jsCbId);
 showQrCode() {
 	var txt = JSON.stringify({data...});//待生成的内容必须为一个字符串
 	new QRCode(this.$refs.qrCodeArea, {
-	text: txt,
-	width: width, //必须像素为单位
-	height: width,
-	colorDark: '#000000',
-	colorLight: '#ffffff',
-	correctLevel: QRCode.CorrectLevel.H
-});
+		text: txt,
+		width: width, //必须像素为单位
+		height: width,
+		colorDark: '#000000',
+		colorLight: '#ffffff',
+		correctLevel: QRCode.CorrectLevel.H
+	});
 }
 ```
 
