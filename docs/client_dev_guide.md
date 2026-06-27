@@ -6,9 +6,9 @@
 
 # **修订记录**
 
-| 日期 |   内容    |   作者    |
-| --- | --- | --- |
-| 2024.3.1 | 创建文档 | flyinmind |
+| 日期      |   内容    |   作者    |
+| ---       | ---       | ---      |
+| 2024.3.1  | 创建文档    | flyinmind |
 | 2024.3.22 | 增加内置组件 | flyinmind |
 | 2026.6.24 | 补充内容，并转为md格式 | flyinmind |
 
@@ -171,11 +171,27 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
 ### 服务目录结构
 
-端侧UI开发是放在服务的file子目录中的，比如下图是CRM服务的目录结构，其中file目录就是端侧UI的实现。服务在启动时会自动生成一个app.cfg文件，并将它们一起打包成一个zip文件。客户端在安装、升级时，用的就是这个zip文件。
+端侧UI开发是放在服务的ui子目录中的，比如是user服务的目录结构，ui目录中存放的就是端侧UI实现。服务在启动时会自动根据service.cfg生成一个app.cfg文件，将它与ui目录一起打包成一个zip文件。客户端在安装、升级时，用的就是这个zip文件。
 
-![uistruct](imgs/client/ui_struct.png)
+```
+├── service.cfg         # 服务描述
+├── database.cfg        # 数据库定义
+├── api/                # 接口定义目录
+│   ├── init.cfg        # 启动初始化时调用的接口
+│   ├── root.cfg        # 接口定义文件，root.cfg中定义的接口，在访问时url不用加文件名
+│   ├── user.cfg        # 用户接口定义文件，访问时url需要加user，比如/api/user/add
+│   ├── power.cfg       # 用户授权接口
+│   └── pub.json        # 静态定义，比如服务的角色定义
+└── ui/                 # 端侧ui目录
+    ├── index.html      # 应用加载的html，加载vue、quasar等库，并初始化vue、quasar
+    ├── favicon.png     # 应用图标，在应用列表、首页左上角都会显示此图片
+    ├── users.js        # 显示公司所有帐号，可以模糊搜索
+    ├── user.js         # 显示某个帐号的详情，在此可以重置密码、修改信息、修改授权等
+    ├── language.js     # 多语言标签定义
+    └── authorizes.js   # 帐号按服务授权
+```
 
-端侧ui在安装、升级时，下载此zip文件，并且解压到本地目录，然后加载其中的index.html文件，显示服务的UI。所以，如果服务需要在客户端显示内容，则，file目录下必须有一个index.html文件。在index.html文件中，完成vue、quasar的初始化加载，如果要用报表，还需要加载echarts。
+端侧ui在安装、升级时，下载此zip文件，并且解压到本地目录，然后加载其中的index.html文件，显示服务的UI。所以，如果服务需要在客户端显示内容，则，ui目录下必须有一个index.html文件。在index.html文件中，完成vue、quasar的初始化加载，如果要用报表，还需要加载echarts。
 
 
 ### 服务中的网络请求

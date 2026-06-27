@@ -42,9 +42,9 @@ public class IdleTags extends AbsCommand implements IConst {
         }
         
         //直接指定的就是服务目录，而不是services目录
-        File serviceFilePath = new File(FileUtil.addPath(servicesPath, "file"));
-        if(serviceFilePath.exists()) {
-            checkOnePath(serviceFilePath, maxLevel);
+        File serviceUiPath = new File(FileUtil.addPath(servicesPath, SERVICE_UI_DIR));
+        if(serviceUiPath.exists()) {
+            checkOnePath(serviceUiPath, maxLevel);
             return true;
         }
         
@@ -52,9 +52,9 @@ public class IdleTags extends AbsCommand implements IConst {
             if(!f.isDirectory()) {
                 continue;
             }
-            serviceFilePath = new File(FileUtil.addPath(f, "file"));
-            if(serviceFilePath.exists()) {
-                checkOnePath(serviceFilePath, maxLevel);
+            serviceUiPath = new File(FileUtil.addPath(f, SERVICE_UI_DIR));
+            if(serviceUiPath.exists()) {
+                checkOnePath(serviceUiPath, maxLevel);
             }
         }
         return true;

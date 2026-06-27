@@ -99,7 +99,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     private static final int REPORT_INTERVAL = 300 * 1000; //ms，状态上报间隔时间
     private static final long BIGFIIE_SIZE = 64 * 1024; //最小的大文件，超过此值，使用bigfilemethod
 
-    private static final String DEFAULT_INDEX = '/' + IConst.SERVICE_WWW + IConst.INDEX_FILE; 
+    private static final String DEFAULT_INDEX = '/' + SERVICE_WWW + INDEX_FILE; 
     private static final Logger LOG = LogUtil.getInstance();
     private static int reportStatsAt = 0; //访问技术上报至简网格的时间，UTC-hour
     private static int saveStatsAt = 0; //访问计数存本地时间，UTC-hour
@@ -318,18 +318,18 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     }
 
     private AbsRDBWorker initStatsDb() {
-        ServiceInfo si = services.get(IConst.SERVICE_BACKEND); //一定存在，不会为空
+        ServiceInfo si = services.get(SERVICE_BACKEND); //一定存在，不会为空
         if(si == null) {
-            throw new MissingResourceException(IConst.SERVICE_BACKEND + " not exists", IConst.SERVICE_BACKEND, "service");
+            throw new MissingResourceException(SERVICE_BACKEND + " not exists", SERVICE_BACKEND, "service");
         }
         AbsRDBWorker db = (AbsRDBWorker)si.getLocalDBWorker(IDBConst.RDB, REQUEST_REC_DB);
         if(db == null) {
-            throw new MissingResourceException("fail to load local db", IConst.SERVICE_BACKEND, REQUEST_REC_DB);
+            throw new MissingResourceException("fail to load local db", SERVICE_BACKEND, REQUEST_REC_DB);
         }
         //重启时删除一年前的数据
         db.executeRawDML("delete from requests where at<" + ((System.currentTimeMillis() / IConst.HOUR_MS) - 366 * 24));
         reportStatsAt = ValParser.parseInt(db.getSysConfig(REQUEST_REPORT_AT), 0);
-        saveStatsAt = (int)(System.currentTimeMillis() / IConst.HOUR_MS);//换成UTC hour
+        saveStatsAt = (int)(System.currentTimeMillis() / HOUR_MS);//换成UTC hour
         return db;
     }
 
@@ -384,7 +384,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
      * @param force 是否强制记录
      */
     private void saveVisitStats(boolean force) {
-        int cur = (int)(System.currentTimeMillis() / IConst.HOUR_MS);
+        int cur = (int)(System.currentTimeMillis() / HOUR_MS);
         if(!force && cur == saveStatsAt) { //1小时记录一次
             return;
         }
@@ -445,7 +445,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     }
 
     private CompletableFuture<HandleResult> reportVisitStats(boolean force) {
-        int cur = (int)(System.currentTimeMillis() / IConst.HOUR_MS);
+        int cur = (int)(System.currentTimeMillis() / HOUR_MS);
         if(!force && cur - reportStatsAt < 24) { //24小时上报一次
             return HandleResult.future();
         }
@@ -458,7 +458,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
         String sql="select cid,service,at,api,exc,fail from requests where at>"
                 + (reportStatsAt - 1) + " and at<" + cur; //不上报当前这个小时的数据，因为可能还未到最后一秒
         List<Object[]> lines = visitStats.queryArrays(sql);
-        String from = DateUtil.utcToLocale((long)reportStatsAt * IConst.HOUR_MS);
+        String from = DateUtil.utcToLocale((long)reportStatsAt * HOUR_MS);
         if(lines == null || lines.isEmpty()) {
             LOG.debug("There is no stat from {}", from);
             return HandleResult.future();
@@ -503,15 +503,15 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
                 .append(",\"day\":").append(report.day)
                 .append(",\"apis\":[")
                 .append(report.apis[0]);
-            for(hour = 1; hour < IConst.DAY_HOURS; hour++) {
+            for(hour = 1; hour < DAY_HOURS; hour++) {
                 json.append(',').append(report.apis[hour]);
             }
             json.append("],\"fails\":[").append(report.fails[0]);
-            for(hour = 1; hour < IConst.DAY_HOURS; hour++) {
+            for(hour = 1; hour < DAY_HOURS; hour++) {
                 json.append(',').append(report.fails[hour]);
             }
             json.append("],\"excs\":[").append(report.excs[0]);
-            for(hour = 1; hour < IConst.DAY_HOURS; hour++) {
+            for(hour = 1; hour < DAY_HOURS; hour++) {
                 json.append(',').append(report.excs[hour]);
             }
             json.append("]}");
@@ -519,7 +519,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
         }
         json.append("]}");
         CompanyInfo ci = CompanyInfo.instance();
-        ServiceReqBuilder builder = ServiceClient.backendReqBuilder(IConst.SERVICE_APPSTORE)
+        ServiceReqBuilder builder = ServiceClient.backendReqBuilder(SERVICE_APPSTORE)
                 .traceId("Rpt_" + ci.id + '_' + reportStatsAt)
                 .body(json.toString())
                 .cid(ci.id);
@@ -529,7 +529,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
             builder.url("/stats/root_report").appToken("*");
             cf = ServiceClient.servicePost(builder);
         } else {
-            AccessToken tk = ci.adminToken(IConst.SERVICE_APPSTORE);
+            AccessToken tk = ci.adminToken(SERVICE_APPSTORE);
             builder.url("/stats/report").token(tk.generate());
             cf = ServiceClient.cloudPost(builder);
         }
@@ -845,7 +845,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
                 return -1;
             }
             
-            UrlPathInfo upi = new UrlPathInfo(si.name).push(IConst.SERVICE_URL_API).push(sameAs);
+            UrlPathInfo upi = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(sameAs);
             String url = upi.toString().toLowerCase();
             ApiMethod sameAsMethod = apiMethods.get(url);
             if(sameAsMethod == null) {
@@ -870,13 +870,13 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
      * @return 是否加载成功
      */
     private int loadFiles(ServiceInfo si) throws IOException {
-        String sFilesDir = FileUtil.addPath(si.homeDir, SERVICE_FILE_DIR);
+        String uiDir = FileUtil.addPath(si.homeDir, SERVICE_UI_DIR);
         String urlHead = "/" + si.name + "/";
-        LOG.debug("load {}'s static files from {}", si.name, sFilesDir);
+        LOG.debug("load {}'s static files from {}", si.name, uiDir);
         int count = 0;
         
-        if (new File(sFilesDir).exists()) {
-            long latest = loadFiles(si, sFilesDir.length(), urlHead, sFilesDir);
+        if (new File(uiDir).exists()) {
+            long latest = loadFiles(si, uiDir.length(), urlHead, uiDir);
             File zipFile = new File(FileUtil.addPath(AbsPlatform.clientsRoot(), si.name + ".zip"));
             int n = zipFile.exists() ? 1 : 0;
             // 如果无zip文件则生成它，如果存在且更新时间比所有文件都新，也不必生成
@@ -904,9 +904,9 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
         
         String faviconUrl = urlHead + FAVICON_FILE;
         if(!fileMethods.containsKey(faviconUrl)) {
-            File f = new File(FileUtil.addPath(si.homeDir, SERVICE_FILE_DIR, FAVICON_FILE));
+            File f = new File(FileUtil.addPath(si.homeDir, SERVICE_UI_DIR, FAVICON_FILE));
             if(f.exists()) {
-                String contentType = AbsFileMethod.getContentType(FileUtil.getFileExtension(IConst.FAVICON_FILE));
+                String contentType = AbsFileMethod.getContentType(FileUtil.getFileExtension(FAVICON_FILE));
                 addFile(faviconUrl, new SmallFileMethod(si, f, contentType));
                 count++;
             }
@@ -1305,7 +1305,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
              */
             if(CompanyInfo.instance().mode == RunMode.ROOT) {
                 int cid = req.cid();
-                if(am.serviceInfo.type == ServiceType.COMPANY && cid > IConst.ROOT_COMPANY_ID) {
+                if(am.serviceInfo.type == ServiceType.COMPANY && cid > ROOT_COMPANY_ID) {
                     Balance balance = getBalance(cid, am.serviceInfo);
                     if(!balance.valid) {
                         LOG.warn("Fail to bill {}.{}", am.serviceInfo.name, cid);

@@ -34,7 +34,7 @@ public interface IConst extends IUtil {
 
     String SERVICE_URL_ROOT = "root";
     String SERVICE_URL_API = "api";
-    String SERVICE_FILE_DIR = "file";
+    String SERVICE_UI_DIR = "ui";
     String SERVICE_CLIENT_ZIP = "client.zip";
     String SERVICE_SERVER_ZIP = "server.zip";
     String SERVICE_CONFIG_FILE = "service.cfg";

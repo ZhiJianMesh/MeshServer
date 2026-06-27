@@ -338,12 +338,12 @@ public final class ServiceInfo {
         ServiceType type = ServiceType.parse(sType);
 
         ClientType clientType;
-        String fileDir = FileUtil.addPath(homeDir, IConst.SERVICE_FILE_DIR);
-        if(new File(FileUtil.addPath(fileDir, IConst.INDEX_FILE)).exists()) {
+        String uiDir = FileUtil.addPath(homeDir, IConst.SERVICE_UI_DIR);
+        if(new File(FileUtil.addPath(uiDir, IConst.INDEX_FILE)).exists()) {
             //有index.html表示在端侧是可以显示的
             clientType = ClientType.CLIENTUI;
         } else {
-            File fileDirF = new File(fileDir);
+            File fileDirF = new File(uiDir);
             FilenameFilter ff = (dir, name) -> name.toLowerCase().endsWith(".js");
             clientType = ClientType.NONE;
             if(fileDirF.exists()) {
@@ -540,7 +540,7 @@ public final class ServiceInfo {
      * @return 压缩的文件个数，0表示无文件，-1表示错误，>0表示压缩成功
      */
     public int compressClient(Set<String> excludes, File zipFile) {
-        String srcRoot = FileUtil.addPath(homeDir, IConst.SERVICE_FILE_DIR) + File.separatorChar;
+        String srcRoot = FileUtil.addPath(homeDir, IConst.SERVICE_UI_DIR) + File.separatorChar;
         File rootF = new File(srcRoot);
         File[] files = rootF.listFiles();
         if(files == null || files.length == 0) {
@@ -584,7 +584,7 @@ public final class ServiceInfo {
      * @return 异步结果
      */
     private static CompletableFuture<HandleResult> getIntroduction(String serviceHome, String verRoot, String service) {
-        String fileRoot = FileUtil.addPath(serviceHome, IConst.SERVICE_FILE_DIR);
+        String uiRoot = FileUtil.addPath(serviceHome, IConst.SERVICE_UI_DIR);
         String introSaveAs = FileUtil.addPath(serviceHome, IConst.SERVICE_URL_API, INTRODUCTION_NAME);
         String introUrl = verRoot + '/' + INTRODUCTION_NAME;
         return HttpClient.download(introUrl, null, introSaveAs).whenCompleteAsync((hr, e) -> { //下载introduction.json
@@ -618,7 +618,7 @@ public final class ServiceInfo {
             for(Object o : imgs) {
                 Map<String, Object> img = ValParser.parseObject(o);
                 String src = ValParser.getAsStr(img, "src");
-                String saveAs = FileUtil.addPath(fileRoot, src);
+                String saveAs = FileUtil.addPath(uiRoot, src);
                 String imgUrl = src.charAt(0) == '/' ? verRoot + src : verRoot + '/' + src;
                 HttpClient.download(imgUrl, null, saveAs).whenCompleteAsync((imgHr, ex)->{
                     if(imgHr.code != RetCode.OK || ex != null || !FileUtil.isExist(saveAs)) {

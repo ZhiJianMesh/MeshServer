@@ -95,17 +95,33 @@
 
 服务的根目录下有api、file两个子目录，以及service.cfg与database.cfg两个文件。
 
-![servicestruct](imgs/server/servicestruct.png)
+```
+├── service.cfg         # 服务描述
+├── database.cfg        # 数据库定义
+├── api/                # 接口定义目录
+│   ├── init.cfg        # 启动初始化时调用的接口
+│   ├── root.cfg        # 接口定义文件，root.cfg中定义的接口，在访问时url不用加文件名
+│   ├── user.cfg        # 用户接口定义文件，访问时url需要加user，比如/api/user/add
+│   ├── power.cfg       # 用户授权接口
+│   └── pub.json        # 静态定义，比如服务的角色定义
+└── ui/                 # 端侧ui目录
+    ├── index.html      # 应用加载的html，加载vue、quasar等库，并初始化vue、quasar
+    ├── favicon.png     # 应用图标，在应用列表、首页左上角都会显示此图片
+    ├── users.js        # 显示公司所有帐号，可以模糊搜索
+    ├── user.js         # 显示某个帐号的详情，在此可以重置密码、修改信息、修改授权等
+    ├── language.js     # 多语言标签定义
+    └── authorizes.js   # 帐号按服务授权
+```
 
 1. api子目录中存放所有的接口定义文件，如果无接口定义，可以没有此目录，每个文件中可以定义多个接口；
 	- A) 在调用接口时，url需要携带文件名及接口名，比如调用user.cfg中的接口add，则url为/user/add;
 	- B) root.cfg是特殊的，访问其中的接口不必携带/root，直接传/xxxx即可；
 	- C) json扩展名的文件存放一个Map结构，Map的每一项都是一个静态接口，其中的内容直接返回，比如roles:{...}，访问时直接调用/roles即可得到大括号中的内容；
 	- D) def扩展名的文件是宏定义文件，也是Map结构，每一项都是一个process，在接口定义文件的process部分可以引用宏定义。
-2. file子目录存放所有的交互页面，属于[端侧开发](client_dev_guide.md)， 使用vue+quasar实现，起始页固定为index.html，在index.html中import所需的组件；
-	- A) 端侧在安装应用时，下载的就是file子目录的压缩包；
+2. ui子目录存放所有的交互页面，属于[端侧开发](client_dev_guide.md)， 使用vue+quasar实现，起始页固定为index.html，在index.html中import所需的组件；
+	- A) 端侧在安装应用时，下载的就是ui子目录的压缩包；
 	- B) 建议一个组件对应一个js文件，比如home.js、customer.js等;
-	- C) 如果无交互界面，可以没有此目录，如果希望服务有一个个性化logo，建议增加file目录，并存放适合的favicon.png文件。
+	- C) 如果无交互界面，可以没有此目录，如果希望服务有一个个性化logo，建议增加ui目录，并存放适合的favicon.png文件。
 3. service.cfg中定义了服务的名称、依赖的服务等信息；
 4. database.cfg中定义了服务的数据库表结构，treedb、searchdb无需建表，但是也需要在里面申明，如果只在本实例使用的数据库，定义在database.loc.cfg文件中，定义方法与database.cfg完全相同。
 
@@ -431,8 +447,13 @@ rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver=`, e.ver,
 ### TreeRDB
 
 TreeDB是记录树状关系数据的数据库，比如：
-
-![treedb](imgs/server/treedb.png)
+```
+/
+├── a
+├── b
+│   └── b1
+└── c
+```
 
 ```JSON
 {
@@ -1272,7 +1293,7 @@ assets不是通常意义的服务，不运行于服务侧，只用于给每个�
 
 详细接口定义请workflow/api目录。
 
-/workflow/api/flow.cfg：定义工作流的相关接口，这类接口在业务的管理台中调用，工作流服务提供了默认的管理页面，业务中可以直接引用，样例请参照/crm/file/index.html。 router定义时，引入"/workflow/file/pub/settings.js"即可。
+/workflow/api/flow.cfg：定义工作流的相关接口，这类接口在业务的管理台中调用，工作流服务提供了默认的管理页面，业务中可以直接引用，样例请参照/crm/ui/index.html。 router定义时，引入"/workflow/ui/pub/settings.js"即可。
 
 ```JavaScript
 {path: '/flowdef', component:() => import('/workflow/pub/settings.js')}

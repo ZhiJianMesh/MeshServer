@@ -235,7 +235,7 @@ public class Release extends AbsCommand implements IConst {
         if(si.type == ServiceType.COMMON || si.type == ServiceType.COMPANY) {
             lastest = serverZip.exists() ? serverZip.lastModified() : 0;
             if(lastest == 0 || updated(serviceCfg, lastest)) {
-                File iconFile = new File(FileUtil.addPath(si.homeDir, SERVICE_FILE_DIR, FAVICON_FILE));
+                File iconFile = new File(FileUtil.addPath(si.homeDir, SERVICE_UI_DIR, FAVICON_FILE));
                 FileUtil.createDir(dst);
                 File dstFile = new File(FileUtil.addPath(dst, FAVICON_FILE));
                 if(iconFile.exists()) {
@@ -399,7 +399,7 @@ public class Release extends AbsCommand implements IConst {
         Set<String> excludes = new HashSet<>();
         excludes.addAll(ServerExcludes); //公共的、不必压缩的文件
         for(String s : serviceCfg.clientExcludes) {
-            excludes.add(IConst.SERVICE_FILE_DIR + "/" + s); //从服务根目录压缩，所以需要加上file
+            excludes.add(SERVICE_UI_DIR + "/" + s); //从服务根目录压缩，所以需要加上file
         }
 
         try(ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(serverZip))) {

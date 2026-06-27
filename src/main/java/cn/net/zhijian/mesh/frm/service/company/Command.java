@@ -331,11 +331,11 @@ public class Command extends AbsProcessor {
             one.put("updatable", srvVer > si.version);
             one.put("srvVer", StringUtil.intToVer(srvVer));
 
-            File favicon = new File(FileUtil.addPath(si.homeDir, IConst.SERVICE_FILE_DIR, IConst.FAVICON_FILE));
+            File favicon = new File(FileUtil.addPath(si.homeDir, SERVICE_UI_DIR, FAVICON_FILE));
             if(favicon.exists()) {
-                one.put("icon", "/" + si.name + "/" + IConst.FAVICON_FILE);
+                one.put("icon", "/" + si.name + "/" + FAVICON_FILE);
             } else {
-                one.put("icon", "/" + IConst.SERVICE_ASSETS + "/" + IConst.FAVICON_FILE);
+                one.put("icon", "/" + SERVICE_ASSETS + "/" + FAVICON_FILE);
             }
             list.add(one);
         }
