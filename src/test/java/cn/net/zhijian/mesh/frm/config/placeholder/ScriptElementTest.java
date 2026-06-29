@@ -392,7 +392,7 @@ public class ScriptElementTest extends UnitTestBase {
         String str = segementsToStr(params, resp, segs);
         assertEquals(str, "A:3,B:5.035,C:19,D:20.7,E:0.444");
     }
-    
+
     @Test
     public void testCalculateEnhanced() {
         String s = "A:@{CALCULATE|i,p1,'*',p2,'-',2.5,'+',8},"
@@ -406,17 +406,30 @@ public class ScriptElementTest extends UnitTestBase {
     }
     
     @Test
-    public void testCalculateDecPlaces() { //小数点后保留位数
+    public void testCalculateFloatPlaces() { //小数点后保留位数
         String s = "A:@{CALCULATE|f.3,`@{p2}/@{p1}+8`},"
                 + "B:@{CALCULATE|d.6,`@{p1}*@{p2}-2.5999+8`},"
                 + "C:@{CALCULATE|d.4,'(',p3,'-',p1,')/',p1},"
-                + "D:@{CALCULATE|d.0,'9+(',p3,'-',p1,')/',p1}";
+                + "D:@{CALCULATE|d.0,'9+(',p3,'-',p1,')/',!p1}";
         Map<String, Object> params = MapBuilder.of("p1", 3.3, "p2", 1, "p3", 3);
-        Map<String, Object> resp = new HashMap<>();
+        Map<String, Object> resp = MapBuilder.of("p1", 3.3);
         ScriptElement[] segs = ScriptElement.parsePlaceHolder(s, params.keySet(), "'", "''");
         String str = segementsToStr(params, resp, segs);
         //保留0位时，转字符串后，后面仍然要跟".0"
         assertEquals(str, "A:8.303,B:8.7001,C:-0.0909,D:9.0");
+    }
+    
+    @Test
+    public void testCalculateDirFormula() { //直接的算公式，不加引号
+        String s = "A:@{CALCULATE|f.3,`@{p2}/@{p1}+8+@{!p1}`},"
+                + "B:@{CALCULATE|d.6,p2/p1+8},"
+                + "C:@{CALCULATE|d.0,9+(p3 - p1)/ !p1}";
+        Map<String, Object> params = MapBuilder.of("p1", 3.3, "p2", 1, "p3", 3);
+        Map<String, Object> resp = MapBuilder.of("p1", 3.3);
+        ScriptElement[] segs = ScriptElement.parsePlaceHolder(s, params.keySet(), "'", "''");
+        String str = segementsToStr(params, resp, segs);
+        //保留0位时，转字符串后，后面仍然要跟".0"
+        assertEquals(str, "A:11.603,B:8.30303,C:9.0");
     }
     
     @Test

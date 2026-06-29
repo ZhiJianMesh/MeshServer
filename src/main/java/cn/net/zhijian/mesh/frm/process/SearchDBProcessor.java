@@ -173,7 +173,8 @@ public class SearchDBProcessor extends AbsDBProcessor {
                 LOG.error("title,summary,content cann't all be null under {}.{}", url.toString(), name());
                 return false;
             }
-        } else if(this.action.matches("^" + ACTION_GET + "( @\\{.+\\})*$")){
+        } else if(this.action.matches("^" + ACTION_GET + " @\\{.+\\}*$")
+                  || this.action.matches("^" + ACTION_GET + " \\d{1,4}$")) {
             this.content = parseScript(availableParas, cfg, CFG_CONTENT);
             if(this.content == null || this.content.length == 0) {
                 LOG.error("Fail to parse {},under {}.{}", CFG_CONTENT, url.toString(), name());

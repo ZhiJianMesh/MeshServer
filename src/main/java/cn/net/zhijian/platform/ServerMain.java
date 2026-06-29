@@ -207,13 +207,11 @@ public final class ServerMain implements IThreadPool {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("shutdown, stop server");
             launcher.stopServer();
-            IThreadPool.stopPool();
         }));
         
         Thread.setDefaultUncaughtExceptionHandler((thread, e) -> {
             LOG.error("Uncaught exception", e);
             launcher.stopServer();
-            IThreadPool.stopPool();
         });
 
         try {

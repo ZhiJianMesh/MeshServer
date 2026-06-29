@@ -14,7 +14,7 @@
 
 # 摘要
 
-至简网格是一款基于HTTP协议的通用业务服务器，用于开发基于数据库的端云结合的服务程序，服务程序可以运行在资源极其有限的设备上，比如安卓手机、树莓派等，使得服务器可以尽量前移到生产端，可以运用于边沿计算、企业信息化、办公自动化等场景。
+至简网格是一款基于HTTP协议的、完全服务化、极具弹性的通用业务服务器，用于开发基于数据库的端云结合的服务程序，服务程序可以运行在资源极其有限的设备上，比如安卓手机、树莓派等，使得服务器可以尽量前移到生产端，可以运用于边沿计算、企业信息化、办公自动化等场景。
 
 它致力于简化开发、部署与运维工作；通过简单的配置即可实现数据库、接口开发；内置了可靠性、安全性能力，业务开发无需过多关注；具备伸缩能力，单例模式可以安装在一部老旧的安卓手机上；集群模式可以跨实例、跨机房、跨城市部署。
 
@@ -65,26 +65,52 @@
 最后，除了上面那些需要重复造轮子的原因，至简网格还有哪些优势值得选择呢？
 
 1. 小到极致
+
     服务端、客户端，都不超过10M，PC客户端甚至不到6M。
     极小的端侧体现不出优势，但是极小的服务侧，就便于服务器边沿部署，一部手机、一个树莓派就绰绰有余。因为小，运用场景就可以扩大。 随着通讯能力提升，边缘计算、物联网会变得普遍，至简网格可以方便地部署到各类设备上，将计算尽量下沉。
 
 2. 大到跨市
+
     麻雀虽小五脏俱全，它可以部署在一部旧手机上，也可以跨城市多活部署。 底层实现是完全分布式的，只要采取合适的分片策略， 或者开启数据备份，完全可以跨机房、跨城市多活部署，不必担心单个设备、单个机房故障导致业务中断。 至简网格在底层实现时就为数据分片提供了便利。
 
 3. 非常简单
-	- A) 开发简单
-    	服务前、后端代码量都很小，代码很简单。服务侧业务开发，绝大部分情况使用简单的JSON配置就能完成；端侧交互开发，只要懂得vue就能胜任。
+
+	- A) 开发简单 
+
+    	服务前、后端代码量很小，代码很简单。服务侧业务开发，绝大部分情况使用简单的JSON配置就能完成；端侧交互开发，只要懂vue就能胜任。
     	比如至简网格提供的CRM、会员两个服务，其中CRM较大，接口定义部分约3500行JSON配置，端侧交互约3500行js代码，总共7000左右，安装包不到100K。
     	代码即成本，代码量少，开发&维护的成本就少；开发难度低，即使是初级程序员也能开发维护。
+		
+		支持vibecoding上创建技能，利用AI，用自然语言就可以生成服务，降低50%的开发工作量；生成的代码，人阅读起来毫无障碍。
 
-	- B) 维护简单
-    	安卓版本的服务器，使用起来跟普通App一样安装、升级、卸载，服务一键启停，服务软件下载安装不过几秒钟。与服务对应的端侧应用使用更加简单，秒级安装，自动升级。
+	- B) 维护简单	
 
-	- C) 使用简单
-    	已支持安卓与Windows客户端，端侧交互简单；权限控制简单，支持多种业务维度的授权控制，并且用户可以在企业内网使用，也可以开放部分用户在公网访问。
+		无需专门的运维人员，服务器一键启停，服务下载安装不过几秒钟；端侧应用更加简单，秒级安装，自动升级。
 
-4. 可靠安全
-	可靠与安全相关的设计实现，在至简网格随处可见，比如，分区隔离、公司隔离；传输都采用https，使用ECC256证书，安全性达到RSA3072的强度；每个服务实例都自动分配了独一无二的证书；服务间访问都需要token，两个服务器即使在同一个局域网内，默认也不能窜访；用户密钥经过PBKDF2加密存储，即使数据库泄露，也无法解开密码； 数据库两份拷贝，支持每日往云端备份……安全与可靠设计融入到至简网格的方方面面。
+	- C) 使用简单 
+
+		持安卓与Windows客户端，端侧安装使用极其简单；服务端一键启停，通过简单的命令行安装、升级、卸载服务。
+
+	- D) 权限控制简单 
+
+		支持多维度灵活的授权控制；可以控制部分用户只能在企业内网使用，部分用户可以在公网访问。
+
+4. 可靠安全	
+
+	安全与可靠设计融入到至简网格的方方面面，可靠与安全相关的设计实现，在至简网格随处可见，比如：
+
+	- A) 分区隔离、公司隔离；
+
+	- B) 传输都采用https，使用ECC256证书，安全性达到RSA3072的强度；
+
+	- C) 每个服务实例都自动分配了独一无二的证书；
+
+	- D) 服务间访问都需要token，两个服务器即使在同一个局域网内，默认也不能窜访；
+
+	- E) 用户密钥经过PBKDF2加密存储，即使数据库泄露，也无法解开密码；
+
+	- F) 数据库两份拷贝，支持每日往云端备份……
+
 
 ---
 # 三、服务开发概览
@@ -311,15 +337,15 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | name | 参数名称 | String | 同一个接口的参数列表中，必须唯一 |
 | type | 参数类型，不区分大小写 | String | STRING、INT、LONG、FLOAT、BOOL、DATE、DOUBLE、 OBJECT、BYTES、NOW、UUID、SEQUENCE、CONFIG、JSON。 <br>几个特殊类型： <br>Config：从bios的服务配置项中获取内容； <br>Json：json串，作为响应参数时会被转成json对象，作为输入参数时，被转为json字符串 |
 | must | 是否为必须参数 | Bool | 如果为true，当请求未携带此参数时，校验失败 |
-| max | Number型：最大值； String型：最大长度 | Int | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MAX\_VALUE。 long、double、float以此类推。 String类型默认为255 |
-| min | Number型：最小值； String型：最小长度 | Int | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MIN\_VALUE。 long、double、float以此类推。 String类型默认为0 |
+| max | Number型：最大值； String型：最大长度 | 与type指定的类型一致 | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MAX\_VALUE。 long、double、float以此类推。 String类型默认为255 |
+| min | Number型：最小值； String型：最小长度 | 与type指定的类型一致 | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MIN\_VALUE。 long、double、float以此类推。 String类型默认为0 |
 | list | 是否为list | Bool | list中每个元素类型都由此参数的type指定； 在Json类型参数中，list指定json是否为一个数组，true时为数组，否则为map |
 | maxSize | list中最多的元素个数 | Int | list为true时，才有意义，默认为10240 |
 | minSize | list中最少的元素个数 | Int | list为true时，才有意义，默认为0 |
 | default | 参数默认值 | 与type指定的参数类型一致 | 当不是必须参数时，可以设置默认值，当参数没有传递时，则参数使用此值。 <br>数值型、String、Bool：填写对应类型的值； <br>Datetime：日期，格式由format指定； <br>Bytes：base64字符串，用keytool生成； <br>Json：一个json字符串； |
 | const | 是否为常量参数 | Bool | 常量参数，无需在请求时传递， 必须指定default值，接口定义中可以像普通参数一样使用 |
-| dataSeg | 返回内容的字段名 | String | 默认就是name。当响应内容是一个复杂的结构时，可以在dataSeg中指定分级，每级用“.”分隔 |
-| options | 可选值列表 | List | 如果请求参数不在可选列表中，则参数校验失败 |
+| dataSeg | 响应体中的字段名 | String | 默认就是name属性指定的名称。当响应体是一个复杂的结构时，可以在dataSeg中指定分级，每级用“.”分隔 |
+| options | 可选值列表 | List | 对String、Int类型有效，如果请求参数不在可选列表中，则参数校验失败 |
 | log | 是否可以打印在日志中 | Bool | 默认为true，表示可以打印到日志中 |
 | | | | **Object特有的配置项** |
 | props | 嵌套定义复杂的结构 | List | 每一项是一个基本参数配置，用于指定object中的字段。props里面的字段还可以设为object类型，以此实现复杂的结构嵌套。 {"name":"infos", "type":"object", "must":true, "props":[ {"name":"name", "type":"string"}, {"name":"val", "type":"string"} ]} |
@@ -367,7 +393,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 除static处理外，其他处理类型都有四个共同配置：
 | 属性    |  说明   |
 |--------|---------|
-| cache  |是否缓存历史结果，只能指定一个占位符，比如@{HASH|cid,service}，此内容作为缓存的key值，读取缓存时，也用相同的key，缓存有效期默认为10分钟|
+| cache  |是否缓存历史结果，只能指定一个占位符，比如@{HASH\|cid,service}，此内容作为缓存的key值，读取缓存时，也用相同的key，缓存有效期默认为10分钟|
 | ignores|可以忽略的错误码列表，如果发生的错误码在这个列表中，就忽略它，返回OK，否则结束当前处理以及后继的其他处理，返回错误码；[-1]表示忽略所有错误码|
 | when   |一个逻辑表达式，确定当前process是否执行，如果返回false则直接跳过当前process<br>只能使用请求参数、变量、请求头或上一步的响应参数作为判断条件|
 | convert|将start-end（包括start、end）范围内的错误码全部转换成"to"指定的错误码，info指定错误信息<br>如果“to”为OK，则可以设置data，data必须为一个json字符串，可以使用占位符<br>如果start与end相同，可以简化成code|
@@ -449,10 +475,17 @@ rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver=`, e.ver,
 TreeDB是记录树状关系数据的数据库，比如：
 ```
 /
-├── a
-├── b
-│   └── b1
-└── c
+└── service
+    ├── crm
+    │   ├── key
+    │   ├── configs
+    │   └── dbs
+    │       └── crm
+    │           ├── type
+    │           └── tabledef
+    └── user
+        ├── key
+...
 ```
 
 ```JSON
@@ -460,11 +493,11 @@ TreeDB是记录树状关系数据的数据库，比如：
 	"name" : "createDb",
 	"type" : "biosmeta",
 	"actions" : [
-		{"action":"crtDir", "key":"/service/@{service}/dbs"},
-		{"action":"crtDir", "key":"/service/@{service}/dbs/@{db}"},
-		{"action":"put", "key":"/service/@{service}/dbs/@{db}/tabledef", "value":""},
-		{"action":"put", "key":"/service/@{service}/dbs/@{db}/type", "value":"@{type}"},
-		{"action":"get", "key":"/service/@{service}/dbs/@{db}/type"}
+		{"action":"crtDir", "key":"/service/crm/dbs"},
+		{"action":"crtDir", "key":"/service/crm/dbs/crm"},
+		{"action":"put", "key":"/service/@{service}/dbs/crm/tabledef", "value":""},
+		{"action":"put", "key":"/service/@{service}/dbs/crm/type", "value":"@{type}"},
+		{"action":"get", "key":"/service/@{service}/dbs/crm/type"}
 	]
 }
 ```
@@ -542,6 +575,127 @@ title、summary、content并无本质区别，只是对照一篇文章的结构�
 
 content即为要查找的内容，查找前会经过分词处理，也可以人为在词之间添加空格，以提升分词的准确率。
 
+#### 应用举例
+比如，要实现记录客户信息，同时可以模糊搜索到客户信息，就需要先在database.cfg中创建一个全文搜索库：
+```JSON
+{
+    "name":"crm",
+    "type":"sdb" //在同一个db上建立搜索db
+}
+```
+
+在创建记录时，同时将需要搜索的字段存入搜索库中：
+
+```JSON
+{
+    "name": "create",
+    "method":"POST",
+    "property" : "private",
+    "tokenChecker" : "USER",
+    "comment":"创建客户",
+
+    "request": [
+        {"name":"name", "type":"string", "must":true, "min":1, "max":30, "comment":"客户名称"},
+        {"name":"address", "type":"string", "must":true, "min":1, "max":100, "comment":"客户地址"},
+        {"name":"business", "type":"string", "must":true, "min":1, "max":100, "comment":"主营业务"},
+        {"name":"comment", "type":"string", "must":false, "default":"", "comment":"扩展信息，可自定义"}
+    ],
+
+    "process" : [
+        {
+            "name":"judge_if_customer_exists",
+            "type":"dataexists",
+            "db":"crm",
+            "expect" : false, //如果存在则返回EXISTS，否则返回OK
+            "sql":"select * from customers where taxid='@{taxid}'"
+        },
+        {
+            "name":"get_customer_id",
+            "type" : "var",
+            "vars":[
+                {"name":"custId", "val":"@{SEQUENCE|i,'customer'}"}
+            ]
+        },
+        {
+            "name" : "add_customer",
+            "type" : "rdb",
+            "db": "crm",
+            "comment":"添加客户，并设置权限控制",
+            "sqls" : [
+                "insert into customers(id,name,taxid,address,business,createAt,cmt)
+				values(@{custId},'@{name}','@{taxid}','@{address}','@{business}',@{NOW|unit60000},'@{comment}')"
+            ]
+        },
+        {
+            "name" : "createSearch", //创建搜索
+            "type" : "search",
+            "db": "crm",
+            "action" : "put",
+            "table":"customer", //不是真实的表，查询时必须使用相同的表名
+            "did" : "@{custId}",
+            "title" : "@{name}",
+            "summary" : "@{address}",
+            "content" : "@{CLEAN|comment} @{business} @{taxid}"
+        }
+    ],
+    "response":[]
+}
+```
+
+搜索时，先模糊搜索找到符合条件的客户ID列表，再用这个列表从数据表中查询客户信息：
+
+```JSON
+{
+    "name": "search",
+    "method":"GET",
+    "property" : "private",
+    "tokenChecker" : "USER",
+    "comment":"查询客户信息",
+                
+    "request": [
+        {"name":"s", "type":"str", "must":true, "min":1, "comment":"模糊搜索内容"},
+        {"name":"limit", "type":"int", "must":true, "min":1}
+    ],
+
+    "process" : [
+        {
+            "name" : "docs",
+            "type" : "search",
+            "db" : "crm",
+            "action" : "get @{limit}",
+            "table" : "customer",
+            "content" : "@{s}"
+        },
+        
+        {
+            "name":"customers",
+            "type":"rdb",
+            "db":"crm",
+            "sqls":[{
+				"name":"customers",
+				"multi":true,
+				"metas" : "cols",
+				"sql":"select id,name,address,createAt
+				 from customers where id in(@{LIST|!docs})"
+			}]
+        }
+    ],
+    
+    "response": {
+        "check":false,
+        "segments":[
+            {"name":"customers", "type":"object", "list":true, "props":[
+                {"name":"id", "type":"string", "comment":"客户id，因为js中long有精度损失，所以用string"},
+                {"name":"name", "type":"string", "comment":"名称"},
+                {"name":"address", "type":"string", "comment":"地址"},
+                {"name":"createAt", "type":"int", "comment":"创建时间"},
+                {"name":"status", "type":"int", "comment":"状态，100表示已最后确认"}
+            ]}
+        ]
+    }
+}
+```
+
 ### LocalxxxDB
 
 每种db都对应有本地版本，localrdb、localtreedb、localsearch。
@@ -565,7 +719,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 }
 ```
 
-#### JS扩展能力
+#### JS内置函数
 
 除了js基本功能外，系统提供了Mesh、DB、Logger、String、Secure扩展接口，以便于使用js实现更复杂的功能，以Secure类接口最为突出。
 除了用在script中，在RDB的"js:"开头的sql中也可以使用，比如拼接sql时有字符串参数，建议使用clearInjection处理一下再拼接。
@@ -863,6 +1017,74 @@ toResp为true时，内容会作为响应的字段返回。
 | CLIENT\_ERROR | 100000 | 客户端发生错误 |
 | NO\_OPERATION | 200000 | 没有任何可以执行的操作，只用于服务侧 |
 
+
+## 初始化接口
+
+如果服务在首次启动时需要做一些初始化工作，可以实现一些接口，接口定义所存放的文件名不受限制，定义方式与普通接口完全相同，但是接口名称前面要加上“__”。
+这类接口其他服务或终端用户都无法调用，在启动时会被系统以INIT权限自动调用。
+比如，在ifinance中用到seq服务与schedule服务，则需要做初始化：
+```JSON
+{
+    "name" : "__initseqid",
+    "method" : "GET",
+    "property" : "private",
+    "tokenChecker" : "INIT",
+    "comment" : "初始化序列号。两个下划线开头的接口，在启动时会自动调用",
+
+    "process" : [{
+        "name" : "init_finance_sequences",
+        "type" : "call",
+        "service" : "seqid",
+        "method" : "POST",
+        "url" : "/inits",
+        "tokenSign" : "APP",
+        "comment" : "初始化finance的序列号",
+        "parameters":"{
+            \"ids\":[
+                {\"name\":\"balanceid\",\"begin\":100},
+                {\"name\":\"bankaccid\",\"begin\":1},
+                {\"name\":\"incomeid\",\"begin\":1},
+                {\"name\":\"payid\",\"begin\":1}
+            ]
+        }"
+    }],
+    "response":[]
+},
+{
+    "name" : "__init_schedule",
+    "method" : "GET",
+    "property" : "private",
+    "tokenChecker" : "INIT",
+    "comment" : "初始定时任务",
+
+    "process" : [{
+        "name" : "init_finance_schedule",
+        "type" : "call",
+        "service" : "schedule",
+        "method" : "POST",
+        "url" : "/task/create",
+        "tokenSign" : "APP",
+        "comment" : "初始化定时任务，每月保存快照",
+        "calls":[
+            {
+                "parameters":"{
+                    \"name\":\"save_snapshot\",
+                    \"sync\":\"Y\",
+                    \"maxRetry\":3,
+                    \"minTime\":10,
+                    \"type\":\"M\",
+                    \"val\":-480,
+                    \"url\":\"/saveSnapshot\"
+                }"
+            }
+        ]
+    }],
+    "response":[]
+}
+```
+
+这类接口必须保证能够重入，因为每个实例每次重启时都会调用，如果不能重入，则每次启动都会影响服务的状态。
+
 ---
 # 五、占位符<a id="placeholder"></a>
 
@@ -883,58 +1105,58 @@ toResp为true时，内容会作为响应的字段返回。
 
 下表是系统可以支持的函数占位符：
 
-| 名称 | 功能 | 举例 | 说明 |
-| --- | --- | --- | --- |
-| HASH | 计算HASH值 | @{HASH\| #token..., name, 1, \`xxx\`} | 返回HASH值，HASH算法与Java保持一致；如果有多个参数，它们之间使用“-”连接；<br>默认为long型，如果第一个参数是“i”或“int”，则返回int型hash值 |
-| ABSHASH | 计算绝对HASH值 | @{ABSHASH\| #token..., name, 1, \`xxx\`} | 返回HASH绝对值，HASH算法与Java保持一致；如果有多个参数，它们之间使用“-”连接；默认为long型，如果第一个参数是“i”或“int”，则返回int型hash绝对值 |
-| HASHMOD | 计算HASH绝对值，并求余 | @{HASHMOD\|mod, #token..., name, 1, \`xxx\`} | 将参数进行HASH计算后得到一个整型绝对值，得数与mod求余；如果有多个参数，它们之间使用“-”连接；HASH算法与Java保持一致 |
-| MD5 | 计算MD5 | @{MD5\|#tokenxxx, name,1,\`xxx\`} | 格式类似HASH，可有多个参数，它们之间用“-”连接，输出一个base64编码的字符串。 |
-| SHA256 | 计算SHA256 | @{SH256\|#tokenxxx,name,1,\`xxx\`} | 类似MD5，只是算法不同 |
-| HMACSHA256 | 计算HMACSHA256 | @{HMACSHA256\| para1, name, 1, \`xxx\`} | 类似MD5，只是算法不同；算法中的可以是随机生成的16字节内容，记录在结果的前16字节；在js脚本中可以使用 Secure.hmacSHA256Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串 |
-| PBKDF | 计算PBKDF2 | @{PBKDF\| iter,para} | iter为迭代次数，para为被混淆的字符串；在js脚本中可以使用Secure.pbkdf2Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串，也可以用进行校验，返回true或false |
-| PBKDFCHECK | PBKDF2校验 | @{PBKDFCHECK\| str, savedStr} | str为传入参数，savedStr是用来检验的参数，比如从数据库取出 |
-| UTC | 对UTC时间戳进行格式化 | @{UTC\|utc,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utc,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utc,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utc,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 | offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000）， 这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳指定月度的几号，1号返回0 <br>dayofyear：时间戳指定年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00 <br>monthend：返回utc所在月度的下个月第一天00:00:00 <br>weekstart：返回utc所在星期的第一天00:00:00 <br>weekend：返回utc所在星期的下个星期第一天00:00:00 |
-| NOW | 当前时间 | @{NOW\|unit86400000}转换成UTC天数 @{NOW\|yyyy-MM-dd HH:mm:ss,480} 转换成东八区时间字符串 | @{NOW\|[fmt[,offset]]}当前UTC时间戳， 与@{#reqAt}是同一个值，在一次请求中，多次引用@{#reqAt}或@{NOW}，结果都相同； 不同点在于@{NOW}可以携带格式化信息，@{#reqAt}不可以;#reqAt可以在其他占位符中使用，但是NOW不行，比如@{MD5\|#reqAt,'test'}； 无fmt的情况，默认返回当前utc时间戳；有fmt时，定义与UTC相同<br>offset是时区偏移，如果不设置，则默认使用服务器的时区设置。 |
-| NEXTPERIOD | UTC时间的下一个周期 | @{NEXTPERIOD\|'D',0}明天的0点 @{NEXTPERIOD\|period,bias}，其中period、bias为请求参数或变量名称 | @{NEXTPERIOD\|type(D/M/W/H/C),val}， type、val都可以为参数名称，也可以是具体的值 当type为D/W/M/H时，val为与起点的时间间隔，type为C时，val为周期时长;val的单位为毫秒 |
-| COALESCE | 返回第一个非空值 | @{COALESCE\| para1, para2, \`\`} | 如果para1为空，则返回para2，如果para2也为空，则返回空字符串 |
-| IFVALID | 非空则连接其他参数并返回，否则返回空字符串 | @{IFVALID\| para1, \`xx-\`, para2} | 如果para1为空返回“”，否则返回“xx-para2”，用于解决sql不能处理java的null问题 |
-| IFNULL | 非空则返回，否则返回第二个参数指定的字符串 | @{IFNULL\|[!]para1,null[,num/number/obj/object]} | 如果para1为空返回null字符串，否则返回para1的值；如果指定为num/number/obj/object类型，则返回时不会加引号 |
-| CONCAT | 连接 | @{CONCAT\|para1, \`-\`, para2, \`-\`…} | 连接多个参数 |
-| ENCODE | 数据加密 | @{ENCODE\| keyName, paraName [,keyTime]} | keyName指定密钥的名称，运行时，如果keystore服务中不存在此密钥，会自动创建；加密时可以加keyTime(最大有效天数，默认为366天，最短1天)，到期后会产生新密钥，但是老密钥仍然可以解密；在一些安全性要求很高的场景中，可以设置较短的有效期。 在js或sql中可以通过@{DECODE\| keyName, paraName}解密。也可以在参数配置中将codeMode设为decode，并且设置keyName |
-| DECODE | 数据解密 | @{DECODE\| keyName, paraName} | keyName指定密钥名称。无需事先创建，运行时，如果无此密钥则会自动创建它 |
-| UPPER | 转大写 | @{UPPER\| paraName} | 将参数转为大写 |
-| LOWER | 转小写 | @{LOWER\| paraName} | 将参数转为小写 |
-| CLEAR | 清除字符串中指定的字符 | @{CLEAN\|str,'char\_list'} | char\_list中列出所有需要清除的字符，支持转义，比如'\\t\\0\\n' |
-| SUBSTR | 取子字符串 | @{SUBSTR\|pname, 0, 2}取字符串参数前面两个字符 | @{SUBSTR\| paraName, start[, len]} start开始位置，len指定子字符串的长度，可以未指定，则表示从start到末尾，如果len超过字符串末尾，则取到末尾为止 |
-| ECKEYPAIR | 使用ECC密钥对进行加解密、签名&验签 | @{ECKEYPAIR\|encode, keypair, content, pwd}，使用ecc密钥对进行操作 | @{ECKEYPAIR\|cmd, keypair, content[, pwd]} cmd有new、public、encode、decode、sign、verify： 1）@{ECKEYPAIR}，不用带任何参数，产生一个不加密的密钥对； 2）@{ECKEYPAIR\|new, pwd}，产生一个用指定密码加密的密钥对； 3）@{ECKEYPAIR\|public, keypair}，获取密钥对公钥，携带了版本号信息，因为公钥不加密，所以无论keypair是否加密都可以获取； 4）@{ECKEYPAIR\|sign, keypair, content[, pwd]}，用密钥对对content进行签名； 5）@{ECKEYPAIR\|verify, keypair, content, signature[, pwd]}，用密钥对验证签名，需要多一个signature； 6）@{ECKEYPAIR\|encode|decode, keypair, content[, pwd]}，用密钥对加密或解密。 keypair为密钥对，content是待加解密、签名&验签的内容，pwd是密钥对密码，如果没有，可以不提供。 它们都可以用参数名，也可以是直接的字符串内容 |
-| SPLIT | 字符串切割 | @{SPLIT\|para,len\_or\_spliterChar, spliter} | 将para参数按固定长度len切割成多段（不足len的不会填充尾部）；或者通过分隔符分成多段；分隔后再使用分隔符spliter连接起来，连接时会加上合适的引号 |
-| STRPART | 字符串切割后的一个单元 | @{STRPART\|para,spliter,partNo} | 将字符串按spliter分隔成多个子字符串，取出编号为partNo的子字符串，编号从0开始，如果partNo小于0，表示返回最后一个。spliter可以是正则表达式 |
-| REPLACE | 字符串查找替换 | @{REPLACE\|para,regular,replaceWith} | 将字符串中所有匹配regular的部分替换成replaceWith。regular可以是正则表达式 |
-| URL | 对URL参数等进行编码或解码 | @{URL\|cmd,para} | 对para进行URL编码或界面，cmd可以是encode、decode或append。 如果是append，格式为@{URL\|cmd,urlPara,k1,v2,k2,v2...} |
-| LIST | 将LIST连接为字符串 | @{LIST\|[!]paraName[.segName\|colNo][,quote]} <br>1)对象列表：@{LIST\|uids.uid,\`\`}； <br>2)普通列表：@{LIST\|uids,\`'\`} <br>3)列表的列表：@{LIST\|uids.0,\`\`} <br>4)map：@{LIST\|members.v,\`'\`} | 多个元素用逗号“,”分隔。用于解决NORMAL中数组自动加“[]”的问题，加了“[]”，在sql中就无法使用。 如果list中元素是对象(map)，segName指定字段名，处理时取出每个对象的指定字段；list元素也可以是list，此时segName是数字，用以指定列号，列号从0开始。 如果没有segName，则当作普通list处理，直接将list中元素转为字符串列出来。 |
-| ELEMENT | 从对象或数组中取出元素 | @{ELEMENT\|[!]paraName,sn/name/[!]paraName]}|1)如果是数组，则第二个参数必须为数字，否则返回null； <br>2)如果是对象，则第二个参数指定字段名称，可以支持用'.'分隔多级 |
-| JSON | 将复杂对象转为JSON串 | @{JSON\|para[,defaultVal[,quote,safeQuote]]} | para为任意类型的参数，defaultVal是在para为空时的默认值，一个字符串；同时可以指定引号 |
-| CLEAN | 清除JSON中的字段名称 | @{CLEAN\|json} | 只可用于JSON类型的参数，将json字段名全部清除，返回一个字符串。通常用在生成全文索引中 |
-| SIZE | 返回参数的长度 | @{SIZE\|[!]para} | para可以是list、map或string |
-| SUM | 对列表中元素求和 | @{SUM\|type,[!]paraName[.segName|colNo]} 1)简单列表：@{SUM\|double,scores}； 2)对象列表：@{SUM\|d,students.score}； 3)列表的列表：@{SUM\|i,students.0} | 将所有成员求和，如果指定了字段名，则源数据必须为一个对象列表； 如果是列表的列表，segName可以指定为列号；都不指定，则认为传入的是数值列表。 <br>type支持long、double、int、float等，也可以用简写l、d、i、f，浮点数支持精度控制，比如f.3，与@{CALCULATE}相同 \|
-| MIN | 从列表中找到最小的一项 | @{MIN\|int,list}从列表list中取最小值<br>@{MIN\|int,list.a}列表元素是对象，取每行字段a的最小值<br>@{MIN\|int,list.0}列表元素是列表，取每行第1列的最小值 | @{MIN\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最小值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
-| MAX | 从列表中找到最大的一项 | @{MAX\|int,list}从列表list中取最大值<br>@{MAX\|int,list.a}列表元素是对象，取每行字段a的最大值<br>@{MAX\|int,list.0}列表元素是列表，取每行第1列的最大值 | @{MAX\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最大值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
-| FOR | 对变量进行循环处理 | @{FOR\|pl,\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} <br>pl必须是一个list或数组，第二个参数是分隔符；后面都是要拼接的参数或常量，每循环一次，将他们拼接起来，然后加一个分隔符<br>例子中如果pl=[{a:11,b:"x"},{a:12,b:"y"}]，p2="hello",运行后将得到: (0,'hello',11,x,''),(1,'hello',12,y,'')<br>@{FOR\|pl[e.a,'i.>',1 && e.a,'i.<',20],\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} 运行后将得到: (0,'hello',11,x,'') | 对list或数组参数进行循环。<br>每个元素用e代表；如果e是对象，可以用“e.”开头引用成员；<br>i是循环序数，从0开始； <br>所有需要用引号的地方，建议都使用"\`"，而不是单引号。sql本身使用单引号，特别是出现“;”或“)”的地方，不可以使用单引号，否则无法解析。 <br>支持设置过滤条件，在变量名后面加“[]”，在其中加过滤条件，条件判断与@{CONDITION}完全一致 |
-| ADD、SUB、MULTI、DIV | 加减乘除运算 | @{ADD\|类型[.精度], para1, para2} | 类型有int、long、float、double，指定了参数类型与返回类型， 类型为float、double时可以设置精度，范围在0-7，可以不指定； para1与para2必须是对应类型的数值 |
-| CALCULATE | 将类型后面的所有内容拼接成一个四则算式并计算结果 | @{CALCULATE\|类型[.精度],p1,'+(',p2,'-',p3,')-',p4} | 类型与ADD等的定义相同，参数必须是数值类型。 算式必须符合四则运算规则，可以很复杂，ADD等只能执行两个数值的运算，但是比CALCULATE高效 |
-| CONDITION | 条件判断 | @{CONDITION\|p1,relation,p2,o1,o2} @{CONDITION\|p1,'i.<',p2,o1,o2} @{CONDITION\|3,'i.>',5,o1,o2} @{CONDITION\|p1,'o.==',null,o1,o2} @{CONDITION\|p1,'b.==',true,o1,o2} | p1与p2必须是relation中给定类型的参数 relation为关系运算符，格式为"类型+'.'+比较运算符"，比较运算符支持>,<,>=,<=,==,!=。 如果是string，还支持~,!~，用于判断p1是否匹配正在表达式p2； 如果是object、bool，只支持!=,==，object可以支持null，bool支持true、false 类型有:int(i)、long(l)、float(f)、double(d)、string(s)、object(o)、bool(b)，可以用括号中的缩写 <br>如果p1、p2满足条件，则返回o1，否则返回o2，o1、o2可以不传，默认为1、0 @{CONDITION\|p1,'s.==',p2,'true','false'}, @{CONDITION\|p1,'i.>',p2,'1','0'}与@{CONDITION\|p1,'i.>',p2}等同 |
-| SWITCH | 将多个IF-ELSEIF-ELSEIF...-ELSE汇聚在一起，用“\|”分隔 | 每个判断与CONDITION中判断方式相同 如果为true，则将判断之后的内容拼接起来返回 在第一个为true的判断后结束，后面即使有true的也不会运行 | @{SWITCH\|p1,'i.>',p2,'a','b','c',\|,'def'}如果p1>p2则返回abc，否则返回def字符串 用'\|'分隔多个if、else if以及else。else分支必须有 |
-| VERCONVERT | 将字符串版本号转为一个整数，或者将整数转为版本号 | @{VERCONVERT\| \`11.22.33\`}、@{VERCONVERT\|1001,tostr} | 版本号的没段存成十进制数的3位，比如例子中转为整数11022033，所以版本号中每段不能超过三位数 |
-| CONST | 常数 | @{CONST\|type,name} | type支持int(i)、long(l)、float(f)、double(d)、char(c)，name支持min、max、ver、tzOffset，tzOffset的类型只支持int(i) |
-| SRCIP | 请求的源地址 | @{SRCIP\|remote}、@{SRCIP} \| 设置了remote表示返回地址考虑了nat转换，否则返回链路中上一跳的地址 |
-| CONFIG | 服务级配置项 | @{CONFIG\|configItem} | configItem指定配置项名称，实际存储时会在前面增加"para\_"前缀 |
-| SEQUENCE | 在集群多实例的情况下实现持续增长的id，不保证连续 | @{SEQUENCE\|i,\`customer\`} @{SEQUENCE\|customer,[len[,cidParaName]} | 第一个参数指定类型，有i/int、l/long两个选择，不输入则默认为int； 第二个参数是名称，可以加单引号，也可以不加，在同一个服务内必须唯一； len指定返回顺序数的后面多少个十进制位，0表示全部返回； 如果在公共接口中使用，没有token，系统不知道从属的公司id，所以需要提供cid参数的名称 |
-| COUNTER | 服务实例级别的计数器，每次重启后从0开始 | @{COUNTER\|4,'head'}、@{COUNTER\|para} | 默认输出长度为0（原样输出），不加头部。len大于0，则超出len部分截断，不足部分补0； 同一服务的相同实例上是连续递增的，不同实例之间无法保证连续性，实例重启后又从0开始 |
-| RANDOM | 产生随机数 | @{RANDOM\|l/i/d/f/c/s, min, max]} @{RANDOM\|s,len,base]} | l:长整型数，i:整型数，d:双精度浮点数，f:单精度浮点数，c:字符（0-65535）。min、max指定最小、最大值； s:包含base64/base32/hex字符的字符串，len指定字符串长度，base有16、32、64可选，默认为64 |
-| UUID | 产生UUID字符串 | @{UUID\|16}、@{UUID\|64} | 可以指定输出格式，16表示HEX方式，64表示base64方式 |
-| UNIQUEID | 先产生UUID字符串，然后输出该字符串的HASH绝对值 | @{UNIQUEID\|int}、@{UNIQUEID\|l} | 默认为long型，如果有参数“i”或“int”，则返回int型hash绝对值； 此ID并发真正的唯一ID，经测试，int型有千分之一的重复率，long型约百万分之一的重复率。 如果需要真正的唯一ID请使用SEQUENCE占位符 |
-| FILE | 将指定文件存到模板临时目录 | @{FILE\|para,path[,rootpath]} | 用在服务端模板中，存文件到指定目录，可以是base64格式，也可以是原始文件 |
-| BASE64IMG | 将指定图片存到模板临时目录 | @{BASE64IMG\|para,path[,rootpath]} | 用在服务端模板中，存图片到指定目录，可以是base64格式，也可以是原始文件 |
+| 名称 | 功能 | 说明 |
+| --- | --- | --- |
+| HASH | 计算HASH值 | @{HASH\| #token..., name, 1, \`xxx\`}<br> 返回HASH值，HASH算法与Java保持一致；如果有多个参数，它们之间使用“-”连接；<br>默认为long型，如果第一个参数是“i”或“int”，则返回int型hash值 |
+| ABSHASH | 计算绝对HASH值 | @{ABSHASH\| #token..., name, 1, \`xxx\`}<br>  返回HASH绝对值，HASH算法与Java保持一致；如果有多个参数，它们之间使用“-”连接；默认为long型，如果第一个参数是“i”或“int”，则返回int型hash绝对值 |
+| HASHMOD | 计算HASH绝对值，并求余 | @{HASHMOD\|mod, #token..., name, 1, \`xxx\`}<br> 将参数进行HASH计算后得到一个整型绝对值，得数与mod求余；如果有多个参数，它们之间使用“-”连接；HASH算法与Java保持一致 |
+| MD5 | 计算MD5 | @{MD5\|#tokenxxx, name,1,\`xxx\`}<br>格式类似HASH，可有多个参数，它们之间用“-”连接，输出一个base64编码的字符串。 |
+| SHA256 | 计算SHA256 | @{SH256\|#tokenxxx,name,1,\`xxx\`}<br>类似MD5，只是算法不同 |
+| HMACSHA256 | 计算HMACSHA256 | @{HMACSHA256\| para1, name, 1, \`xxx\`}<br> 类似MD5，只是算法不同；算法中的可以是随机生成的16字节内容，记录在结果的前16字节；在js脚本中可以使用 Secure.hmacSHA256Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串 |
+| PBKDF | 计算PBKDF2 | @{PBKDF\| iter,para} <br>iter为迭代次数，para为被混淆的字符串；在js脚本中可以使用Secure.pbkdf2Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串，也可以用进行校验，返回true或false |
+| PBKDFCHECK | PBKDF2校验 | @{PBKDFCHECK\| str, savedStr} <br>str为传入参数，savedStr是用来检验的参数，比如从数据库取出 |
+| UTC | 对UTC时间戳进行格式化 | @{UTC\|utc,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utc,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utc,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utc,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000）， 这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳指定月度的几号，1号返回0 <br>dayofyear：时间戳指定年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00 <br>monthend：返回utc所在月度的下个月第一天00:00:00 <br>weekstart：返回utc所在星期的第一天00:00:00 <br>weekend：返回utc所在星期的下个星期第一天00:00:00 |
+| NOW | 当前时间 | @{NOW\|unit86400000}转换成UTC天数 @{NOW\|yyyy-MM-dd HH:mm:ss,480} 转换成东八区时间字符串 <br> @{NOW\|[fmt[,offset]]}当前UTC时间戳， 与@{#reqAt}是同一个值，在一次请求中，多次引用@{#reqAt}或@{NOW}，结果都相同； 不同点在于@{NOW}可以携带格式化信息，@{#reqAt}不可以;#reqAt可以在其他占位符中使用，但是NOW不行，比如@{MD5\|#reqAt,'test'}； 无fmt的情况，默认返回当前utc时间戳；有fmt时，定义与UTC相同<br>offset是时区偏移，如果不设置，则默认使用服务器的时区设置。 |
+| NEXTPERIOD | UTC时间的下一个周期 | @{NEXTPERIOD\|'D',0}明天的0点 @{NEXTPERIOD\|period,bias}，其中period、bias为请求参数或变量名称 <br> @{NEXTPERIOD\|type(D/M/W/H/C),val}， type、val都可以为参数名称，也可以是具体的值 当type为D/W/M/H时，val为与起点的时间间隔，type为C时，val为周期时长;val的单位为毫秒 |
+| COALESCE | 返回第一个非空值 | @{COALESCE\| para1, para2, \`\`}<br>如果para1为空，则返回para2，如果para2也为空，则返回空字符串 |
+| IFVALID | 非空则连接其他参数并返回，否则返回空字符串 | @{IFVALID\| para1, \`xx-\`, para2} <br>如果para1为空返回“”，否则返回“xx-para2”，用于解决sql不能处理java的null问题 |
+| IFNULL | 非空则返回，否则返回第二个参数指定的字符串 | @{IFNULL\|[!]para1,null[,num/number/obj/object]} <br> 如果para1为空返回null字符串，否则返回para1的值；如果指定为num/number/obj/object类型，则返回时不会加引号 |
+| CONCAT | 连接多个参数 | @{CONCAT\|para1, \`-\`, para2, \`-\`…}|
+| ENCODE | 数据加密 | @{ENCODE\| keyName, paraName [,keyTime]}<br>keyName指定密钥的名称，运行时，如果keystore服务中不存在此密钥，会自动创建；加密时可以加keyTime(最大有效天数，默认为366天，最短1天)，到期后会产生新密钥，但是老密钥仍然可以解密；在一些安全性要求很高的场景中，可以设置较短的有效期。 在js或sql中可以通过@{DECODE\| keyName, paraName}解密。也可以在参数配置中将codeMode设为decode，并且设置keyName |
+| DECODE | 数据解密 | @{DECODE\| keyName, paraName}<br>keyName指定密钥名称。无需事先创建，运行时，如果无此密钥则会自动创建它 |
+| UPPER | 将参数转为大写 | @{UPPER\| paraName} |
+| LOWER | 将参数转为小写 | @{LOWER\| paraName} |
+| CLEAR | 清除字符串中指定的字符 | @{CLEAN\|str,'char\_list'}<br>char\_list中列出所有需要清除的字符，支持转义，比如'\\t\\0\\n' |
+| SUBSTR | 取子字符串 | @{SUBSTR\|pname, 0, 2}取字符串参数前面两个字符<br>@{SUBSTR\| paraName, start[, len]} start开始位置，len指定子字符串的长度，可以未指定，则表示从start到末尾，如果len超过字符串末尾，则取到末尾为止 |
+| ECKEYPAIR | 使用ECC密钥对进行加解密、签名&验签 | @{ECKEYPAIR\|encode, keypair, content, pwd}，使用ecc密钥对进行操作<br> @{ECKEYPAIR\|cmd, keypair, content[, pwd]} cmd有new、public、encode、decode、sign、verify： <br>1）@{ECKEYPAIR}，不用带任何参数，产生一个不加密的密钥对； <br>2）@{ECKEYPAIR\|new, pwd}，产生一个用指定密码加密的密钥对； <br>3）@{ECKEYPAIR\|public, keypair}，获取密钥对公钥，携带了版本号信息，因为公钥不加密，所以无论keypair是否加密都可以获取； <br>4）@{ECKEYPAIR\|sign, keypair, content[, pwd]}，用密钥对对content进行签名； <br>5）@{ECKEYPAIR\|verify, keypair, content, signature[, pwd]}，用密钥对验证签名，需要多一个signature； <br>6）@{ECKEYPAIR\|encode/decode, keypair, content[, pwd]}，用密钥对加密或解密。 keypair为密钥对，content是待加解密、签名&验签的内容，pwd是密钥对的加密密码，如果没有，可以不提供。 它们都可以用参数名，也可以是直接的字符串内容 |
+| SPLIT | 字符串切割 | @{SPLIT\|para,len\_or\_spliterChar, spliter}<br> 将para参数按固定长度len切割成多段（不足len的不会填充尾部）；或者通过分隔符分成多段；分隔后再使用分隔符spliter连接起来，连接时会加上合适的引号 |
+| STRPART | 字符串切割后的一个单元 | @{STRPART\|para,spliter,partNo}<br> 将字符串按spliter分隔成多个子字符串，取出编号为partNo的子字符串，编号从0开始，如果partNo小于0，表示返回最后一个。spliter可以是正则表达式 |
+| REPLACE | 字符串查找替换 | @{REPLACE\|para,regular,replaceWith}<br> 将字符串中所有匹配regular的部分替换成replaceWith。regular可以是正则表达式 |
+| URL | 对URL参数等进行编码或解码 | @{URL\|cmd,para}<br> 对para进行URL编码或界面，cmd可以是encode、decode或append。 如果是append，格式为@{URL\|cmd,urlPara,k1,v2,k2,v2...} |
+| LIST | 将LIST连接为字符串 | @{LIST\|[!]paraName[.segName\|colNo][,quote]} <br>1)对象列表：@{LIST\|uids.uid,\`\`}； <br>2)普通列表：@{LIST\|uids,\`'\`} <br>3)列表的列表：@{LIST\|uids.0,\`\`} <br>4)map：@{LIST\|members.v,\`'\`}<br> 多个元素用逗号“,”分隔。用于解决NORMAL中数组自动加“[]”的问题，加了“[]”，在sql中就无法使用。 如果list中元素是对象(map)，segName指定字段名，处理时取出每个对象的指定字段；list元素也可以是list，此时segName是数字，用以指定列号，列号从0开始。 如果没有segName，则当作普通list处理，直接将list中元素转为字符串列出来。 |
+| ELEMENT | 从对象或数组中取出元素 | @{ELEMENT\|[!]paraName,sn/name/[!]paraName]}<br>1)如果是数组，则第二个参数必须为数字，否则返回null； <br>2)如果是对象，则第二个参数指定字段名称，可以支持用'.'分隔多级 |
+| JSON | 将复杂对象转为JSON串 | @{JSON\|para[,defaultVal[,quote,safeQuote]]}<br> para为任意类型的参数，defaultVal是在para为空时的默认值，一个字符串；同时可以指定引号 |
+| CLEAN | 清除JSON中的字段名称 | @{CLEAN\|json}<br>只可用于JSON类型的参数，将json字段名全部清除，返回一个字符串。通常用在生成全文索引中 |
+| SIZE | 返回参数的长度 | @{SIZE\|[!]para}<br> para可以是list、map或string |
+| SUM | 对列表中元素求和 | @{SUM\|type,[!]paraName[.segName\|colNo]} <br>1)简单列表：@{SUM\|double,scores}； <br>2)对象列表：@{SUM\|d,students.score}； <br>3)列表的列表：@{SUM\|i,students.0}<br> 将所有成员求和，如果指定了字段名，则源数据必须为一个对象列表； 如果是列表的列表，segName可以指定为列号；都不指定，则认为传入的是数值列表。 <br>type支持long、double、int、float等，也可以用简写l、d、i、f，浮点数支持精度控制，比如f.3，与@{CALCULATE}相同 |
+| MIN | 从列表中找到最小的一项 | @{MIN\|int,list}从列表list中取最小值<br>@{MIN\|int,list.a}列表元素是对象，取每行字段a的最小值<br>@{MIN\|int,list.0}列表元素是列表，取每行第1列的最小值 <br>@{MIN\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最小值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
+| MAX | 从列表中找到最大的一项 | @{MAX\|int,list}从列表list中取最大值<br>@{MAX\|int,list.a}列表元素是对象，取每行字段a的最大值<br>@{MAX\|int,list.0}列表元素是列表，取每行第1列的最大值<br> @{MAX\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最大值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
+| FOR | 对变量进行循环处理 | @{FOR\|pl,\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} <br>pl必须是一个list或数组，第二个参数是分隔符；后面都是要拼接的参数或常量，每循环一次，将他们拼接起来，然后加一个分隔符<br>例子中如果pl=[{a:11,b:"x"},{a:12,b:"y"}]，p2="hello",运行后将得到: (0,'hello',11,x,''),(1,'hello',12,y,'')<br>@{FOR\|pl[e.a,'i.>',1 && e.a,'i.<',20],\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} 运行后将得到: (0,'hello',11,x,'')<br> 对list或数组参数进行循环。<br>每个元素用e代表；如果e是对象，可以用“e.”开头引用成员；<br>i是循环序数，从0开始； <br>所有需要用引号的地方，建议都使用"\`"，而不是单引号。sql本身使用单引号，特别是出现“;”或“)”的地方，不可以使用单引号，否则无法解析。 <br>支持设置过滤条件，在变量名后面加“[]”，在其中加过滤条件，条件判断与@{CONDITION}完全一致 |
+| ADD、SUB、MULTI、DIV | 加减乘除运算 | @{ADD\|类型[.精度], para1, para2}<br>类型有int、long、float、double，指定了参数类型与返回类型， 类型为float、double时可以设置精度，范围在0-7，可以不指定； para1与para2必须是对应类型的数值 |
+| CALCULATE | 将类型后面的所有内容拼接成一个四则算式并计算结果 | @{CALCULATE\|类型[.精度],p1,'+(',p2,'-',p3,')-',p4}<br> @{CALCULATE\|类型[.精度],\`@{p1}+(@{p2}-@{p3})-@{p4}\`}<br>@{CALCULATE\|类型[.精度],p1+(p2-p3)-p4}<br>类型与ADD等的定义相同，参数必须是数值类型。 参数拼接的结果是个字符串算式，算式必须符合四则运算规则，可以很复杂，ADD等只能执行两个数值的运算，但是比CALCULATE高效 |
+| CONDITION | 条件判断 | @{CONDITION\|p1,relation,p2,o1,o2} @{CONDITION\|p1,'i.<',p2,o1,o2} @{CONDITION\|3,'i.>',5,o1,o2} @{CONDITION\|p1,'o.\=\=',null,o1,o2} @{CONDITION\|p1,'b.\=\=',true,o1,o2}<br>p1与p2必须是relation中给定类型的参数 relation为关系运算符，格式为"类型+'.'+比较运算符"，比较运算符支持>,<,>=,<=,\=\=,!=。 如果是string，还支持\~,!\~，用于判断p1是否匹配正在表达式p2； 如果是object、bool，只支持!=,\=\=，object可以支持null，bool支持true、false 类型有:int(i)、long(l)、float(f)、double(d)、string(s)、object(o)、bool(b)，可以用括号中的缩写 <br>如果p1、p2满足条件，则返回o1，否则返回o2，o1、o2可以不传，默认为1、0 @{CONDITION\|p1,'s.\=\=',p2,'true','false'}, @{CONDITION\|p1,'i.>',p2,'1','0'}与@{CONDITION\|p1,'i.>',p2}等同 |
+| SWITCH | 将多个IF-ELSEIF-ELSEIF...-ELSE汇聚在一起，用“\|”分隔 | 每个判断与CONDITION中判断方式相同 如果为true，则将判断之后的内容拼接起来返回 在第一个为true的判断后结束，后面即使有true的也不会运行<br>@{SWITCH\|p1,'i.>',p2,'a','b','c',\|,'def'}如果p1>p2则返回abc，否则返回def字符串 用'\|'分隔多个if、else if以及else。else分支必须有 |
+| VERCONVERT | 将字符串版本号转为一个整数，或者将整数转为版本号 | @{VERCONVERT\| \`11.22.33\`}、@{VERCONVERT\|1001,tostr}<br> 版本号的没段存成十进制数的3位，比如例子中转为整数11022033，所以版本号中每段不能超过三位数 |
+| CONST | 常数 | @{CONST\|type,name}<br> type支持int(i)、long(l)、float(f)、double(d)、char(c)，name支持min、max、ver、tzOffset，tzOffset的类型只支持int(i) |
+| SRCIP | 请求的源地址 | @{SRCIP\|remote}、@{SRCIP} <br> 设置了remote表示返回地址考虑了nat转换，否则返回链路中上一跳的地址 |
+| CONFIG | 服务级配置项 | @{CONFIG\|configItem}<br>configItem指定配置项名称，实际存储时会在前面增加"para\_"前缀 |
+| SEQUENCE | 在集群多实例的情况下实现持续增长的id，不保证连续 | @{SEQUENCE\|i,\`customer\`} @{SEQUENCE\|customer,[len[,cidParaName]} <br>第一个参数指定类型，有i/int、l/long两个选择，不输入则默认为int； 第二个参数是名称，可以加单引号，也可以不加，在同一个服务内必须唯一； len指定返回顺序数的后面多少个十进制位，0表示全部返回； 如果在公共接口中使用，没有token，系统不知道从属的公司id，所以需要提供cid参数的名称 |
+| COUNTER | 服务实例级别的计数器，每次重启后从0开始 | @{COUNTER\|4,'head'}、@{COUNTER\|para}<br> 默认输出长度为0（原样输出），不加头部。len大于0，则超出len部分截断，不足部分补0； 同一服务的相同实例上是连续递增的，不同实例之间无法保证连续性，实例重启后又从0开始 |
+| RANDOM | 产生随机数 | @{RANDOM\|l/i/d/f/c/s, min, max]} @{RANDOM\|s,len,base]}<br> l:长整型数，i:整型数，d:双精度浮点数，f:单精度浮点数，c:字符（0-65535）。min、max指定最小、最大值； s:包含base64/base32/hex字符的字符串，len指定字符串长度，base有16、32、64可选，默认为64 |
+| UUID | 产生UUID字符串 | @{UUID\|16}、@{UUID\|64}<br>可以指定输出格式，16表示HEX方式，64表示base64方式 |
+| UNIQUEID | 先产生UUID字符串，然后输出该字符串的HASH绝对值 | @{UNIQUEID\|int}、@{UNIQUEID\|l}<br> 默认为long型，如果有参数“i”或“int”，则返回int型hash绝对值； 此ID并发真正的唯一ID，经测试，int型有千分之一的重复率，long型约百万分之一的重复率。 如果需要真正的唯一ID请使用SEQUENCE占位符 |
+| FILE | 将指定文件存到模板临时目录 | @{FILE\|para,path[,rootpath]}<br> 用在服务端模板中，存文件到指定目录，可以是base64格式，也可以是原始文件 |
+| BASE64IMG | 将指定图片存到模板临时目录 | @{BASE64IMG\|para,path[,rootpath]}<br> 用在服务端模板中，存图片到指定目录，可以是base64格式，也可以是原始文件 |
 
 ---
 # 六、认证&鉴权
@@ -1022,25 +1244,24 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 
 ```JSON
 "roles": {
-	"admin":{
-		"name":"企业主",
-		"rights":{
-		//sku是接口定义文件的名称(sku.cfg)，* 表示其中的所有特性的接口都可以调用
-		"sku":"*",
-		//如果接口定义中指定了feature，就可以更加细致的授权
-		"report":"featureA,featureB...",
-		"proxy":"*"
-	}
-},
+    "admin":{
+        "name":"企业主",
+        "rights":{
+            //sku是接口定义文件的名称(sku.cfg)，* 表示其中的所有特性的接口都可以调用
+            "sku":"*",
+            //如果接口定义中指定了feature，就可以更加细致的授权
+            "report":"featureA,featureB...",
+            "proxy":"*"
+        }
+    },
 
-"sales":{
-	"name":"销售",
-	"rights":{
-		//这里没有 指定任何接口文件，则，只能访问没有设置feature的接口
-	}
-}
-...
-
+    "sales":{
+        "name":"销售",
+        "rights":{
+            //这里没有指定任何接口文件，则，只能访问没有设置feature的接口
+        }
+    }
+    ...
 }
 ```
 为了实现对角色功能更加细致的限制，在每个接口中都可以定义feature，在角色定义时，限制角色在某个接口定义文件中，只能执行特定的几类接口。详情请参照 [接口定义](#interfacedef)。
@@ -1086,8 +1307,8 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 实现对内容进行分词以及模糊搜索的功能，使用方法请参照 “[处理](#处理process)”部分的描述。不涉及表结构定义，只需要在其中申明即可，type设为sdb，如下所示：
 ```JSON
 {
-	"name":"crm",
-	"type":"sdb"
+    "name":"crm",
+    "type":"sdb"
 }
 ```
 
@@ -1096,8 +1317,8 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 实现树状关系数据的增删改查，使用方法请参照 “[处理](#处理process)”部分的描述。不涉及表结构定义，只需要在其中申明即可，type设为tdb，如下所示：
 ```JSON
 {
-	"name":"crm",
-	"type":"tdb"
+    "name":"crm",
+    "type":"tdb"
 }
 ```
 
@@ -1106,10 +1327,10 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 实现关系型数据的增删改查，使用方法请参照 “[处理](#处理process)”部分的描述。涉及多个版本表结构升级或定义：
 ```JSON
 {
-	"name":"crm",
-	"version":"0.2.0", //升级后的目标版本
-	"type":"rdb",//固定为rdb
-	"versions":[] //每个版本对应map对象
+    "name":"crm",
+    "version":"0.2.0", //升级后的目标版本
+    "type":"rdb",//固定为rdb
+    "versions":[] //每个版本对应map对象
 }
 ```
 
@@ -1120,10 +1341,10 @@ versions中可以有多个map对象，在执行时会判断本地版本是否在
 DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继续后面version执行。
 ```JSON
 {
-	"minVer":"0.0.0", //最新
-	"maxVer":"0.1.0",
-	"toVer":"0.2.0",
-	"sqls":[...]
+    "minVer":"0.0.0", //最新
+    "maxVer":"0.1.0",
+    "toVer":"0.2.0",
+    "sqls":[...]
 }
 ```
 
@@ -1161,17 +1382,17 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 实现时，需要用Java实现IProcessor接口，或继承AbsProcessor、AbsDBProcessor、AbsRDBProcessor、RDBProcessor、TreeDBProcessor等类进行扩展。 在process中，指定handler为自定义的实现类即可，比如：
 ```JSON
 {
-	"name" : "get\_token",
-	"type" : "java",
-	//因为type为java，所以SampleDBProcessor必须继承自AbstractProcessor，或者IProcessor
-	"handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
+    "name" : "get\_token",
+    "type" : "java",
+    //因为type为java，所以SampleDBProcessor必须继承自AbstractProcessor，或者IProcessor
+    "handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
 },
 {
-	"name" : "get\_token",
-	"type" : "rdb",
-	//因为type为rdb，所以SampleDBProcessor必须继承自RDBProcessor
-	//类似的情况，比如treedb、search必须分别继承自TreeDBProcessor、SearchProcessor
-	"handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
+    "name" : "get\_token",
+    "type" : "rdb",
+    //因为type为rdb，所以SampleDBProcessor必须继承自RDBProcessor
+    //类似的情况，比如treedb、search必须分别继承自TreeDBProcessor、SearchProcessor
+    "handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
 }
 ```
 
@@ -1289,18 +1510,52 @@ assets不是通常意义的服务，不运行于服务侧，只用于给每个�
 
 ## 工作流服务Workflow
 
-工作流中可以定义一个工作流程中步骤，在业务中控制工作的推进，工作可以向下一步推进， 也可以回退到上一步。每一步可以写入当前责任人的意见，并指定下一步的执行人（可多人）。 每一步操作，包括回退，都有详细的记录，在需要回溯工作时，可以清晰地查看每一步的记录。
+工作流服务中可以定义一个工作流程中的步骤，在业务中控制工作的推进，每一步可以向下一步推进，也可以回退到上一步。每一步可以写入当前责任人的意见，并指定下一步的执行人（可多人）。 每一步操作，都有详细的记录，在需要回溯工作时，可以清晰地查看每一步的记录。
 
-详细接口定义请workflow/api目录。
-
-/workflow/api/flow.cfg：定义工作流的相关接口，这类接口在业务的管理台中调用，工作流服务提供了默认的管理页面，业务中可以直接引用，样例请参照/crm/ui/index.html。 router定义时，引入"/workflow/ui/pub/settings.js"即可。
+/workflow/api/flow.cfg定义了工作流定义的相关接口，在管理界面使用。
+工作流服务提供了默认的管理页面与工作流操作页面，业务中引入"/assets/v3/settings/workflow.js"与"/assets/v3/components/workflow.js"即可，样例请参照/ibfbase/tasks.js。 
 
 ```JavaScript
-{path: '/flowdef', component:() => import('/workflow/pub/settings.js')}
+import {_WF_} from "/assets/v3/components/workflow.js"
+import WfSettings from "/assets/v3/settings/workflow.js";
+
+export default {
+inject:['ibf'],
+components:{
+    "wfsettings":WfSettings,
+    "alert-dialog":AlertDialog,
+    "confirm-dialog":ConfirmDialog
+},
+data() {return {
+    confirmDlg:null,
+    alertDlg:null,
+	...
+}},
+mounted(){//不能在created中赋值，更不能在data中
+    this.confirmDlg=this.$refs.confirmDlg;
+    this.alertDlg=this.$refs.errMsg;
+},
+methods:{
+showWorkflow(flow,did) { //显示某条记录对应的工作流
+    _WF_.showPage(flow, did, this.$router);
+},
+...
+}
+...
+}
+```
+
+定义工作流：
+```HTML
+<wfsettings v-model="flow" ref="wfSet" class="q-pa-md"
+ :confirmDlg="confirmDlg" :alertDlg="alertDlg"
+ :service="service.value" :flowTags="tags.flowTags"></wfsettings>
+<alert-dialog :title="tags.failToCall" :errMsgs="tags.errMsgs" ref="errMsg"></alert-dialog>
+<confirm-dialog :title="tags.alert" :close="tags.cancel" :ok="tags.ok" ref="confirmDlg"></confirm-dialog>
 ```
 
 ![workflowset](imgs/server/workflowset.png)
 
-/workflow/api/root.cfg：启动或删除工作流、确认工作、查询任务的接口，这类接口在业务中调用。
+/workflow/api/root.cfg中定义启动、删除、确认、查询任务的接口，这类接口在业务中调用。
 
 ![customerworkflow](imgs/server/customer_workflow.png)

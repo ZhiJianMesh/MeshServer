@@ -76,7 +76,7 @@ public final class ServiceInfo {
     private static final String SERVICE_LIBS_PATH = "libs";
 
     private static final String CFG_AUTHOR = "author";
-    public static final String CFG_VER = "version";
+    private static final String CFG_VER = "version";
     private static final String CFG_MINCOMPATIBLE = "minCompatible";
     private static final String CFG_DISPLAYNAME = "displayName";
     private static final String CFG_DEPENDENCIES = "dependencies";

@@ -297,7 +297,7 @@ app.mount('#app');//必须：启动APP
 
 ### 交互页面样例
 
-以下为一个删减来所有细节的首页实现，具体的实现可以参照已在gitee、csdn、github开源的服务实现。
+以下为一个删减了所有细节的首页实现，具体的实现可以参照已在gitee、csdn、github开源的服务实现。
 ```JavaScript
 export default {
 inject:['service', 'tags'], //引用全局对象，页面中可以像使用data中变量一样使用
@@ -332,6 +332,63 @@ template:`
 </q-page-container>
 </q-layout>
 `//用反单引号结尾
+}
+```
+
+## 多语言标签
+UI开发中如果将文字部分直接写在组件中，以后要支持其他语言时，必须研发逐字逐句的修改，而研发并不善于翻译工作，而善于翻译工作的人不善于编程。所以需要将多语言标签独立出来。
+
+至简网格客户端将语言标签作为一个模块独立地放在language.js中。language.js中除了放多余语言标签，也可以放一些按语言差异化处理的函数，比如日期格式化函数。
+
+```JavaScript
+export default {
+en:{
+  app_name:"Settings",
+  ok:"OK",
+  ...
+},
+zh:{
+  app_name:"设置",
+  ok:"确定",
+  ...
+}
+}
+```
+en对应英文，zh对应中文，通过Platform.language()可以获得当前的语言名称（前两个字符，转小写）。
+Android客户端是这样获取的：
+```Java
+public String language() {
+	return Locale.getDefault().getLanguage().substring(0,2).toLowerCase();
+}
+```
+Windows中是这样获取的：
+```C#
+public string language() {
+	//System.Globalization.CultureInfo.InstalledUICulture.Name是安装时操作系统的语言
+	return System.Globalization.CultureInfo.CurrentUICulture.Name.Substring(0,2).ToLower();
+}
+```
+
+所以在index.html中使用时，参照以下方法：
+```JavaScript
+import Language from "./language.js"
+
+const lang=Platform.language();
+const langTags = Language[lang] ? Language[lang] : Language.en;
+
+const app = Vue.createApp({
+provide:{tags:langTags},
+...
+});
+```
+组件中需要先inject tags，然后在模板中以“tags.”引用。当操作系统的语言设置发生变化时，引用的标签也会变化。再因为独立了，翻译与开发工作可以分离。
+```JavaScript
+export default {
+inject:['tags'],
+...
+template: `
+<div>{{tags.app_name}}</div>
+`
 }
 ```
 
@@ -444,13 +501,10 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 });
 ```
 
-## 内置函数
-
-在端侧，至简网格提供了一些内置的函数，随着系统的完善，会有更多的内置能力通过js函数方式开放出来。
-
-### 函数列表
+## JS内置函数
 
 在客户端UI编程中，有些功能js不能或不易实现，比如加解密、文件读写等，只能在平台中通过原生的方式实现。
+在端侧，至简网格提供了一些内置的JS函数，随着系统的完善，会有更多的内置能力通过js函数方式开放出来。
 
 | 函数 | 备注 |
 | --- | --- |
@@ -514,7 +568,7 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 | hmacSHA256(str) | 使用SHA256算法对str进行不可逆运算。随机生成16字节key，并记录在结果的前面 |
 | hmacSHA256Check(str, saved) | 验证str与saved是否一致，saved是hmacSHA256算法生成的 |
 | hmacSHA1(str, key) | 使用HMAC-SHA1算法对str进行不可逆运算，key可以是一个随机字符串 |
-| isPwdStrong(acc, pwd, min, max, charTypeNum, diffCharNum) | 判断密码强度是否足够。 acc：帐号，用于判断密码是否与帐号接近 pwd：密码 min：最小长度 charTypeNum：不同字符的数量 diffCharNum：不同类型字符数量，0-9|a-z|A-Z|其他，共四类 |
+| isPwdStrong(acc, pwd, min, max, charTypeNum, diffCharNum) | 判断密码强度是否足够。 acc：帐号，用于判断密码是否与帐号接近 pwd：密码 min：最小长度 charTypeNum：不同字符的数量 diffCharNum：不同类型字符数量，0-9\|a-z\|A-Z\|其他，共四类 |
 | Database类   | 虽然浏览器都内置了数据库实现，但是，浏览器内置数据库标准已废弃，考虑到未来的兼容性，所以提供此类。除了open函数，所有函数异步返回，结果的形式为：{code:ressult\_code,info:error\_infomation,data:{...}} |
 | open(db) | 打开一个本地的数据库，此处以及后面函数中出现的db参数都是指是数据库名称；返回0表示失败，1表示已打开过了，2表示新建成功 |
 | initialize(db,sqls) | 初始化数据库，sqls是一个字符串，包括一条或多条建表语句，多条时，用分号分隔 |

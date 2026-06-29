@@ -1,6 +1,7 @@
 package cn.net.zhijian.mesh.frm.config.placeholder;
 
 import java.security.InvalidParameterException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -12,7 +13,7 @@ import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
 
 /**
- * `@{CALCULATE|type,n1,`+(`,n2,`-`, n3, ')-'...}`
+ * `@{CALCULATE|type.precision,n1,`+(`,n2,`-`, n3, ')-'...}`
  * @author flyinmind of csdn.net
  *
  */
@@ -24,10 +25,13 @@ class CALCULATE extends ScriptElement {
     public CALCULATE(String paras, EleType type, String quote, String safeQuote) {
         super(paras, type, quote, safeQuote);
         String[] ss = StringUtil.split(paras, ApiParaHolder.PARA_SEPARATOR, ApiParaHolder.QUOTATION_MARK, true);
+        boolean dirFormula = false;
         if(ss.length < 3) {
-            if(ss.length < 2 || !ss[1].contains(PLACEHOLDER_START)) {
+            if(ss.length < 2) {
                 throw new InvalidParameterException("invalid calculate config");
             }
+            dirFormula = ss[1].charAt(0) != ApiParaHolder.QUOTATION_MARK
+                    || ss[1].charAt(ss[1].length() - 1) != ApiParaHolder.QUOTATION_MARK;
         }
         String tp = ApiParaHolder.takeStr(ss[0]);
         int p = tp.indexOf('.');
@@ -41,11 +45,19 @@ class CALCULATE extends ScriptElement {
         } else {
             this.places = -1.0; //小于0时，不做处理
         }
+        
         this.valType = Relation.parseType(tp);
         if(!Relation.isNumber(this.valType)) {
             throw new InvalidParameterException("invalid type config");
         }
-        List<ScriptElement> aphs = parseHolders(ss, 1, ss.length, quote, safeQuote);
+        
+        int start = 1;
+        if(dirFormula) { //不用占位符，直接写算式，先将算符分开，再找变量
+            ss = splitFormula(ss[1]);
+            start = 0;
+        }
+        
+        List<ScriptElement> aphs = parseHolders(ss, start, ss.length, quote, safeQuote);
         if(aphs == null) {
             throw new InvalidParameterException("invalid formula config");
         }
@@ -68,5 +80,50 @@ class CALCULATE extends ScriptElement {
             return places >= 0 ? (Math.round(fv * places) / places) : fv;
         }
         return places >= 0 ? (Math.round(v * places) / places) : v;
+    }
+    
+    
+    private String[] splitFormula(String str) {
+        char[] cc = str.toCharArray();
+        List<String> ss = new ArrayList<>();
+        String s = "";
+        boolean isOpr = false;
+        for(char c : cc) {
+            switch(c) {
+            case '+':
+            case '-':
+            case '*':
+            case '/':
+            case '(':
+            case ')':
+                if(!isOpr) {
+                    if(!s.isEmpty()) {
+                        ss.add(s.trim());
+                        s = "";
+                    }
+                    isOpr = true;
+                }
+                s += c;
+                break;
+            default:
+                if(isOpr) {
+                    if(!s.isEmpty()) {
+                        ss.add("'" + s + '\'');
+                        s = "";
+                    }
+                    isOpr = false;
+                }
+                s += c;
+                break;
+            }
+        }
+        if(!s.isEmpty()) {
+            if(isOpr) {
+                ss.add("'" + s + '\'');
+            } else {
+                ss.add(s.trim());
+            }
+        }
+        return ss.toArray(new String[] {});
     }
 }
