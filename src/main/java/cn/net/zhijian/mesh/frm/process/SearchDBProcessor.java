@@ -73,6 +73,7 @@ public class SearchDBProcessor extends AbsDBProcessor {
                     .url(SEARCHDB_API_URL)
                     .putAll(DocAction.search(search).table(table).toMap())
                     .put(DB_REQ_TIME, req.reqTime)
+                    .put(SEARCHDB_REQ_NAME, name())
                     .put(SEARCHDB_REQ_LIMIT, limit);
                 //所有分库都查一遍，然后合并
                 return DBClient.dbToken(builder).thenComposeAsync((token) -> {
@@ -81,7 +82,7 @@ public class SearchDBProcessor extends AbsDBProcessor {
                         return futureResult(RetCode.NO_RIGHT);
                     }
                     builder.token(token);
-                    return DBClient.searchDBPost(builder);
+                    return DBClient.getFromSearchDB(builder, name());
                 }, Pool);
             }, Pool);
         }

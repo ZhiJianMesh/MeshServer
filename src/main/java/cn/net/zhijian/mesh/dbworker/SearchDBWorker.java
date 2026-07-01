@@ -276,7 +276,8 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
              * 直接存入resp，会导致缓存错误
              * 2）返回的名称是固定的，是为了方便在端侧合并；
              */
-            resp.put(SEARCHDB_RESP_DOCS, docs);
+            String name = ValParser.getAsStr(params, SEARCHDB_REQ_NAME, SEARCHDB_RESP_DOCS);
+            resp.put(name, docs);
             return HandleResult.OK;
         }
 

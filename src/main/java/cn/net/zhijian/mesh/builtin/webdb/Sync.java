@@ -49,7 +49,7 @@ final class Sync extends DBHandlerBase {
             }
             builder.createIfAbsent(true);
             builder.longToStr(false);
-            if(builder instanceof SqliteBuilder) { //远程备份库无需再启动本地备份
+            if(builder instanceof SqliteBuilder) { //有远程备份库，则无需启动本地备份
                 ((SqliteBuilder)builder).backup(false);
             }
             if((worker = AbsRDBWorker.instance(req.cid(), builder)) == null) {

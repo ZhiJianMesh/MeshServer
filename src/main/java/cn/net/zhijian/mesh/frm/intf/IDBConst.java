@@ -87,6 +87,7 @@ public interface IDBConst extends IConst {
 
     char SQL_QUOTE = '\'';
     
+    String SEARCHDB_REQ_NAME = "name";
     String SEARCHDB_REQ_LIMIT = "limit"; //查询时，返回结果集的最大行数，0表示不限制
     String SEARCHDB_REQ_ACTION = "act"; //操作
     String SEARCHDB_REQ_TABLE = "table"; //表名称

@@ -85,7 +85,14 @@ public final class DBClient extends ServiceClient implements IDBConst, IOAuth, I
         }, Pool);
     }
 
-    public static CompletableFuture<HandleResult> searchDBRequest(DBReqBuilder req, DocAction action) {
+    /**
+     * 模糊全文搜索
+     * @param req 查询
+     * @param action 操作类型
+     * @param name 查询处理的名称/结果集的名称
+     * @return id列表
+     */
+    public static CompletableFuture<HandleResult> searchDBRequest(DBReqBuilder req, DocAction action, String name) {
         req.url(SEARCHDB_API_URL);
         if(LOG.isDebugEnabled()) {
             LOG.debug("searchdbRequest({})", req);
@@ -93,7 +100,7 @@ public final class DBClient extends ServiceClient implements IDBConst, IOAuth, I
         return dbToken(req).thenComposeAsync((token) -> {
             req.putAll(action.toMap());
             if(action.isSearch()) {
-                return searchDBPost(req);
+                return getFromSearchDB(req, name);
             }
             req.readSlave(false);
             return rdbPost(req);
@@ -247,9 +254,10 @@ public final class DBClient extends ServiceClient implements IDBConst, IOAuth, I
     /**
      * 只用于search的get方法，所有实例都查询一遍，然后汇总在各个实例上的查询结果
      * @param req 查询构造器
-     * @return 全文查询结果
+     * @param name 查询处理的名称，也就是结果集的名称
+     * @return 全文查询结果，通常是一个数据id列表
      */
-    public static CompletableFuture<HandleResult> searchDBPost(DBReqBuilder req) {
+    public static CompletableFuture<HandleResult> getFromSearchDB(DBReqBuilder req, String name) {
         if(LOG.isDebugEnabled()) {
             LOG.debug("searchDBPost(url:{},{})", SEARCHDB_API_URL, req.toString());
         }
@@ -280,7 +288,7 @@ public final class DBClient extends ServiceClient implements IDBConst, IOAuth, I
                     try {
                         HandleResult hr = f.get();
                         if(hr.code == RetCode.OK && hr.data != null) {
-                            List<Object> docsInResp = ValParser.getAsList(hr.data, SEARCHDB_RESP_DOCS);
+                            List<Object> docsInResp = ValParser.getAsList(hr.data, name);
                             if(docsInResp != null) {
                                 docs.addAll(docsInResp);
                             }
@@ -289,7 +297,7 @@ public final class DBClient extends ServiceClient implements IDBConst, IOAuth, I
                         return HandleResult.future(HandleResult.InternalError);
                     }
                 }
-                Map<String, Object> resp = MapBuilder.of(SEARCHDB_RESP_DOCS, docs);
+                Map<String, Object> resp = MapBuilder.of(name, docs);
                 return HandleResult.future(resp);
             }, Pool);
         }, Pool);
