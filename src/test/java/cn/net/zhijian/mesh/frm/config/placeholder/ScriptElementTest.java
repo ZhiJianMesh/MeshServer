@@ -841,12 +841,26 @@ public class ScriptElementTest extends UnitTestBase {
         assertEquals(str, "2024/09/22 00:00:00");
         
         params.put("t", 1726891493938L); //东八区2024-09-21 12:04:53
+        s = "@{UTC|t,offset,DAYSTART}";
+        segs = ScriptElement.parsePlaceHolder(s, paraKeys, "'", "''");
+        str = segementsToStr(params, resp, segs);
+        str = DateUtil.utcToLocale(Long.parseLong(str), fmt, tz);
+        System.out.println("DAYSTART:" + str);
+        assertEquals(str, "2024/09/21 00:00:00");
+        s = "@{UTC|t,offset,DAYEND}";
+        segs = ScriptElement.parsePlaceHolder(s, paraKeys, "'", "''");
+        str = segementsToStr(params, resp, segs);
+        str = DateUtil.utcToLocale(Long.parseLong(str), fmt, tz);
+        System.out.println("DAYSTART:" + str);
+        assertEquals(str, "2024/09/22 00:00:00");
+        
+        params.put("t", 1726891493938L); //东八区2024-09-21 12:04:53
         params.put("offset", offset - 60); //东7区
         s = "@{UTC|t,offset,`"+fmt+"`}";
         segs = ScriptElement.parsePlaceHolder(s, paraKeys, "'", "''");
         str = segementsToStr(params, resp, segs);
         assertEquals(str, "2024/09/21 11:04:53");
-        
+
         params.put("t", 20240921);
         params.put("offset", -120);
         s = "@{UTC|t,offset,'yyyyMMdd',ymd}";

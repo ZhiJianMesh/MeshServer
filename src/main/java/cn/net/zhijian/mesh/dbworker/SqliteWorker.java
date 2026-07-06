@@ -60,6 +60,7 @@ import cn.net.zhijian.mesh.pool.IResourceFactory;
 import cn.net.zhijian.mesh.pool.ResourcePool;
 import cn.net.zhijian.mesh.server.TimerKeeper;
 import cn.net.zhijian.mesh.server.TimerKeeper.TimerTaskWrapper;
+import cn.net.zhijian.util.CharArray;
 import cn.net.zhijian.util.DateUtil;
 import cn.net.zhijian.util.DateUtil.PeriodType;
 import cn.net.zhijian.util.FileUtil;
@@ -435,7 +436,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
             s = sqls.get(0);//不可改变其内容
         } else {
             int count = 0;
-            StringBuilder sb = new StringBuilder(512);
+            CharArray sb = new CharArray(512);
 
             for(String sql : sqls) {
                 if(sql == null) {

@@ -335,7 +335,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | 配置项 | 定义 | 类型 | 备注 |
 | --- | --- | --- | --- |
 | name | 参数名称 | String | 同一个接口的参数列表中，必须唯一 |
-| type | 参数类型，不区分大小写 | String | STRING、INT、LONG、FLOAT、BOOL、DATE、DOUBLE、 OBJECT、BYTES、NOW、UUID、SEQUENCE、CONFIG、JSON。 <br>几个特殊类型： <br>Config：从bios的服务配置项中获取内容； <br>Json：json串，作为响应参数时会被转成json对象，作为输入参数时，被转为json字符串 |
+| type | 参数类型，不区分大小写 | String | STRING、INT、LONG、FLOAT、BOOL、DATE、DOUBLE、OBJECT、BYTES、NOW、UUID、SEQUENCE、CONFIG、JSON。 <br>几个特殊类型： <br>Config：从bios的服务配置项中获取内容； <br>Json：json串，作为响应参数时会被转成json对象，作为输入参数时，被转为json字符串 |
 | must | 是否为必须参数 | Bool | 如果为true，当请求未携带此参数时，校验失败 |
 | max | Number型：最大值； String型：最大长度 | 与type指定的类型一致 | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MAX\_VALUE。 long、double、float以此类推。 String类型默认为255 |
 | min | Number型：最小值； String型：最小长度 | 与type指定的类型一致 | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MIN\_VALUE。 long、double、float以此类推。 String类型默认为0 |
@@ -350,12 +350,15 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | | | | **Object特有的配置项** |
 | props | 嵌套定义复杂的结构 | List | 每一项是一个基本参数配置，用于指定object中的字段。props里面的字段还可以设为object类型，以此实现复杂的结构嵌套。 {"name":"infos", "type":"object", "must":true, "props":[ {"name":"name", "type":"string"}, {"name":"val", "type":"string"} ]} |
 | checkAll | 是否检查每个字段 | Bool | 默认为true，检查props中定义的每个字段合法性。 如果是响应内容，checkAll为false时，无论object有什么冗余内容，都会原样放过。 |
+| | | | **数值、日期类型特有的配置项** |
+| biggerThan | 必须大于的参数的名称 | String | 指定必须大于的参数的名称，long、int、float、double、date中有效 |
+| smallerThan | 必须小于的参数的名称 | String | 指定必须小于的参数的名称，long、int、float、double、date中有效 |
 | | | | **String特有的配置项** |
 | len | 字符串长度 | Int | 本质是将min、max设置成相同的值 |
-| regular | 字符串合法性正则检查 | String | 只在String类型参数中有意义 |
+| maps | 映射关系 | Map | 将一个值映射成其他值，通常用于多版本的兼容中 |
+| regular | 字符串合法性正则检查 | String | 正则判断是比较耗时的操作，尽量使用其他检查项替代 |
 | tail | 末尾添加的内容 | String | 在字符串的末尾额外添加的内容 |
 | trim | 是否去除首尾空格 | Bool | 默认为false |
-| maps | 映射关系 | Map | 将一个值映射成其他值，只在String类型参数中有意义，通常用于多版本的兼容中 |
 | codeMode | 编码模式 | String | 需要指定keyName，keyName在OM中配置 encode:加密数据 decode：解密数据 |
 | keyName | 加密密钥名称 | String | keystore中密码的名称，密钥第一次使用时会在keystore服务中自动创建 |
 | | | | **Password特有配置项（继承了所有String参数的配置项）**|
@@ -465,12 +468,41 @@ DB.sql(sqls.join(''));
 #### 带RS的SQL
 
 运行时拼接出来的sql，加载配置时还无法知道sql类型，需要以"rs:"开头。通常用来拼接一个批量执行的sql，通常用@{FOR}、@{SWITCH}等占位符，比如：
+
 ```Javascript
 rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver=`, e.ver,
 ` where partId=@{partId} and service='`, e.name, `' and addr='@{addr}'`}
 ```
+假设servies为
+```JSON
+[
+    {ver:"1.0",name:"test1"},{ver:"1.0",name:"test1"}]
+```
 
 运行后会将请求参数services中所有元素拼接成多个update操作，每个update操作之间用“;”分隔。其中的e.ver就是指请求services参数每个元素中的ver字段。
+
+### dataexists
+
+执行查询sql，根据sql执行的返回计数，判断数据是否存在。
+
+```JSON
+{
+    "name": "judge_not_used",
+    "type": "dataexists",
+    "expect": false, //如果存在，20001
+    "errorCode": "20001",
+    "errorInfo":"used by products",
+    "sql":"select * from products where supplier=@{id}"
+}
+```
+
+| 属性       | 说明 |
+| ---       | --- | 
+| expect    | true:返回计数大于0时，返回OK，否则默认返回NOT_EXISTS<br>false:返回计数等于0时，返回OK，否则默认返回EXISTS |
+| errorCode | 未设置，则默认为NOT_EXISTS/EXISTS |
+| errorInfo | 发生错误时的响应信息 |
+| numSeg    | 返回计数的字段名，比如“select count(*) productNum from products where supplier=@{id}”，numSeg为productNum<br>如果使用select *方式，内部处理时将sql变为"select (select *...) as exists_or_not"，此时的numSeg为exists_or_not，如上例，numSeg不用配置 |
+
 
 ### TreeRDB
 
@@ -575,7 +607,8 @@ title、summary、content并无本质区别，只是对照一篇文章的结构�
 }
 ```
 
-content即为要查找的内容，查找前会经过分词处理，也可以人为在词之间添加空格，以提升分词的准确率。查询结果在响应体中的名称与处理的name属性一致。
+content即为要查找的内容，查找前会经过分词处理，也可以人为在词之间添加空格，以提升分词的准确率。
+查询结果是匹配数据id数组，在响应体中的名称与处理的name属性一致，比如上例中为docs。
 
 #### 应用举例
 比如，要实现记录客户信息，同时可以模糊搜索到客户信息，就需要先在database.cfg中创建一个全文搜索库：
@@ -732,7 +765,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 | success(jsonData) | 返回成功的HandleResult，jsonData是返回数据，可以为"{}"，表示无数据 |
 | error(errCode, info) | 返回失败的HandleResult，errCode在[RetCode](#返回码)中定义 |
 | **DB类** | |
-| sql(sql) | 对sql进行检查或做出改变，正常则返回修改后的sql，否则返回FORBIDDEN |
+| sql(sql) | 对sql进行检查或做出改变，正常则返回修改后的sql，否则返回FORBIDDEN错误码 |
 | sqlError(code, info) | 在js中做sql处理时，如果发生错误，调用它返回错误信息 |
 | clearInjection(val) | 在js中拼接sql是危险的操作，使用此函数对字符串参数进行处理，避免sql注入 |
 | **Logger类** | | |
@@ -1019,7 +1052,6 @@ toResp为true时，内容会作为响应的字段返回。
 | CLIENT\_ERROR | 100000 | 客户端发生错误 |
 | NO\_OPERATION | 200000 | 没有任何可以执行的操作，只用于服务侧 |
 
-
 ## 初始化接口
 
 初始化接口与普通接口没有本质区别，用在首次启动时做一些初始化工作。接口定义所存放的文件名不受限制，定义方式与普通接口完全相同，但是接口名称前面要加上“__”。这类接口只能在启动时被系统以INIT权限自动调用。
@@ -1117,7 +1149,7 @@ toResp为true时，内容会作为响应的字段返回。
 | HMACSHA256 | 计算HMACSHA256 | @{HMACSHA256\| para1, name, 1, \`xxx\`}<br> 类似MD5，只是算法不同；算法中的可以是随机生成的16字节内容，记录在结果的前16字节；在js脚本中可以使用 Secure.hmacSHA256Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串 |
 | PBKDF | 计算PBKDF2 | @{PBKDF\| iter,para} <br>iter为迭代次数，para为被混淆的字符串；在js脚本中可以使用Secure.pbkdf2Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串，也可以用进行校验，返回true或false |
 | PBKDFCHECK | PBKDF2校验 | @{PBKDFCHECK\| str, savedStr} <br>str为传入参数，savedStr是用来检验的参数，比如从数据库取出 |
-| UTC | 对UTC时间戳进行格式化 | @{UTC\|utc,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utc,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utc,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utc,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000）， 这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳指定月度的几号，1号返回0 <br>dayofyear：时间戳指定年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00 <br>monthend：返回utc所在月度的下个月第一天00:00:00 <br>weekstart：返回utc所在星期的第一天00:00:00 <br>weekend：返回utc所在星期的下个星期第一天00:00:00 |
+| UTC | 对UTC时间戳进行格式化 | @{UTC\|utcPara,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utcPara,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utcPara,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utcPara,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000）， 这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳所在月度的几号，1号返回0 <br>dayofyear：时间戳所在年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00的UTC时间戳 <br>monthend：返回utc所在月度的下个月第一天00:00:00的UTC时间戳 <br>weekstart：返回utc所在星期的第一天00:00:00的UTC时间戳 <br>weekend：返回utc所在星期的下个星期第一天00:00:00的UTC时间戳<br>daystart：返回utc当日00:00:00的UTC时间戳 <br>dayend：返回utc所在日期下一天00:00:00的UTC时间戳|
 | NOW | 当前时间 | @{NOW\|unit86400000}转换成UTC天数 @{NOW\|yyyy-MM-dd HH:mm:ss,480} 转换成东八区时间字符串 <br> @{NOW\|[fmt[,offset]]}当前UTC时间戳， 与@{#reqAt}是同一个值，在一次请求中，多次引用@{#reqAt}或@{NOW}，结果都相同； 不同点在于@{NOW}可以携带格式化信息，@{#reqAt}不可以;#reqAt可以在其他占位符中使用，但是NOW不行，比如@{MD5\|#reqAt,'test'}； 无fmt的情况，默认返回当前utc时间戳；有fmt时，定义与UTC相同<br>offset是时区偏移，如果不设置，则默认使用服务器的时区设置。 |
 | NEXTPERIOD | UTC时间的下一个周期 | @{NEXTPERIOD\|'D',0}明天的0点 @{NEXTPERIOD\|period,bias}，其中period、bias为请求参数或变量名称 <br> @{NEXTPERIOD\|type(D/M/W/H/C),val}， type、val都可以为参数名称，也可以是具体的值 当type为D/W/M/H时，val为与起点的时间间隔，type为C时，val为周期时长;val的单位为毫秒 |
 | COALESCE | 返回第一个非空值 | @{COALESCE\| para1, para2, \`\`}<br>如果para1为空，则返回para2，如果para2也为空，则返回空字符串 |
@@ -1145,7 +1177,7 @@ toResp为true时，内容会作为响应的字段返回。
 | MAX | 从列表中找到最大的一项 | @{MAX\|int,list}从列表list中取最大值<br>@{MAX\|int,list.a}列表元素是对象，取每行字段a的最大值<br>@{MAX\|int,list.0}列表元素是列表，取每行第1列的最大值<br> @{MAX\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最大值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
 | FOR | 对变量进行循环处理 | @{FOR\|pl,\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} <br>pl必须是一个list或数组，第二个参数是分隔符；后面都是要拼接的参数或常量，每循环一次，将他们拼接起来，然后加一个分隔符<br>例子中如果pl=[{a:11,b:"x"},{a:12,b:"y"}]，p2="hello",运行后将得到: (0,'hello',11,x,''),(1,'hello',12,y,'')<br>@{FOR\|pl[e.a,'i.>',1 && e.a,'i.<',20],\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} 运行后将得到: (0,'hello',11,x,'')<br> 对list或数组参数进行循环。<br>每个元素用e代表；如果e是对象，可以用“e.”开头引用成员；<br>i是循环序数，从0开始； <br>所有需要用引号的地方，建议都使用"\`"，而不是单引号。sql本身使用单引号，特别是出现“;”或“)”的地方，不可以使用单引号，否则无法解析。 <br>支持设置过滤条件，在变量名后面加“[]”，在其中加过滤条件，条件判断与@{CONDITION}完全一致 |
 | ADD、SUB、MULTI、DIV | 加减乘除运算 | @{ADD\|类型[.精度], para1, para2}<br>类型有int、long、float、double，指定了参数类型与返回类型， 类型为float、double时可以设置精度，范围在0-7，可以不指定； para1与para2必须是对应类型的数值 |
-| CALCULATE | 将类型后面的所有内容拼接成一个四则算式并计算结果 | @{CALCULATE\|类型[.精度],p1,'+(',p2,'-',p3,')-',p4}<br> @{CALCULATE\|类型[.精度],\`@{p1}+(@{p2}-@{p3})-@{p4}\`}<br>@{CALCULATE\|类型[.精度],p1+(p2-p3)-p4}<br>类型与ADD等的定义相同，参数必须是数值类型。 参数拼接的结果是个字符串算式，算式必须符合四则运算规则，可以很复杂，ADD等只能执行两个数值的运算，但是比CALCULATE高效 |
+| CALCULATE | 将类型后面的所有内容拼接成一个四则算式并计算结果 | @{CALCULATE\|类型[.精度],p1,'+(',p2,'-',p3,')-',p4}<br> @{CALCULATE\|类型[.精度],\`@{p1}+(@{p2}-@{p3})-@{p4}\`}<br>@{CALCULATE\|类型[.精度],p1+(p2-p3)-p4}<br>类型与ADD等的定义相同，参数必须是数值类型。参数拼接的结果是个字符串算式，算式必须符合四则运算规则，可以很复杂，ADD等只能执行两个数值的运算，但是比CALCULATE高效 |
 | CONDITION | 条件判断 | @{CONDITION\|p1,relation,p2,o1,o2} @{CONDITION\|p1,'i.<',p2,o1,o2} @{CONDITION\|3,'i.>',5,o1,o2} @{CONDITION\|p1,'o.\=\=',null,o1,o2} @{CONDITION\|p1,'b.\=\=',true,o1,o2}<br>p1与p2必须是relation中给定类型的参数 relation为关系运算符，格式为"类型+'.'+比较运算符"，比较运算符支持>,<,>=,<=,\=\=,!=。 如果是string，还支持\~,!\~，用于判断p1是否匹配正在表达式p2； 如果是object、bool，只支持!=,\=\=，object可以支持null，bool支持true、false 类型有:int(i)、long(l)、float(f)、double(d)、string(s)、object(o)、bool(b)，可以用括号中的缩写 <br>如果p1、p2满足条件，则返回o1，否则返回o2，o1、o2可以不传，默认为1、0 @{CONDITION\|p1,'s.\=\=',p2,'true','false'}, @{CONDITION\|p1,'i.>',p2,'1','0'}与@{CONDITION\|p1,'i.>',p2}等同 |
 | SWITCH | 将多个IF-ELSEIF-ELSEIF...-ELSE汇聚在一起，用“\|”分隔 | 每个判断与CONDITION中判断方式相同 如果为true，则将判断之后的内容拼接起来返回 在第一个为true的判断后结束，后面即使有true的也不会运行<br>@{SWITCH\|p1,'i.>',p2,'a','b','c',\|,'def'}如果p1>p2则返回abc，否则返回def字符串 用'\|'分隔多个if、else if以及else。else分支必须有 |
 | VERCONVERT | 将字符串版本号转为一个整数，或者将整数转为版本号 | @{VERCONVERT\| \`11.22.33\`}、@{VERCONVERT\|1001,tostr}<br> 版本号的没段存成十进制数的3位，比如例子中转为整数11022033，所以版本号中每段不能超过三位数 |

@@ -73,7 +73,7 @@ public abstract class AbsDBProcessor extends AbsProcessor implements IDBConst {
         
         this.db = getDBConfig(cfg);
         if(StringUtil.isEmpty(this.db)) {
-            LOG.error("Invalid webdb processor db under {}, {}", url.toString(), cfg);
+            LOG.error("Invalid 'db' under db processor {}, {}", url.toString(), cfg);
             return false;
         }
 

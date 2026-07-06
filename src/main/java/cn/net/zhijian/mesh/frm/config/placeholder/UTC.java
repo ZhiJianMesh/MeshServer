@@ -28,6 +28,8 @@ final class UTC extends ScriptElement {
     private static final String FMT_BASE64 = "base64";
     private static final String FMT_MONTHSTART = "monthstart";
     private static final String FMT_MONTHEND = "monthend";
+    private static final String FMT_DAYSTART = "daystart";
+    private static final String FMT_DAYEND = "dayend";
     private static final String FMT_WEEKSTART = "weekstart";
     private static final String FMT_WEEKEND = "weekend";
 
@@ -40,10 +42,12 @@ final class UTC extends ScriptElement {
     private static final int DAYOFMONTH = -5; //几号，1号返回0
     private static final int MONTH = -6; //一年中的第几个月，一月返回0
     private static final int DAYOFYEAR = -7; //一年中的第几天，第一天返回0
-    private static final int WEEKSTART = -8; //当前时间所在星期第一天的00:00:00
-    private static final int WEEKEND = -9;//当前时间所在星期的下个星期第一天的00:00:00
-    private static final int MONTHSTART = -10; //当前时间所在月份第一天的00:00:00
-    private static final int MONTHEND = -11;//当前时间所在月份的下个月第一天的00:00:00
+    private static final int WEEKSTART = -8; //当前时间所在星期第一天的00:00:00对应的UTC时间戳
+    private static final int WEEKEND = -9;//当前时间所在星期的下个星期第一天的00:00:00对应的UTC时间戳
+    private static final int MONTHSTART = -10; //当前时间所在月份第一天的00:00:00对应的UTC时间戳
+    private static final int MONTHEND = -11;//当前时间所在月份的下个月第一天的00:00:00对应的UTC时间戳
+    private static final int DAYSTART = -12;//当前时间所在日期00:00:00对应的UTC时间戳
+    private static final int DAYEND = -13;//当前时间所在日期下一天00:00:00对应的UTC时间戳
     
     private static final int UNIT_MONTH = -1; //输入公元0年1月到现在的月份数
     private static final int UNIT_YMD = -2; //与日期字符串一样，不受时区影响
@@ -164,6 +168,10 @@ final class UTC extends ScriptElement {
             fmtVal = MONTHSTART;
         } else if(f.equals(FMT_MONTHEND)){
             fmtVal = MONTHEND;
+        } else if(f.equals(FMT_DAYSTART)){
+            fmtVal = DAYSTART;
+        } else if(f.equals(FMT_DAYEND)){
+            fmtVal = DAYEND;
         } else { //format string,'yyyy/MM/dd HH:mm:ss'
             fmtVal = FORMAT;
         }
@@ -244,6 +252,23 @@ final class UTC extends ScriptElement {
             cal.set(Calendar.SECOND, 0);
             cal.set(Calendar.MILLISECOND, 0);
             cal.add(Calendar.DAY_OF_WEEK, 1);
+            return cal.getTimeInMillis();
+        }
+        
+        if(fmtVal == DAYSTART) { //UTC指定日期00:00:00的UTC时间戳
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            return cal.getTimeInMillis();
+        }
+
+        if(fmtVal == DAYEND) { //UTC指定日期下一天00:00:00的UTC时间戳
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            cal.add(Calendar.DATE, 1);
             return cal.getTimeInMillis();
         }
 
