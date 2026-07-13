@@ -1,6 +1,7 @@
 package cn.net.zhijian.mesh.bean;
 
 import java.security.InvalidParameterException;
+import java.util.List;
 import java.util.Map;
 
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
@@ -16,6 +17,7 @@ public class Relation {
     public static final int TYPE_OBJECT = 6;
     public static final int TYPE_BOOL = 7;
     public static final int TYPE_CHAR = 8;
+    public static final int TYPE_SIZE = 9;
     
     private static final int NULL = 0x00;
     private static final int EQUAL = 0x10;
@@ -86,38 +88,41 @@ public class Relation {
                 return relation == IN; //前面必须是逗号，或是开头
             }
             return relation == NOTIN;
-         }
-        if(valType == TYPE_INT) {
+        }
+
+        switch(valType) {
+        case TYPE_INT: {
             int v1 = ValParser.parseInt(o1, 0);
             int v2 = ValParser.parseInt(o2, 0);
             return compare(v1, v2, relation);
         }
-
-        if(valType == TYPE_LONG) {
+        case TYPE_SIZE: {
+            List<Object> l = ValParser.parseList(o1);
+            int v1 = l == null ? 0 : l.size();
+            int v2 = ValParser.parseInt(o2, 0);
+            return compare(v1, v2, relation);
+        }
+        case TYPE_LONG: {
             long v1 = ValParser.parseLong(o1, 0);
             long v2 = ValParser.parseLong(o2, 0);
             return compare(v1, v2, relation);
         }
-
-        if(valType == TYPE_FLOAT) {
+        case TYPE_FLOAT: {
             float v1 = ValParser.parseFloat(o1, 0);
             float v2 = ValParser.parseFloat(o2, 0);
             return compare(v1, v2, relation);
         }
-
-        if(valType == TYPE_DOUBLE) {
+        case TYPE_DOUBLE: {
             double v1 = ValParser.parseDouble(o1, 0);
             double v2 = ValParser.parseDouble(o2, 0);
             return compare(v1, v2, relation);
         }
-        
-        if(valType == TYPE_CHAR) {
+        case TYPE_CHAR: {
             char v1 = ValParser.parseChar(o1, ' ');
             char v2 = ValParser.parseChar(o2, ' ');
             return compare(v1, v2, relation);
         }
-        
-        if(valType == TYPE_STRING) {
+        case TYPE_STRING: {
             String v1 = ValParser.parseString(o1);
             String v2 = ValParser.parseString(o2);
             if(relation == MATCH) {
@@ -127,8 +132,7 @@ public class Relation {
             }
             return compare(v1, v2, relation);
         }
-        
-        if(valType == TYPE_BOOL) {
+        case TYPE_BOOL: {
             boolean v1 = ValParser.parseBool(o1, true);
             boolean v2 = ValParser.parseBool(o2, true);
             if(relation == EQUAL) {
@@ -136,18 +140,20 @@ public class Relation {
             }
             return v1 != v2;
         }
-        
-        //判断对象是否相等，对象可以为null
-        if(o1 == null) {
-            if(o2 == null) {
+        default: {
+            //判断对象是否相等，对象可以为null
+            if(o1 == null) {
+                if(o2 == null) {
+                    return relation == EQUAL;
+                }
+                return relation == NOTEQUAL;
+            }
+            if(o1.equals(o2)) { //只要o1不为空，o2为空时也可以判断是否相等
                 return relation == EQUAL;
             }
             return relation == NOTEQUAL;
         }
-        if(o1.equals(o2)) { //只要o1不为空，o2为空时也可以判断是否相等
-            return relation == EQUAL;
         }
-        return relation == NOTEQUAL;
     }
     
     public static int valType(int r) {
@@ -280,6 +286,10 @@ public class Relation {
             return TYPE_CHAR;
         }
         
+        if(t.equals("size")) {
+            return TYPE_SIZE;
+        }
+        
         return TYPE_INVALID;
     }
     
@@ -289,6 +299,7 @@ public class Relation {
         case TYPE_LONG:
         case TYPE_DOUBLE:
         case TYPE_FLOAT:
+        case TYPE_SIZE:
             return true;
         default: return false;
         }

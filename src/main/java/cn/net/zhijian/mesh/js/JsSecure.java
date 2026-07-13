@@ -1,9 +1,11 @@
 package cn.net.zhijian.mesh.js;
 
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 
 import org.slf4j.Logger;
 
+import cn.net.zhijian.mesh.bean.Relation;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.quickjs.JavascriptMethod;
 import cn.net.zhijian.util.AESUtil;
@@ -12,6 +14,7 @@ import cn.net.zhijian.util.Ecc;
 import cn.net.zhijian.util.Ecc.EccKeyPair;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.SecureUtil;
+import cn.net.zhijian.util.ValParser;
 
 /**
  * JS中安全相关的接口
@@ -234,5 +237,53 @@ public final class JsSecure implements IConst {
     @JavascriptMethod
     public boolean isPwdStrong(String acc, String pwd, int min, int charTypeNum, int diffCharNum) {
         return SecureUtil.isPwdStrong(acc, pwd, min, charTypeNum, diffCharNum);
+    }
+    
+    @JavascriptMethod
+    public String random(String fmt) {
+        SecureRandom rand = SecureUtil.getRandom();
+        int idx = fmt.indexOf('.');
+        String type, max;
+        if(idx > 0) {
+            type = fmt.substring(0, idx);
+            max = fmt.substring(idx + 1);
+        } else {
+            type = fmt;
+            max = null;
+        }
+        
+        switch(Relation.parseType(type)) {
+        case Relation.TYPE_LONG: return Long.toString(rand.nextLong(ValParser.parseLong(max, Long.MAX_VALUE)));
+        case Relation.TYPE_FLOAT: return Float.toString(rand.nextFloat(ValParser.parseFloat(max, Float.MAX_VALUE)));
+        case Relation.TYPE_DOUBLE: return Double.toString(rand.nextDouble(ValParser.parseDouble(max, Double.MAX_VALUE)));
+        case Relation.TYPE_STRING: {
+            int len;
+            int base = 16;
+            idx = max.indexOf('.');
+            if(idx > 0) {
+                len = ValParser.parseInt(max.substring(0, idx), 16);
+                base = ValParser.parseInt(max.substring(idx + 1), 16);
+            } else {
+                len = ValParser.parseInt(max, 16);
+            }
+            
+            char[] buf = new char[len];
+            if(base == 32) { //base32
+                for(int i = 0; i < len; i++) {
+                    buf[i] = ByteUtil.getBase32CharByVal(rand.nextInt(base));
+                }
+            } else if(base == 16) { //hex
+                for(int i = 0; i < len; i++) {
+                    buf[i] = ByteUtil.getHexCharByVal(rand.nextInt(base));
+                }
+            } else { //base64
+                for(int i = 0; i < len; i++) {
+                    buf[i] = ByteUtil.getBase64CharByVal(rand.nextInt(base));
+                }
+            }
+            return new String(buf);
+        }
+        default: return Integer.toString(rand.nextInt(ValParser.parseInt(max, Integer.MAX_VALUE)));
+        }
     }
 }

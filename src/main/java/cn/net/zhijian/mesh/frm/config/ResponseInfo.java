@@ -216,7 +216,7 @@ public final class ResponseInfo {
                 if (!v.ok) {
                     LOG.error("Invalid reponse segment {},errInfo:{}, in {}", pi.name(), v.errInfo, req.uri);
                     LOG.debug("Response data {}", data);
-                    return new HandleResult(RetCode.DATA_WRONG, pi.name() + " error"); 
+                    return new HandleResult(RetCode.DATA_WRONG, pi.name() + " error," + v.errInfo); 
                 }
                 filteredData.put(pi.name(), v.v);
             }

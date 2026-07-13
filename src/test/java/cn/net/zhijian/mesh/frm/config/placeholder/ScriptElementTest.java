@@ -1137,6 +1137,22 @@ public class ScriptElementTest extends UnitTestBase {
     }
     
     @Test
+    public void testConditionSize() {
+        String s = "A:@{CONDITION|a1,`size.>`,1,'true','false'},"
+                + "B:@{CONDITION|a1,'size.==',3},"
+                + "C:@{CONDITION|a2,'o.!=',null},"
+                + "D:@{CONDITION|a2,'size.>',0},"
+                + "E:@{CONDITION|a2,'size.==',0},"
+                + "F:@{CONDITION|a1,'size.<', 2}";
+        Map<String, Object> params = MapBuilder.of("a1", Arrays.asList(1,2,3), "a2", null);
+        Map<String, Object> resp = new HashMap<>();
+
+        ScriptElement[] segs = ScriptElement.parsePlaceHolder(s, params.keySet(), "'", "''");
+        String str = segementsToStr(params, resp, segs);
+        assertEquals(str, "A:true,B:1,C:0,D:0,E:1,F:0");
+    }
+    
+    @Test
     public void testConditionNull() {
         String s = "A:@{CONDITION|o1,`o.==`,null,true,false},"
                 + "B:@{CONDITION|o1, 'o.!=', o2, o1, o2},"

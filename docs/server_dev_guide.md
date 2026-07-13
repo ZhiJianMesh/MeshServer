@@ -476,7 +476,8 @@ rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver=`, e.ver,
 假设servies为
 ```JSON
 [
-    {ver:"1.0",name:"test1"},{ver:"1.0",name:"test1"}]
+    {ver:"1.0",name:"test1"},{ver:"1.0",name:"test1"}
+]
 ```
 
 运行后会将请求参数services中所有元素拼接成多个update操作，每个update操作之间用“;”分隔。其中的e.ver就是指请求services参数每个元素中的ver字段。
@@ -795,6 +796,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 | md5(str) | 使用MD5算法对str进行不可逆运算 |
 | sha1(str) | 使用SHA1算法对str进行不可逆运算 |
 | sha256(s) | 使用SHA256算法对s1,s2,s3…进行不可逆运算，在它们之间会增加分隔符“-” |
+| random(fmt) | fmt指定要生成的随机数格式，支持int(i)、long(l)、float(f)、double(d)、string(s)，类型后面可以用"."分隔，指定最大值；对于字符串类型指定的是最大长度，后面还可以再加一个"."，指定用什么进制(16/32/64)，比如's.16.32'，表示返回16位32进制的随机字符串 |
 | hmacSHA256(str) | 使用SHA256算法对str进行不可逆运算。随机生成16字节key，并记录在结果的前面 |
 | hmacSHA256Check(str, saved) | 验证str与saved内容是否一致，saved是hmacSHA256算法生成的 |
 | hmacSHA1(str, key) | 使用HMAC-SHA1算法对str进行不可逆运算，key可以是一个随机字符串 |
@@ -807,6 +809,29 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 | keyPairEncrypt(kp,plain) | ecc算法，用密钥对加密plain |
 | keyPairDecrypt(kp,pwd,cipher) | 算法，用pwd解密密钥对，并用该密钥对解密cipher |
 | changeKeyPairPwd(kp, oldPwd, newPwd) | ecc算法，用原密码oldPwd解密密钥对，然后用新密码加密密钥对后返回 |
+
+#### 循环中的占位符
+
+因为占位符是在执行script之前已解析、替换完毕，所以如果在js中使用循环，循环中的占位符并不会被多次执行，比如：
+```Javascript
+//items=[{product:1,subTotal:100},{product:2,subTotal:10}]
+var sql=['insert into sales_items(id,product,subTotal) values'];
+for(var i in items) {
+    var item=items[i];
+    if(i>0)sql.push(',');
+    sql.push(`(@{SEQUENCE|'sales_item'},`, item.product, `,`, item.subTotal, `)`);
+}
+DB.sql(sql.join(''));
+```
+
+最终生成的两行插入记录不会如期望的那样有不同的id，而可能是这样的：
+
+```SQL
+insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
+```
+
+@{RANDOM}、@{UUID}、@{UNIQUEID}等占位符有相同问题，不会在循环中被多次执行，因为在执行js之前已被替换成具体内容了。
+与占位符不同，js内置函数Secure.random与String.uuid是可以在循环中被多次执行产生不同内容。
 
 ### call
 
@@ -1178,7 +1203,7 @@ toResp为true时，内容会作为响应的字段返回。
 | FOR | 对变量进行循环处理 | @{FOR\|pl,\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} <br>pl必须是一个list或数组，第二个参数是分隔符；后面都是要拼接的参数或常量，每循环一次，将他们拼接起来，然后加一个分隔符<br>例子中如果pl=[{a:11,b:"x"},{a:12,b:"y"}]，p2="hello",运行后将得到: (0,'hello',11,x,''),(1,'hello',12,y,'')<br>@{FOR\|pl[e.a,'i.>',1 && e.a,'i.<',20],\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} 运行后将得到: (0,'hello',11,x,'')<br> 对list或数组参数进行循环。<br>每个元素用e代表；如果e是对象，可以用“e.”开头引用成员；<br>i是循环序数，从0开始； <br>所有需要用引号的地方，建议都使用"\`"，而不是单引号。sql本身使用单引号，特别是出现“;”或“)”的地方，不可以使用单引号，否则无法解析。 <br>支持设置过滤条件，在变量名后面加“[]”，在其中加过滤条件，条件判断与@{CONDITION}完全一致 |
 | ADD、SUB、MULTI、DIV | 加减乘除运算 | @{ADD\|类型[.精度], para1, para2}<br>类型有int、long、float、double，指定了参数类型与返回类型， 类型为float、double时可以设置精度，范围在0-7，可以不指定； para1与para2必须是对应类型的数值 |
 | CALCULATE | 将类型后面的所有内容拼接成一个四则算式并计算结果 | @{CALCULATE\|类型[.精度],p1,'+(',p2,'-',p3,')-',p4}<br> @{CALCULATE\|类型[.精度],\`@{p1}+(@{p2}-@{p3})-@{p4}\`}<br>@{CALCULATE\|类型[.精度],p1+(p2-p3)-p4}<br>类型与ADD等的定义相同，参数必须是数值类型。参数拼接的结果是个字符串算式，算式必须符合四则运算规则，可以很复杂，ADD等只能执行两个数值的运算，但是比CALCULATE高效 |
-| CONDITION | 条件判断 | @{CONDITION\|p1,relation,p2,o1,o2} @{CONDITION\|p1,'i.<',p2,o1,o2} @{CONDITION\|3,'i.>',5,o1,o2} @{CONDITION\|p1,'o.\=\=',null,o1,o2} @{CONDITION\|p1,'b.\=\=',true,o1,o2}<br>p1与p2必须是relation中给定类型的参数 relation为关系运算符，格式为"类型+'.'+比较运算符"，比较运算符支持>,<,>=,<=,\=\=,!=。 如果是string，还支持\~,!\~，用于判断p1是否匹配正在表达式p2； 如果是object、bool，只支持!=,\=\=，object可以支持null，bool支持true、false 类型有:int(i)、long(l)、float(f)、double(d)、string(s)、object(o)、bool(b)，可以用括号中的缩写 <br>如果p1、p2满足条件，则返回o1，否则返回o2，o1、o2可以不传，默认为1、0 @{CONDITION\|p1,'s.\=\=',p2,'true','false'}, @{CONDITION\|p1,'i.>',p2,'1','0'}与@{CONDITION\|p1,'i.>',p2}等同 |
+| CONDITION | 条件判断 | @{CONDITION\|p1,relation,p2,o1,o2}<br>p1与p2必须是relation中给定类型的参数 <br>relation为关系运算符，格式为"类型+'.'+比较运算符"，比较运算符支持>,<,>=,<=,\=\=,!=；类型有:int(i)、long(l)、float(f)、double(d)、string(s)、object(o)、bool(b)、size，可以用括号中的缩写 ，size用来比较列表的长度，第一个参数必须是list类型<br>如果p1、p2满足条件，则返回o1，否则返回o2，o1、o2可以不传，默认为1、0 ，@{CONDITION\|p1,'i.>',p2,'1','0'}与@{CONDITION\|p1,'i.>',p2}等同<br>@{CONDITION\|p1,'i.<',p2,o1,o2}<br>@{CONDITION\|3,'i.>',5,o1,o2} <br>如果是string，还支持\~、!\~，用于判断p1是否匹配正则表达式p2，@、!@用于判断p1是否包含在p2中<br>@{CONDITION\|'a','s.@','abc'}<br>@{CONDITION\|p1,'s.\=\=',p2,'true','false'}<br> 如果是object、bool，只支持!=,\=\=，object可以支持null，bool支持true、false<br>@{CONDITION\|p1,'o.\=\=',null,o1,o2}<br>@{CONDITION\|p1,'b.\=\=',true,o1,o2}  |
 | SWITCH | 将多个IF-ELSEIF-ELSEIF...-ELSE汇聚在一起，用“\|”分隔 | 每个判断与CONDITION中判断方式相同 如果为true，则将判断之后的内容拼接起来返回 在第一个为true的判断后结束，后面即使有true的也不会运行<br>@{SWITCH\|p1,'i.>',p2,'a','b','c',\|,'def'}如果p1>p2则返回abc，否则返回def字符串 用'\|'分隔多个if、else if以及else。else分支必须有 |
 | VERCONVERT | 将字符串版本号转为一个整数，或者将整数转为版本号 | @{VERCONVERT\| \`11.22.33\`}、@{VERCONVERT\|1001,tostr}<br> 版本号的没段存成十进制数的3位，比如例子中转为整数11022033，所以版本号中每段不能超过三位数 |
 | CONST | 常数 | @{CONST\|type,name}<br> type支持int(i)、long(l)、float(f)、double(d)、char(c)，name支持min、max、ver、tzOffset，tzOffset的类型只支持int(i) |

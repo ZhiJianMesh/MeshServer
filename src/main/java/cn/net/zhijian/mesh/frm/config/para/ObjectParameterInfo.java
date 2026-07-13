@@ -38,21 +38,21 @@ final class ObjectParameterInfo extends ParameterInfo {
             return true; //可以没有object定义，请求时只检查是否为一个map
         }
 
-        List<Object> segs = ValParser.getAsList(cfg, PROPERTY_PROPS);
-        if(segs == null || segs.isEmpty()) {
+        List<Object> properties = ValParser.getAsList(cfg, PROPERTY_PROPS);
+        if(properties == null || properties.isEmpty()) {
             LOG.error("Invalid segment define");
             return false;
         }
 
-        this.segments = new ParameterInfo[segs.size()];
+        this.segments = new ParameterInfo[properties.size()];
         //多行的情况下，才有是否检查每行的设置
         if(this.list) {
             this.checkAll = ValParser.getAsBool(cfg, PROPERTY_CHECKALL, true);
         }
         
-        int num = segs.size();
+        int num = properties.size();
         for(int i = 0; i < num; i++) {
-            Map<String, Object> segCfg = ValParser.getAsObject(segs, i);
+            Map<String, Object> segCfg = ValParser.getAsObject(properties, i);
             if(segCfg == null) {
                 LOG.error("Invalid segment define at {}", i);
                 return false;
