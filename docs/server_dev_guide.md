@@ -1147,17 +1147,73 @@ toResp为true时，内容会作为响应的字段返回。
 ---
 # 五、占位符<a id="placeholder"></a>
 
-在sql、js脚本，以及一些配置项中（比如searchdb、 treedb的action、 title、 when中），可以引用请求参数、变量、响应参数、系统参数、请求头。
+在sql、js脚本，以及一些配置项中（比如searchdb、 treedb的action、 title、 when中），用占位符引用请求参数、变量、响应参数、系统参数、请求头。
+
+## 基本引用占位符
 
 | 格式     | 类型 | 说明 |
 | ---     | --- | --- |
-| @{xxx}  | 请求参数 | 引用参数列表中的字段，如果引用了不存在的请求参数，启动时会失败；可以包含'.'，表示多级引用 |
+| @{xxx}  | 请求参数 | 引用参数列表中的字段或vars中定义的变量；如果引用了不存在的请求参数，启动时会失败；名称中可以包含'.'，表示多级引用 |
 | @{^xxx} | 请求头参数 | 引用http请求头中的字段 |
-| @{!xxx} | 响应参数 | 前面处理的响应内容；可以包含'.'，表示多级引用 |
-| @{#xxx} | 系统参数 | 1)tokenCaller、tokenCallee、tokenPartId、tokenAcc、tokenCid、tokenExt：token中的信息，在私有接口中才有； 2)reqAt参数：接受到请求时的utc时间戳； 3)shard分片号：从接口配置的sharding字段计算得出； 4)result：上一步的执行结果，与convert结合使用才有意义，因为任何一个处理只要返回值不是OK，则整个处理就终止了，不会走到下一步。 |
+| @{!xxx} | 响应参数 | 前面处理的响应内容；名称中可以包含'.'，表示多级引用 |
+| @{#xxx} | 系统参数 | 1)tokenCaller、tokenCallee、tokenPartId、tokenAcc、tokenCid、tokenExt：token中的信息，在私有接口中才有；<br> 2)reqAt参数：接受到请求时的utc时间戳；<br> 3)shard分片号：从接口配置的sharding字段计算得出；<br> 4)result：上一步的执行结果，与convert结合使用才有意义，因为任何一个处理只要返回值不是OK，则整个处理就终止了，不会走到下一步。 |
 | @[!xxx] | 前面步骤执行的响应内容 | 通常用在RDB处理中使用。当有多个sql时，上一个sql查询处理完毕，下一个sql可以使用上一个sql的结果集，比如@[!UserNum]。 【注意】这种参数在请求端不会被编译替换，而是在webdb中执行时才会被替换，所以对性能有少许影响 |
 
-单纯的变量不能够满足某些特定的功能，比如要对字段加解密，这时需要用到一些函数，使用时，将函数名放在参数前面，并用“|”分隔，参数可以是请求参数、响应参数，也可以是系统参数、请求头，比如:
+## 处理之间的引用占位符
+
+### 1）同一处理中多个操作间的引用
+同一个处理中，多个操作的情况，后面操作可以引用前面的响应结果，下面的@[FOR|!items...]就是这样的例子，items是上一个操作的的查询结果。
+这样的引用，必须是在同一个库中的多个操作之间，不能跨库使用。结果可以不从webdb中返回给调用方，直接在webdb中使用，减少了网络交互。
+```JSON
+"process":[{
+    "name": "update_status",
+    "type": "rdb",
+    "db": "log", //在同一个库中才可以使用@[!xxx]
+    "sqls": [
+        {
+            "name":"items",
+            "metas":"each",
+            "multi":true,
+            "merge":false,
+            "sql":"select productId,subTotal from sales_items where orderId=@{id}"
+        },
+        //确认时就按天统计计入报表，避免查询报表时再求和
+        "insert or ignore into sales_stats(day,type,productId) values@[FOR|!items, `,`, `(@{day},'SAL',`, e.productId, `)`]",              
+        "rs:@[FOR|!items, `;`, `update sales_stats set amount=amount+`, e.subTotal, ` where day=@{day} and type='SAL' and productId=`, e.productId]"
+    ]
+}]
+```
+
+### 2）同一接口中不同处理间的引用
+如果process中有多个不同的处理，后面的处理可以引用前面处理的结果，下面的@{FOR|!items...}是前一个处理get_items的查询结果（名称由sql的name指定，而不是处理的name指定）。
+这样引用时，结果会返回给调用方，通常用在不同库之间的互操作。
+```JSON
+"process": [
+    {
+        "name": "get_items",
+        "type": "rdb",
+        "db": "log",
+        "sqls": [{
+            "name": "items",
+            "multi": true,
+            "metas": "each",
+            "sql": "select productId,quantity,subTotal from purchase_items where orderId=@{id}"
+        }]
+    },
+    {
+        "name": "update_product_stock",
+        "type": "rdb",
+        "db": "inventory", //与上一个处理使用不同的数据库
+        "sqls":[
+           "rs:@{FOR|!items, `;`, `update products set stock=stock+`, e.quantity, ` where id=`, e.productId}"
+        ]
+    }
+    ...
+]
+```
+
+## 复杂功能占位符
+单纯的参数引用不能够满足某些特定的功能，比如要对字段加解密，这时需要用到一些函数，使用时，将函数名放在参数前面，并用“|”分隔，参数可以是请求参数、响应参数，也可以是系统参数、请求头，比如:
 ```
 @{HASH|#token...,para,!resp,1,'xxx'}
 ```
