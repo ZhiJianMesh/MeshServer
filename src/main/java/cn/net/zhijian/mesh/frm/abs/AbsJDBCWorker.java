@@ -23,7 +23,6 @@ import cn.net.zhijian.util.LogUtil;
 public abstract class AbsJDBCWorker extends AbsRDBWorker {
     private static final Logger LOG = LogUtil.getInstance();
 
-
     public AbsJDBCWorker(AbsRDBWBuilder builder) {
         super(builder.cid, builder.service, builder.db,
              builder.longToStr(), builder.shardingStart(), builder.shardingEnd());
@@ -34,11 +33,11 @@ public abstract class AbsJDBCWorker extends AbsRDBWorker {
         if(LOG.isDebugEnabled()) {
             LOG.debug("{}-{}.executeRawDDL(`{}`)", service, dbName, sql);
         }
-        Pattern alterTabPattern = Pattern.compile("^alter table .+ add column if not exists .+$");
         String s = sql.substring(0, 3).toLowerCase();
         boolean executed = false;
 
         if(s.equals("alt")) { //大部分不满足这条，在此结束，避免正则判断
+            Pattern alterTabPattern = Pattern.compile("^alter table .+ add column if not exists .+$");
             String lowSql = sql.toLowerCase();
             String blankSql = lowSql.replaceAll("\\s+", " ");
             if(alterTabPattern.matcher(blankSql).matches()) {

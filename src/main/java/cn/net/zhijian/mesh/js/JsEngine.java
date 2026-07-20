@@ -56,8 +56,7 @@ public final class JsEngine {
 
     
     /**
-     * 为了兼容android上的quickjs，如果脚本返回对象，其实返回的是json字符串，
-     * 然后在java中转为Map
+     * 如果脚本返回对象，其实返回的是json字符串，然后在java中转为Map
      * @param js 待执行js脚本
      * @return 返回字符串
      */

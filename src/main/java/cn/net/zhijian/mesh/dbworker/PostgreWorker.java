@@ -26,7 +26,10 @@ public class PostgreWorker extends JDBCWorker {
         @Override
         public PostgreWorker build(int dbNo) {
             try {
-                return new PostgreWorker(this);
+                PostgreWorker pw = new PostgreWorker(this);
+                //禁用反斜杠\作为字符串中的转义字符，因为系统使用的防注入没有考虑这种语法
+                pw.executeRawDML("SET standard_conforming_strings = off;");
+                return pw;
             } catch(Exception e) {
                 LOG.error("Fail to create db connection({}.{}.{},cid:{}) to {}", service, db, dbNo, cid, dbUrl, e);
                 return null;

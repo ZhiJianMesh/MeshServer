@@ -49,7 +49,7 @@ public class AbsDBWorkerTest extends UnitTestBase {
     @Test
     public void testRemoveSqlBlanks() {
         String sql = "select a,b,c,\n\r'  '   from table \r\n where a=1 \t";
-        CharArray s =  AbsDBWorker.removeBlanks(sql);
+        CharArray s =  AbsDBWorker.adjustSql(sql);
         assertEquals(s.toString(), "select a,b,c, '  ' from table where a=1");
     }
     

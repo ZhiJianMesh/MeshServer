@@ -139,7 +139,7 @@ public class RDBProcessor extends AbsDBProcessor {
             if(!ssm.needCompile) {//没有使用服务端参数的js/rs，在请求侧即可转成基本的sql
                 SqlType type = AbsRDBWorker.getSqlType(sqlStr);
                 if(type.laterModify()) { //运行时编辑
-                    if(type == SqlType.SCRIPT) {//运行时编辑
+                    if(type == SqlType.SCRIPT) {
                         sqlStr = JsEngine.getString(sqlStr.substring(JS_HEAD.length()));
                     } else if(type == SqlType.RUNTIMESCRIPT) {
                         sqlStr = sqlStr.substring(RS_HEAD.length());

@@ -86,6 +86,7 @@ public final class ApiInfo {
     
     /**
      * 添加一个附加的参数，用于解决java代码中产生的中间参数无法在配置中解析的问题
+     * 不经常使用，添加后只读，所以不用ConcurrentHashMap.newKeySet()，而是使用HashSet
      * @param para 参数名称
      */
     public synchronized void addExtPara(String para) {

@@ -36,7 +36,10 @@ public class MysqlWorker extends JDBCWorker {
         @Override
         public MysqlWorker build(int dbNo) {
             try {
-                return new MysqlWorker(this);
+                MysqlWorker mw = new MysqlWorker(this);
+                //禁用反斜杠\作为字符串中的转义字符，因为系统使用的防注入没有考虑这种语法
+                mw.executeRawDML("SET sql_mode = CONCAT_WS(',', @@sql_mode, 'NO_BACKSLASH_ESCAPES')");
+                return mw;
             } catch(Exception e) {
                 LOG.error("Fail to create db connection({}.{}.{},cid:{}) to {}", service, db, dbNo, cid, dbUrl, e);
                 return null;

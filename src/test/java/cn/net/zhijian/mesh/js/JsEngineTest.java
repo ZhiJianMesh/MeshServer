@@ -1,5 +1,7 @@
 package cn.net.zhijian.mesh.js;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+
 import java.util.Calendar;
 import java.util.Map;
 
@@ -105,7 +107,7 @@ public class JsEngineTest extends UnitTestBase {
         s = JsEngine.getString(js);
         assertEquals(s, INJECTED_SQL);
 
-        js = "DB.sql(\"delete from user where account='a' \n OR  12 = 12 and pwd='123'\")";
+        js = "DB.sql(\"delete from user where account='a\\nb' OR  12 = 12 and pwd='123'\")";
         s = JsEngine.getString(js);
         assertEquals(s, INJECTED_SQL);
 
@@ -116,6 +118,10 @@ public class JsEngineTest extends UnitTestBase {
         js = "DB.sql(\"delete from user where account='a' -- and pwd='123'\")";
         s = JsEngine.getString(js);
         assertEquals(s, INJECTED_SQL);
+
+        js = "DB.sql(\"SELECT * FROM user WHERE account='\'' OR 1=1 -- ' AND password='{pwd}'\")";
+        s = JsEngine.getString(js);
+        assertNotEquals(s, INJECTED_SQL);        
     }
     
     @Test

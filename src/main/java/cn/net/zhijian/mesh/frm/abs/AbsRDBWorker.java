@@ -1484,7 +1484,6 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
                 }
                 
                 name = ValParser.getAsStr(dbReq, SQL_NAME);
-                ignores = ValParser.getAsIntList(dbReq, SQL_IGNORES, RetCode.OK);
                 //多个sql的情况，只要有一条写，则整个为写操作，所以可能存在读操作
                 if(getSqlType(sql) == SqlType.SELECT) {
                     isMulti = ValParser.getAsBool(dbReq, SQL_MULTI, true);
@@ -1496,6 +1495,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
                         }
                         continue;
                     }
+                    ignores = ValParser.getAsIntList(dbReq, SQL_IGNORES, RetCode.OK);
                     if(canIgnore(ignores, hr.code)) {
                         continue;
                     }
@@ -1541,6 +1541,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
                 } catch (SQLException e) {
                     LOG.error("Fail to execute {}.`{}` in `{}`", name, sql, this, e);
                     //respData.put(name + HANDLE_RESULT, 0);
+                    ignores = ValParser.getAsIntList(dbReq, SQL_IGNORES, RetCode.OK);
                     if(!canIgnore(ignores, RetCode.DB_ERROR)) {
                         execOK = false;
                         return new HandleResult(RetCode.DB_ERROR);
@@ -1651,7 +1652,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
                  * 否则如果未设置可以忽略错误，则碰到错误就返回
                  */
                 if(any) {
-                    if(i < size - 1) { //任何一个成功的情况，只要不是最后一个错误都可以忽略
+                    if(i < size - 1) { //任何一个成功的情况，只要最后一个不错都可以忽略
                         ignores = IgnoresAll;
                     } else {
                         ignores = ValParser.getAsIntList(dbReq, SQL_IGNORES, RetCode.OK);
@@ -1661,7 +1662,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
                 }
                 if(canIgnore(ignores, hr.code)) {
                     LOG.debug("Execute `{}` in `{}`, retCode:{}, but ignored {}",
-                            sql, this, RetCode.name(hr.code), ignores);
+                              sql, this, RetCode.name(hr.code), ignores);
                     continue; //如果错误可忽略，则继续
                 }
 

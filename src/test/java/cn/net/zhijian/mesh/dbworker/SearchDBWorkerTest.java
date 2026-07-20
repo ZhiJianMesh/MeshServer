@@ -79,8 +79,7 @@ public class SearchDBWorkerTest extends UnitTestBase {
             assertTrue(res);
             docs = db.getDocuments("tab1", 3, new String[]{"缓存"});
             assertTrue(docs != null && docs.size() == 0);
-            
-            
+
             //test multi tables
             res = db.putDocument("tab2", "1", "A B don't", "流水落花春去也，天上人间", "李煜");
             assertTrue(res);

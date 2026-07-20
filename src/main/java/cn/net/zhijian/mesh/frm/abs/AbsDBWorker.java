@@ -248,7 +248,7 @@ public abstract class AbsDBWorker implements IDBConst {
      * @return true 被注入
      */
     public static boolean isSqlInjected(String sql) {
-        CharArray ca = removeBlanks(sql);
+        CharArray ca = adjustSql(sql);
         //只要有危险关键字，则认为有sql注入，对or的判断存在误杀
         if(ca.indexOf(DangerWords, 0, SQL_QUOTATIONS, false) >= 0) {
             return true;
@@ -272,7 +272,7 @@ public abstract class AbsDBWorker implements IDBConst {
      * @param sql 数据库sql
      * @return char数组
      */
-    public static CharArray removeBlanks(String sql) {
+    static CharArray adjustSql(String sql) {
         char[] ss = sql.trim().toCharArray();
         char ch;
         boolean isBlank = false;
@@ -287,13 +287,13 @@ public abstract class AbsDBWorker implements IDBConst {
                 isBlank = false;
                 continue;
             }
-            
+
             if(inStr) {
                 ca.append(ch);
                 continue;
             }
 
-            if(ch == '\t' || ch == ' ' || ch == ' ' || ch == '\n' || ch == '\r') {
+            if(ch == '\t' || ch == ' ' || ch == '\n' || ch == '\r') {
                 if(isBlank) { //删除连续的空格
                     continue;
                 }
