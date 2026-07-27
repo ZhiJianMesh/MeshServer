@@ -4,7 +4,7 @@ import java.security.InvalidParameterException;
 import java.util.Map;
 
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig;
 import cn.net.zhijian.mesh.frm.intf.IConst;
@@ -28,21 +28,21 @@ final class CONST extends ScriptElement {
         if(ss.length < 2) {
             throw new InvalidParameterException("invalid NUMBER config");
         }
-        this.valType = Relation.parseType(ss[0]);
+        this.valType = TV.parseType(ss[0]);
         String name = ss[1].toLowerCase();
         if(name.equals("ver")) {
-            if(this.valType != Relation.TYPE_INT
-               && this.valType != Relation.TYPE_STRING) {
+            if(this.valType != TV.TYPE_INT
+               && this.valType != TV.TYPE_STRING) {
                 throw new InvalidParameterException("invalid ver type");
             }
             this.name = CONST_NAME.VER;
         } else if(name.equals("tzoffset")) {
-            if(this.valType != Relation.TYPE_INT) {
+            if(this.valType != TV.TYPE_INT) {
                  throw new InvalidParameterException("invalid tzoffset type");
              }
             this.name = CONST_NAME.TZOffset;
         } else {
-            if(!Relation.isNumber(this.valType) || this.valType == Relation.TYPE_CHAR) {
+            if(!TV.isNumber(this.valType) || this.valType == TV.TYPE_CHAR) {
                 throw new InvalidParameterException("invalid value type");
             }
             if(name.equals("min")) {
@@ -59,32 +59,32 @@ final class CONST extends ScriptElement {
     public Object run(AbsServerRequest req, Map<String, Object> resp) {
         if(this.name == CONST_NAME.MAX) {
             switch(this.valType) {
-                case Relation.TYPE_INT:
+                case TV.TYPE_INT:
                     return Integer.MAX_VALUE;
-                case Relation.TYPE_LONG:
+                case TV.TYPE_LONG:
                     return Long.MAX_VALUE;
-                case Relation.TYPE_FLOAT:
+                case TV.TYPE_FLOAT:
                     return Float.MAX_VALUE;
-                case Relation.TYPE_CHAR:
+                case TV.TYPE_CHAR:
                     return Character.MAX_VALUE;
                 default://case Relation.TYPE_DOUBLE:
                     return Double.MAX_VALUE;
             }
         } else if(this.name == CONST_NAME.MIN) {
             switch(this.valType) {
-            case Relation.TYPE_INT:
+            case TV.TYPE_INT:
                 return Integer.MIN_VALUE;
-            case Relation.TYPE_LONG:
+            case TV.TYPE_LONG:
                 return Long.MIN_VALUE;
-            case Relation.TYPE_FLOAT:
+            case TV.TYPE_FLOAT:
                 return Float.MIN_VALUE;
-            case Relation.TYPE_CHAR:
+            case TV.TYPE_CHAR:
                 return Character.MIN_VALUE;
             default://case Relation.TYPE_DOUBLE:
                 return Double.MIN_VALUE;
             }
         } else if(this.name == CONST_NAME.VER){
-            if(this.valType == Relation.TYPE_INT) {
+            if(this.valType == TV.TYPE_INT) {
                   return VERSION_INT;
             } else {/*Relation.TYPE_STRING*/
                 return IConst.ENGINEVERSION;

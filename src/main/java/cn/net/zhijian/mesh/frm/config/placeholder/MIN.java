@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
@@ -27,8 +27,8 @@ final class MIN extends AbsListElement {
         if(ss.length < 2) {
             throw new InvalidParameterException("invalid LIST config");
         }
-        this.valType = Relation.parseType(ApiParaHolder.takeStr(ss[0]));
-        if(!Relation.isNumber(this.valType)) {
+        this.valType = TV.parseType(ApiParaHolder.takeStr(ss[0]));
+        if(!TV.isNumber(this.valType)) {
             throw new InvalidParameterException("invalid type config");
         }
         parseListPara(ss[1]);
@@ -40,13 +40,13 @@ final class MIN extends AbsListElement {
         if(ll == null || ll.isEmpty()) {
             return 0;
         }
-        if(this.valType == Relation.TYPE_INT) {
+        if(this.valType == TV.TYPE_INT) {
             return (int)minLong(ll);
         }
-        if(this.valType == Relation.TYPE_LONG) {
+        if(this.valType == TV.TYPE_LONG) {
             return minLong(ll);
         }
-        if(this.valType == Relation.TYPE_DOUBLE) {
+        if(this.valType == TV.TYPE_DOUBLE) {
             return minDouble(ll);
         }
         return (float)minDouble(ll);

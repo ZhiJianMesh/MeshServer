@@ -8,17 +8,7 @@ import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.util.ValParser;
 
 public class Relation {
-    public static final int TYPE_INVALID = 0;
-    public static final int TYPE_INT = 1;
-    public static final int TYPE_LONG = 2;
-    public static final int TYPE_FLOAT = 3;
-    public static final int TYPE_DOUBLE = 4;
-    public static final int TYPE_STRING = 5;
-    public static final int TYPE_OBJECT = 6;
-    public static final int TYPE_BOOL = 7;
-    public static final int TYPE_CHAR = 8;
-    public static final int TYPE_SIZE = 9;
-    
+
     private static final int NULL = 0x00;
     private static final int EQUAL = 0x10;
     
@@ -51,7 +41,7 @@ public class Relation {
     
     public Relation() { //else
         this.relation = NULL;
-        this.valType = TYPE_STRING;
+        this.valType = TV.TYPE_STRING;
         this.p1 = null;
         this.p2 = null;
     }
@@ -91,38 +81,38 @@ public class Relation {
         }
 
         switch(valType) {
-        case TYPE_INT: {
+        case TV.TYPE_INT: {
             int v1 = ValParser.parseInt(o1, 0);
             int v2 = ValParser.parseInt(o2, 0);
             return compare(v1, v2, relation);
         }
-        case TYPE_SIZE: {
+        case TV.TYPE_SIZE: {
             List<Object> l = ValParser.parseList(o1);
             int v1 = l == null ? 0 : l.size();
             int v2 = ValParser.parseInt(o2, 0);
             return compare(v1, v2, relation);
         }
-        case TYPE_LONG: {
+        case TV.TYPE_LONG: {
             long v1 = ValParser.parseLong(o1, 0);
             long v2 = ValParser.parseLong(o2, 0);
             return compare(v1, v2, relation);
         }
-        case TYPE_FLOAT: {
+        case TV.TYPE_FLOAT: {
             float v1 = ValParser.parseFloat(o1, 0);
             float v2 = ValParser.parseFloat(o2, 0);
             return compare(v1, v2, relation);
         }
-        case TYPE_DOUBLE: {
+        case TV.TYPE_DOUBLE: {
             double v1 = ValParser.parseDouble(o1, 0);
             double v2 = ValParser.parseDouble(o2, 0);
             return compare(v1, v2, relation);
         }
-        case TYPE_CHAR: {
+        case TV.TYPE_CHAR: {
             char v1 = ValParser.parseChar(o1, ' ');
             char v2 = ValParser.parseChar(o2, ' ');
             return compare(v1, v2, relation);
         }
-        case TYPE_STRING: {
+        case TV.TYPE_STRING: {
             String v1 = ValParser.parseString(o1);
             String v2 = ValParser.parseString(o2);
             if(relation == MATCH) {
@@ -132,7 +122,7 @@ public class Relation {
             }
             return compare(v1, v2, relation);
         }
-        case TYPE_BOOL: {
+        case TV.TYPE_BOOL: {
             boolean v1 = ValParser.parseBool(o1, true);
             boolean v2 = ValParser.parseBool(o2, true);
             if(relation == EQUAL) {
@@ -167,25 +157,25 @@ public class Relation {
     public static int parseRelation(String rs) {
         int pos = rs.indexOf('.');
         String segType = pos <= 0 ? "s" : rs.substring(0, pos);
-        int valType = parseType(segType);
+        int valType = TV.parseType(segType);
 
-        if(valType == TYPE_INVALID) {
+        if(valType == TV.TYPE_INVALID) {
             throw new InvalidParameterException("invalid type " + segType);
         }
 
         String s = rs.substring(pos + 1).trim();
         int relation = getRelation(s);
         if(relation == NOTMATCH || relation == MATCH) {
-            if(valType != TYPE_STRING) {
+            if(valType != TV.TYPE_STRING) {
                 throw new InvalidParameterException("~,!~ can only be used with string");
             }
         } else if((relation & BIGGER) == BIGGER
             || (relation & SMALLER) == SMALLER) {
-            if(valType != TYPE_STRING && !isNumber(valType)) {
+            if(valType != TV.TYPE_STRING && !TV.isNumber(valType)) {
                 throw new InvalidParameterException(">,<,>= and <= can only be used with string and number");
             }
         } else if(relation == IN || relation == NOTIN) {
-            if(valType != TYPE_STRING && !isNumber(valType)) {
+            if(valType != TV.TYPE_STRING && !TV.isNumber(valType)) {
                 throw new InvalidParameterException("@ and !@ can only be used with string and number");
             }
         }
@@ -250,58 +240,5 @@ public class Relation {
     
     public static <T extends Comparable<T>> boolean smallerThan(T a, T b) {
         return compare(a, b, SMALLER);
-    }
-    
-    public static int parseType(String s) {
-        String t = s.trim().toLowerCase();
-        if(t.equals("i") || t.equals("int")) {
-            return TYPE_INT;
-        }
-
-        if(t.equals("l") || t.equals("long")) {
-            return TYPE_LONG;
-        }
-
-        if(t.equals("s") || t.equals("string")) {
-            return TYPE_STRING;
-        }
-        
-        if(t.equals("d") || t.equals("double")) {
-            return TYPE_DOUBLE;
-        }
-        
-        if(t.equals("f") || t.equals("float")) {
-            return TYPE_FLOAT;
-        }
-        
-        if(t.equals("o") || t.equals("object")) {
-            return TYPE_OBJECT;
-        }
-        
-        if(t.equals("b") || t.equals("bool") || t.equals("boolean")) {
-            return TYPE_BOOL;
-        }
-        
-        if(t.equals("c") || t.equals("char")) {
-            return TYPE_CHAR;
-        }
-        
-        if(t.equals("size")) {
-            return TYPE_SIZE;
-        }
-        
-        return TYPE_INVALID;
-    }
-    
-    public static boolean isNumber(int valType) {
-        switch(valType) {
-        case TYPE_INT:
-        case TYPE_LONG:
-        case TYPE_DOUBLE:
-        case TYPE_FLOAT:
-        case TYPE_SIZE:
-            return true;
-        default: return false;
-        }
     }
 }

@@ -2,7 +2,7 @@ package cn.net.zhijian.mesh.frm.config.placeholder;
 
 import java.util.Map;
 
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.util.ValParser;
 
@@ -18,17 +18,17 @@ final class SUB extends ADD {
 
     @Override
     public Object run(AbsServerRequest req, Map<String, Object> resp) {
-        if(valType == Relation.TYPE_INT) {
+        if(valType == TV.TYPE_INT) {
             int v1 = ValParser.parseInt(paras[0].get(req, resp), 0);
             int v2 = ValParser.parseInt(paras[1].get(req, resp), 0);
             return v1 - v2;
         }
-        if(valType == Relation.TYPE_LONG) {
+        if(valType == TV.TYPE_LONG) {
             long v1 = ValParser.parseLong(paras[0].get(req, resp), 0);
             long v2 = ValParser.parseLong(paras[1].get(req, resp), 0);
             return v1 - v2;
         }
-        if(valType == Relation.TYPE_FLOAT) {
+        if(valType == TV.TYPE_FLOAT) {
             float v1 = ValParser.parseFloat(paras[0].get(req, resp), 0);
             float v2 = ValParser.parseFloat(paras[1].get(req, resp), 0);
             return round(v1 - v2);

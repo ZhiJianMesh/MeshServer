@@ -49,6 +49,13 @@ class FILE extends ScriptElement {
         String file = this.paras[1].getAsString(req, resp);
         String root = this.paras[2].getAsString(req, resp);
         String saveAs = FileUtil.addPath(root, file);
+        if(saveAs.indexOf("." + File.separator) >= 0) {
+            return IConst.EMPTY_STR; //不容许出现相对路径
+        }
+        String workDir = System.getProperty("user.dir");
+        if(saveAs.indexOf(workDir) != 0) {
+            return IConst.EMPTY_STR; //不容许操作运行目录以外的文件
+        }
 
         byte[] data;
         String v = paras[0].getAsString(req, resp);

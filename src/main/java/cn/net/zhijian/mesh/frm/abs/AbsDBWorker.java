@@ -85,7 +85,7 @@ public abstract class AbsDBWorker implements IDBConst {
         //如果确实需要这样的判断，需要调整一下顺序，让or前面不出现单引号
         " or ".toCharArray(),
         " || ".toCharArray(),
-        " union select ".toCharArray()
+        " union ".toCharArray()
     };
    
     protected static final char[] SQL_QUOTATIONS = new char[] {SQL_QUOTE, SQL_QUOTE};

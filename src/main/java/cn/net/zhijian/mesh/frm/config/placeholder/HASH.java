@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.util.StringUtil;
 
@@ -24,9 +24,9 @@ class HASH extends ScriptElement {
         if(ss.length < 1) {
             throw new InvalidParameterException("invalid HASH config");
         }
-        int tp = Relation.parseType(ApiParaHolder.takeStr(ss[0]));
-        int n = (tp != Relation.TYPE_INT && tp != Relation.TYPE_LONG ? 0 : 1); //第一个参数可能不是类型
-        this.isInt = (tp == Relation.TYPE_INT);
+        int tp = TV.parseType(ApiParaHolder.takeStr(ss[0]));
+        int n = (tp != TV.TYPE_INT && tp != TV.TYPE_LONG ? 0 : 1); //第一个参数可能不是类型
+        this.isInt = (tp == TV.TYPE_INT);
         if(ss.length <= n) {
             throw new InvalidParameterException("invalid parameters `" + paras + "`");
         }

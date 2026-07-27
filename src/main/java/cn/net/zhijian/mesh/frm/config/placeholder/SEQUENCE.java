@@ -5,7 +5,7 @@ import java.util.Map;
 
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.client.SequenceClient;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
@@ -32,20 +32,20 @@ final class SEQUENCE extends ScriptElement {
             throw new InvalidParameterException("invalid SEQUENCE config");
         }
         int len = 0;
-        int seqType = Relation.TYPE_INT; //int/long
+        int seqType = TV.TYPE_INT; //int/long
         ApiParaHolder cidPara = null;
         
         String s = ApiParaHolder.takeStr(ss[0]);
         int paraNum = 2; //至少有两个参数
-        int tp = Relation.parseType(s); //第一个不一定是类型参数
-        if(tp == Relation.TYPE_LONG) {
-            seqType = Relation.TYPE_LONG;
+        int tp = TV.parseType(s); //第一个不一定是类型参数
+        if(tp == TV.TYPE_LONG) {
+            seqType = TV.TYPE_LONG;
             paraNum = 3;
             if(ss.length < 2) {
                 throw new InvalidParameterException("invalid SEQUENCE config");
             }
             s = ss[1];
-        } else if(tp == Relation.TYPE_INT) {
+        } else if(tp == TV.TYPE_INT) {
             paraNum = 3;
             if(ss.length < 2) {
                 throw new InvalidParameterException("invalid SEQUENCE config");
@@ -80,13 +80,13 @@ final class SEQUENCE extends ScriptElement {
         }
 
         if(this.len <= 0) { //不格式化
-            if(this.seqType == Relation.TYPE_LONG) {
+            if(this.seqType == TV.TYPE_LONG) {
                 return SequenceClient.nextId(cid, si, this.keyName, req.traceId);
             }
             return SequenceClient.nextIntId(cid, si, this.keyName, req.traceId);
         }
         
-        if(this.seqType == Relation.TYPE_LONG) {
+        if(this.seqType == TV.TYPE_LONG) {
             long v = SequenceClient.nextId(cid, si, this.keyName, req.traceId);
             return formatVal(v, this.len);
         }

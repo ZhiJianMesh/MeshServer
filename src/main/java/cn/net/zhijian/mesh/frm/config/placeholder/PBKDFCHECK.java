@@ -7,7 +7,7 @@ import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.util.SecureUtil;
 import cn.net.zhijian.util.ValParser;
 /**
- * \@{PBKDFCHECK|[!]paraName, [!]savedStr}
+ * @{PBKDFCHECK|[!]paraName, [!]savedStr}
  * 检查pbkdf产生的结果是否正确
  */
 final class PBKDFCHECK extends ScriptElement {

@@ -1,5 +1,5 @@
 <div align="center" style="font-size:2em;font-weight:bold;">
-  至简网格客户端使用与UI开发指导<br>
+  至简网格客户端开发指导<br>
   <img src="imgs/zhijian_logo.png" width="50">
 </div>
 
@@ -19,149 +19,7 @@
 为了方便用户使用服务端的能力，必须要有与之配套的客户端。本文介绍至简网格客户端的安装使用与UI开发，UI开发中，需要开发人员具备基本的js、vue的技术积累。
 
 ---
-# 一、安装与使用
-
-## 安装
-
-在做端侧UI开发之前，首先需要安装客户端。当前支持windows、android两种客户端，两种界面很接近，操作也一样。 但是有部分安卓中的功能，在windows客户端中没有，比如扫码、横竖屏等。
-
-### windows客户端
-
-从网站下载安装程序后，双击安装即可。
-
-windows客户端需依赖系统的Edge浏览器。此浏览器在windows7及以上版本都可以安装，windows10、windows11中已默认安装。如果未安装，则需要手动下载安装 [Edege浏览器](https://www.microsoft.com/zh-cn/edge/download)。
-
-### android客户端
-
-至简网格安卓客户端至少需要在安卓8.0中安装（2017年8月22日发布）。
-
-至简网格客户端没有上传到各大应用市场，需要使用安卓手机的浏览器扫码下载，然后再安装。
-
-有些情况下，浏览器没有安装应用的权限，会提示确认是否赋予浏览器安装应用的权限，此时必须给予授权。
-
-![aclient_install1](imgs/client/androidclient_install1.png)
-
-安装时，会有安全提醒，请选中“我已充分了解风险，并继续安装”。因为安卓手机品牌众多、版本众多，提示不尽相同，总之需要容许安装才可以。
-
-![aclient_install2](imgs/client/androidclient_install2.png)
-
-通过以上步骤，安装就完成了，与普通App安装是一样的。
-
-## 端侧设置
-
-帐号分为两类：个人帐号、公司帐号，用户可以登录一个个人账号，登录一个或多个公司的公司账号，比如，一个会计为多家公司代账的情况，就需要登录多家公司的服务，使用时根据需要切换到不同公司的公司帐号。
-
-“设置”中可以进行个人帐号注册与登录，或者公司帐号的登录。
-
-如果当前打开的服务是一个公司服务，则自动使用当前选中的公司的账号；如果是一个个人服务，无论当前选中的是哪个公司的账号，都使用个人账号。
-
-### 个人帐号
-
-在使用一些个人服务时，比如密码箱、专注力等服务，它们不属于任何一家公司，所以必须使用个人帐号。
-
-![personalreg1](imgs/client/personal_reg1.png)
-
-个人帐号需要自己注册，当前只支持自建帐号，没有使用QQ、微信等第三方帐号。
-
-![personalreg2](imgs/client/personal_reg2.png)
-
-### 公司帐号
-
-公司帐号及其初始密码是公司的超级管理员创建的，创建方法请参照[公司帐号管理](#公司帐号管理)。
-
-在登录公司帐号之前，需要先点击左上角的图标添加公司，待添加的公司必须已经注册过，可以询问公司相关负责人获得公司id与接入码。
-
-![comlogin1](imgs/client/company_login1.png)
-
-公司ID：公司或组织注册时获得的ID；
-
-接入码：接入密码，需注意，它相当于WIFI密码，不可随意透露给公司外不相关人员。
-
-![comlogin2](imgs/client/company_login2.png)
-
-如果服务器置于内网环境，点击“确定”后，端侧无法知道连接哪个服务器，这时会要求输入“内网地址”。
-
-![comlogin3](imgs/client/company_login3.png)
-
-### 登录
-
-个人帐号与公司帐号的登录与退出是一样的。
-
-因为公司帐号是超级管理员添加的，系统默认的公司超级管理员帐号是admin，密码是123456。强烈建议在第一次登录时修改admin密码。
-
-![comlogin4](imgs/client/company_login4.png)
-
-系统支持同时登录一个个人帐号与多个公司帐号，登录时需要点击左上角的图标，选择个人或者某个公司。
-
-![comlogin5](imgs/client/company_login5.png)
-
-然后再点击右上角的登录，在弹出窗口中输入帐号、密码，点击“登录”即可。
-
-![comlogin6](imgs/client/company_login6.png)
-
-在使用服务时，如果是个人服务，则自动使用个人帐号身份。如果是公司服务，则使用当前选中的公司帐号，在左上角可以切换当前的公司。 如果当前帐号是个人帐号，且有多个公司帐号，因为个人帐号无法在公司级服务中使用，所以默认使用排在最前面的公司帐号。
-
-## 应用市场
-
-应用分成两类，一类是公司应用，如CRM、会员等。公司应用需要单独部署公司服务器才可以使用，服务器程序可以部署在一部安卓手机上，也可以部署在服务器上，或者部署在云端。
-一类是个人应用，比如密码箱、专注力等。个人应用为生活提供便利，比如记密码、练习专注力、记单词、算账、杂记等，这些功能不需要部署服务器，安装即可使用。
-
-### 应用列表
-
-在应用列表中点击应用就可以进入详情界面，进行安装或卸载。
-
-![mktlist](imgs/client/market_list.png)
-
-### 应用详情
-
-在详情中有关于应用的详细介绍。如果没有安装，则下方显示“安装”按钮，否则显示“卸载”按钮；当检测到新版本时，会多一个“升级”按钮。
-
-![mktappdtl](imgs/client/market_appdtl.png)
-
-注：以上图例只作为样例，并不代表实际情况。
-
-## 打开应用
-
-在应用主界面的最下方，点击“应用”按钮，出现一个应用栏，里面列出了所有已安装的应用，比如CRM、会员等。 点击一个应用，就可以进入应用的主界面。
-
-每种应用的主界面不同，下图为CRM的主界面。
-
-![icrmhome](imgs/client/icrm_home.png)
-
-打开一个应用，使用一段时间后，再次点击“应用”按钮，可以切换到其他应用。 如果退出程序，下次打开程序时，会自动进入上次打开过的应用。
-
-Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
-
-![winabout](imgs/client/win_about.png)
-
-## 公司帐号管理
-
-公司级服务大多依赖公司帐号服务，它记录了公司内所有员工的帐号、密码、授权等信息。主要功能有员工帐号管理、服务授权与群组管理。系统实现中，强依赖帐号管理与服务授权。群组管理在每个业务中根据需要使用，在CRM、会员服务中都未使用群组功能。
-
-### 帐号管理
-
-公司级员工帐号只有超级管理员可以增加、删除，在界面的右上角有“服务授权”与“群组管理”两个图标。
-
-![userhome](imgs/client/user_home.png)
-
-点击某个员工帐号，进入帐号详情界面，在此可以修改员工的邮箱、电话号码等信息。忘记密码时，可以在此重置密码。
-
-注意：重置的密码是随机生成的6个字符，在使用此密码登录后，需及时更改。
-
-![employeedtl](imgs/client/employee_dtl.png)
-
-在此还可以禁用帐号，禁用的帐号无法登录系统，也可以重新启用。在此还可以查看帐号从属于哪些组织、在服务中拥有的授权。 如果需要调整，可以删除从属关系与授权。
-
-### 服务授权
-
-员工拥有帐号后，还不能在任何服务中进行操作，只有经过超级管理员授权后，才可以使用相应的服务。 授权时指定的角色，需要服务的开发人员在角色定义接口中定义。
-
-![userauthhome](imgs/client/user_authhome.png)
-
-授权时可以指定是否可以在公网访问内网的服务，如果未授权公网访问，则只能在内网访问服务。
-
----
-# 二、UI开发
+# 一、UI开发
 
 ## 概述
 
@@ -171,7 +29,7 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
 ### 服务目录结构
 
-端侧UI开发是放在服务的ui子目录中的，比如是user服务的目录结构，ui目录中存放的就是端侧UI实现。服务在启动时会自动根据service.cfg生成一个app.cfg文件，将它与ui目录一起打包成一个zip文件。客户端在安装、升级时，用的就是这个zip文件。
+端侧UI开发是放在服务的ui子目录中的，下面是user服务的目录结构，ui目录中存放的就是端侧UI实现。服务在启动时会自动根据service.cfg生成一个app.cfg文件，将它与ui目录一起打包成一个zip文件缓存起来。客户端在安装、升级时，下载此zip文件，并且解压到本地目录，然后加载其中的index.html文件，显示服务的UI。所以，如果服务需要在客户端显示内容，则，ui目录下必须有一个index.html文件。在index.html文件中，完成vue、quasar的初始化加载，如果用到报表，还需要加载echarts。
 
 ```
 ├── service.cfg         # 服务描述
@@ -191,7 +49,7 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
     └── authorizes.js   # 帐号按服务授权
 ```
 
-端侧ui在安装、升级时，下载此zip文件，并且解压到本地目录，然后加载其中的index.html文件，显示服务的UI。所以，如果服务需要在客户端显示内容，则，ui目录下必须有一个index.html文件。在index.html文件中，完成vue、quasar的初始化加载，如果要用报表，还需要加载echarts。
+每次打开客户端，都会向公司服务端查询客户端版本号，如果有新版本，会自动更新。
 
 
 ### 服务中的网络请求
@@ -240,46 +98,46 @@ const l=(typeof os)=='undefined' ? navigator.language : os.language();
 const tags = l.indexOf("zh") == 0 ? Language.cn : Language.en;
 //router定义
 const router = VueRouter.createRouter({"history": VueRouter.createMemoryHistory(),
-	routes:[
-		//定义router，安卓7不支持按需加载import
-		{path:'/home', component:()=>import('./home.js')},
-		...
-	]
+    routes:[
+        //定义router，安卓7不支持按需加载import
+        {path:'/home', component:()=>import('./home.js')},
+        ...
+    ]
 });
 
 //service定义
 const service = {
-	go_back() { //返回，在页面中通过service.go_back调用
-		router.back();
-	},
-	jumpTo(url) {
-		router.push(url);
-	}
+    go_back() { //返回，在页面中通过service.go_back调用
+        router.back();
+    },
+    jumpTo(url) {
+        router.push(url);
+    }
 };
 
 //app主体定义
 const app = Vue.createApp({
 provide:{tags:tags, service:service, icons:icons},
 created(){
-	service.baseInfo();
-	this.$router.push('/home').catch(err => {err}) //避免报NavigationDuplicated，此错误不影响功能
+    service.baseInfo();
+    this.$router.push('/home').catch(err => {err}) //避免报NavigationDuplicated，此错误不影响功能
 },
 
 mounted() {
-	window.sys_go_back = this.sysGoBack;//给webview调用
+    window.sys_go_back = this.sysGoBack;//给webview调用
 },
 
 methods:{
-	sysGoBack() {
-		//声明全局函数，在webview中调用，
-		//实现按回退按钮回退到历史页面，如果无历史，则退出activity或应用
-		if(this.$router.currentRoute.value.path==="/home") {
-			return false;
-		}
+    sysGoBack() {
+        //声明全局函数，在webview中调用，
+        //实现按回退按钮回退到历史页面，如果无历史，则退出activity或应用
+        if(this.$router.currentRoute.value.path==="/home") {
+            return false;
+        }
 
-		this.$router.back();
-		return true;
-	}
+        this.$router.back();
+        return true;
+    }
 }
 });
 
@@ -302,17 +160,17 @@ app.mount('#app');//必须：启动APP
 export default {
 inject:['service', 'tags'], //引用全局对象，页面中可以像使用data中变量一样使用
 data(){return{
-	name:"test"//数据定义，在页面中{{xxx}}括起的部分，在此都必须定义
+    name:"test"//数据定义，在页面中{{xxx}}括起的部分，在此都必须定义
 }},
 
 created(){
-	this.init(); //初始化加载，在mounted
+    this.init(); //初始化加载，在mounted
 },
 
 methods:{
-	init(){
-		//处理逻辑
-	}
+    init(){
+        //处理逻辑
+    }
 },
 
 //注意"`"不是单引号，是键盘左上角的反单引号(backquote)
@@ -358,14 +216,14 @@ en对应英文，zh对应中文，通过Platform.language()可以获得当前的
 Android客户端是这样获取的：
 ```Java
 public String language() {
-	return Locale.getDefault().getLanguage().substring(0,2).toLowerCase();
+    return Locale.getDefault().getLanguage().substring(0,2).toLowerCase();
 }
 ```
 Windows中是这样获取的：
 ```C#
 public string language() {
-	//System.Globalization.CultureInfo.InstalledUICulture.Name是安装时操作系统的语言
-	return System.Globalization.CultureInfo.CurrentUICulture.Name.Substring(0,2).ToLower();
+    //System.Globalization.CultureInfo.InstalledUICulture.Name是安装时操作系统的语言
+    return System.Globalization.CultureInfo.CurrentUICulture.Name.Substring(0,2).ToLower();
 }
 ```
 
@@ -398,14 +256,14 @@ template: `
 
 ### request
 
-request函数中不可以传入完整的url，只需传入服务名、接口名，request内部根据网络分布情况，选择合适的服务器，自动拼接出完整的请求url。
+request函数中不可以传入完整的url，只需传入服务名、接口名，request内部根据组网情况，选择合适的服务器，自动拼接出完整的请求url。
 ```JavaScript
 request({method:"POST", url:"/api/customer/create", data:dta}, "crm").then(resp => {
-	if(resp.code != RetCode.OK) {
-		this.$refs.errMsg.showErr(resp.code, resp.info);
-		return;
-	}
-	//如果有响应数据，在这里处理resp.data
+    if(resp.code != RetCode.OK) {
+        this.$refs.errMsg.showErr(resp.code, resp.info);
+        return;
+    }
+    //如果有响应数据，在这里处理resp.data
 })
 ```
 
@@ -418,7 +276,7 @@ request、download的service参数为被请求的服务名称，opts为请求选
 |method |支持GET/POST/PUT/DELETE方法，如果是GET/DELETE|
 |url    |请求URL，可以在"?"后面带参数|
 |data	|请求参数，必须是json对象，如果method是GET/DELETE，则无需传opts.data参数|
-|isCloud|表示无论当前选中的是哪个公司，请求都会发到根公司的云上服务中|
+|isCloud|表示无论当前选中的是哪个公司，请求都会发到根环境的云上服务中|
 |private|可以不传递，默认为true，表示需要做用户鉴权，如果访问public接口，将private设为false即可；<br>如果客户端已登录，则会自动使用用户token获取服务token，然后用服务token访问服务接口；如果用户未登录，则操作失败，建议在收到NO\_RIGHT错误码时，跳出提醒登录的窗口|
 |timeout|单位毫秒，不设置或设成小于或等于8000的值，则使用默认的HttpClient，超时为8秒，否则创建一个临时HttpClient，使用此timeout值；<br>不推荐使用此设置，除非万不得已，比如安装服务、备份数据等请求，因为每次都会新建一个HttpClient，既耗时又耗资源|
 
@@ -433,14 +291,14 @@ request是用来请求接口的，返回都是json格式。如果响应中需要
 所有响应的顶层结构都是一样的，包括返回码code、信息info；如果是查询类的请求，会包括data字段，每个查询类接口的data都不相同。
 ```JSON
 {
-	code:0,
-	info:"Success",
-	data:{
-		a:1,
-		b:"xxx",
-		c:{…},
-		d:[…]
-	}
+    code:0,
+    info:"Success",
+    data:{
+        a:1,
+        b:"xxx",
+        c:{…},
+        d:[…]
+    }
 }
 ```
 
@@ -481,12 +339,12 @@ opts中，除了支持request的所有选项外，还需要增加一个file\_nam
 如果不是通过接口访问获得文件，还可以增加一个file参数，设为true时，使用的url中将不会携带api。 其他参数与request相同。
 ```JavaScript
 download({file_name: fn,/*attatchment*/ url:'/downloadlog?n=' + encodeURIComponent(f)}, "crm").then(resp => {
-	if(resp.code == RetCode.OK) {
-		this.dlList.splice(0, 0, {file:resp.data.saveAs, size:resp.data.size, bg:'#00000000'})
-	} else {
-		this.dlList.splice(0, 0, {file:f, size:0, bg:'#884444'})
-	}
-	this.dlDlg=true;
+    if(resp.code == RetCode.OK) {
+        this.dlList.splice(0, 0, {file:resp.data.saveAs, size:resp.data.size, bg:'#00000000'})
+    } else {
+        this.dlList.splice(0, 0, {file:f, size:0, bg:'#884444'})
+    }
+    this.dlDlg=true;
 });
 ```
 ### getExternal
@@ -505,6 +363,8 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 
 在客户端UI编程中，有些功能js不能或不易实现，比如加解密、文件读写等，只能在平台中通过原生的方式实现。
 在端侧，至简网格提供了一些内置的JS函数，随着系统的完善，会有更多的内置能力通过js函数方式开放出来。
+
+### 函数列表
 
 | 函数 | 备注 |
 | --- | --- |
@@ -569,7 +429,7 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 | hmacSHA256Check(str, saved) | 验证str与saved是否一致，saved是hmacSHA256算法生成的 |
 | hmacSHA1(str, key) | 使用HMAC-SHA1算法对str进行不可逆运算，key可以是一个随机字符串 |
 | isPwdStrong(acc, pwd, min, max, charTypeNum, diffCharNum) | 判断密码强度是否足够。 acc：帐号，用于判断密码是否与帐号接近 pwd：密码 min：最小长度 charTypeNum：不同字符的数量 diffCharNum：不同类型字符数量，0-9\|a-z\|A-Z\|其他，共四类 |
-| Database类   | 虽然浏览器都内置了数据库实现，但是，浏览器内置数据库标准已废弃，考虑到未来的兼容性，所以提供此类。除了open函数，所有函数异步返回，结果的形式为：{code:ressult\_code,info:error\_infomation,data:{...}} |
+| Database类   | 虽然浏览器内置了数据库实现，但是，浏览器内置数据库标准已废弃，考虑到未来的兼容性，提供此类。除了open函数，所有函数异步返回，结果的形式为：{code:ressult\_code,info:error\_infomation,data:{...}} |
 | open(db) | 打开一个本地的数据库，此处以及后面函数中出现的db参数都是指是数据库名称；返回0表示失败，1表示已打开过了，2表示新建成功 |
 | initialize(db,sqls) | 初始化数据库，sqls是一个字符串，包括一条或多条建表语句，多条时，用分号分隔 |
 | execute(db,sql) | 执行一条增、删、改类的sql语句；返回data:{lineNum:xxx}，lineNum为受影响的行数 |
@@ -579,49 +439,49 @@ getExternal({url:’https://domain/pathtores....’,headers:{...}}).then(txt=> {
 | queryMap(db,sql) | 执行一条查询sql，结果以对象方式返回，比如，data:{c1:a,c2:b,c3:c} |
 
 ### 使用举例
-#### 数据库案例
+#### 使用数据库
 ```JavaScript
 var db='test_db';
 if(Database.open(db)>0) {
-	alert(xxx);
-	return;
+    alert(xxx);
+    return;
 }
 Database.initialize(db,"create table if not exists testtab(...);create index if not exists ...").then(res=>{
-	if(res.code!=RetCode.OK){
-		...
-		return;
-	}
-	...
+    if(res.code!=RetCode.OK){
+        ...
+        return;
+    }
+    ...
 });
 Database.execute(db, "insert into testtab(...),values(...)").then(res=>{
-	if(res.code!=RetCode.OK){
-		...
-		return;
-	}
-	if(res.data.lineNum>0){
-		...
-	}
+    if(res.code!=RetCode.OK){
+        ...
+        return;
+    }
+    if(res.data.lineNum>0){
+        ...
+    }
 });
 Database.queryMaps(db, "select c1,c2 from testtab where ...").then(res=>{
-	if(res.code!=RetCode.OK){
-		...
-		return;
-	}
-	for(var row of res.data.rows) {
-		Console.info(row.c1 + "," + row.c2);...
-	}
+    if(res.code!=RetCode.OK){
+        ...
+        return;
+    }
+    for(var row of res.data.rows) {
+        Console.info(row.c1 + "," + row.c2);...
+    }
 });
 ```
 
-#### 扫码案例<a id="scan2dbar"></a>
+#### 扫码<a id="scan2dbar"></a>
 ```JavaScript
 var jsCbId=__regsiterCallback(resp => {
-	if(resp.code!=RetCode.OK) {
-		this.$refs.alertDlg.showErr(resp.code, resp.info);
-		return;
-	}
-	var data = JSON.parse(resp.data.value);
-	......
+    if(resp.code!=RetCode.OK) {
+        this.$refs.alertDlg.showErr(resp.code, resp.info);
+        return;
+    }
+    var data = JSON.parse(resp.data.value);
+    ......
 });
 Platform.scanCode(jsCbId);
 ```
@@ -632,15 +492,15 @@ Platform.scanCode(jsCbId);
 <script src="/assets/v3/qrcode.js"></script>
 
 showQrCode() {
-	var txt = JSON.stringify({data...});//待生成的内容必须为一个字符串
-	new QRCode(this.$refs.qrCodeArea, {
-		text: txt,
-		width: width, //必须像素为单位
-		height: width,
-		colorDark: '#000000',
-		colorLight: '#ffffff',
-		correctLevel: QRCode.CorrectLevel.H
-	});
+    var txt = JSON.stringify({data...});//待生成的内容必须为一个字符串
+    new QRCode(this.$refs.qrCodeArea, {
+        text: txt,
+        width: width, //必须像素为单位
+        height: width,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+    });
 }
 ```
 
@@ -657,7 +517,7 @@ showQrCode() {
 
 端侧内置了一些常用组件，有地址选择、告警对话框、确认对话框等。
 
-使用时，首先在UI实现时先import它们，比如：
+使用时，首先，在index.html中import它们，比如：
 ```JavaScript
 import DateInput from "/assets/v3/components/date_input.js"
 import UserSelector from "/assets/v3/components/user_selector.js"
@@ -671,9 +531,10 @@ app.component('component-user-selector', UserSelector);
 app.component('component-alert-dialog', AlertDialog);
 app.component('component-confirm-dialog', ConfirmDialog);
 app.component('component-date-input', DateInput);
+app.mount('#app')
 ```
 
-最后，在使用时当作标签使用
+最后，使用时当作标签使用
 ```HTML
 <component-user-selector :label="tags.signers" :accounts="newCust.nextSigners"></component-user-selector>
 ```
@@ -749,11 +610,11 @@ import AlertDialog from "/assets/v3/components/alert_dialog.js"
 然后，在组件中注册组件：
 ```JavaScript
 export default {
-	...
-	components:{
-		"alert-dialog":AlertDialog
-	},
-	...
+    ...
+    components:{
+        "alert-dialog":AlertDialog
+    },
+    ...
 }
 ```
 并在template中申明组件：
@@ -913,17 +774,17 @@ min、max格式支持yyyy-MM、yyyy/MM、yyyy.MM，还支持cur（当前月份�
 需要显示进度条时，引用ref，调用show函数：
 ```JavaScript
 this.$refs.procDlg.show('数据备份', '确定要执行备份吗？', 'cloud_download',
-	(dlg)=> {
-		dlg.setInfo('');
-		return this.service.command({cmd:"restore"}, 100000); //必须为异步函数
-	},
-	(dlg,resp)=> {
-		if(resp.code!=RetCode.OK) {
-			dlg.setInfo(formatErr(resp.code, resp.info));
-		} else {
-			dlg.setInfo(this.tags.restoreSuccess);
-		}
-	}
+    (dlg)=> {
+        dlg.setInfo('');
+        return this.service.command({cmd:"restore"}, 100000); //必须为异步函数
+    },
+    (dlg,resp)=> {
+        if(resp.code!=RetCode.OK) {
+            dlg.setInfo(formatErr(resp.code, resp.info));
+        } else {
+            dlg.setInfo(this.tags.restoreSuccess);
+        }
+    }
 )
 ```
 
@@ -937,7 +798,7 @@ echarts已集成到客户端版本中，业务无需自己下载。 除折线图
 echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apache.org/zh/index.html%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)
 
 ---
-# 三、服务举例
+# 二、服务举例
 
 ## 极简CRM
 
@@ -978,3 +839,57 @@ echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apa
 ![classhour4](imgs/client/classhour4.png)
 
 报表中有总体的报表，也有单个套餐的报表，点击报表上面蓝色的图标就可以查看生成报表的原始详细数据。
+
+# 三、长连接客户端
+长连接客户端是特殊的客户端，它不使用http协议进行交互，而是使用tcp长连接进行交互。服务端在给设备下发命令（如，基于ROS实现的自动化系统、工业机器人等），让它执行某个操作时，如果使用http方式，端侧必须定期轮询服务侧获得命令，这种方法会有一定的延迟，并且会产生很多不必要的http请求。 因为有长连接，在当服务侧需要给端侧发消息时，通过长连接，就可以立刻通知到。
+
+为了实现这点，需要端侧与服务侧建立长连接，并实现相应的二进制交互协议。可编程的设备种类繁多，建立长连接的实现也各不相同，所以不能像http那样将实现封装到js中，而是需要每种设备自己实现。
+
+## 建立长连接
+
+每种设备的开发环境不同，但是基本的思路都是与服务器的8524端口建立TCP长连接，并实现交互协议。 此协议是将http协议包裹在一个二进制协议中传输。
+
+客户端与服务端建立长连接，首先需要获得服务端地址，有两种方法：
+
+1. 先使用http协议从公共httpdns中查询内网入口地址，然后调用内网的probe接口，获得所有服务的IP地址；
+2. 在设备中直接设置服务的IP地址。
+
+两种方法各有利弊，方法1不需要手动设置，方法2开发简单，并且内网地址可以与MAC地址绑定，让服务器地址保持稳定不变，配置一次就不用变了。
+
+【注意】长连接端侧除了可以用长连接请求服务侧接口，同时也可以使用http协议请求服务侧的接口。
+
+## 实现交互协议
+
+### 协议头部
+
+Java开发语言与网络传输中都使用大端序，所以协议中的数值类型都是使用大端序。
+
+以下协议定义中字段后面括号中的数字表示字段的字节数，无论是端侧发往服务侧，还是服务侧发往端侧，头部定义都是一样的。
+```
+报文总长度（4，不包括报文总长度本身的4字节）+命令字（1）+请求ID（4）
+```
+
+在异步方式交互时，请求方根据请求ID将响应对应到正确的请求。 响应内容中命令字与请求ID都原样返回，请求方必须保证请求ID在合理的时间段内是唯一的。
+
+### 服务侧给端侧响应的内容
+
+无论什么命令字，服务侧响应内容的格式都是一样的。除了协议头部以外，还有以下几个部分：
+```
+状态码（4，同http状态码，通常为200）+响应头长度（4）+响应头+响应体长度（4）+响应体
+```
+
+请求头、请求体、响应头响应体是json对象字符串，解析后第一重结构是k-v结构， 在Java中可以使用Map<String,Object>存储，C#中使用IDictionary<string, object>存储， 其他语言可以参照处理。
+
+### 端侧发往服务侧的命令
+
+端侧发往服务侧的命令字中CONNECT/DISCONNECT/HEARTBEAT是连接管理的命令字，它们没有header、body部分，也没有相应的长度字段。 GET/PUT/DELETE/POST是接口调用命令字，有header、body部分，即使没有，也要有相应的长度字段。
+| 命令字  | 编码  | 定义  |
+| ---    | ---   | ---- |
+|CONNECT |0 | 端侧发起连接<br>版本（4）+资源名称长度（4）+资源名称（UTF8字符串）<br>资源名称是一个字符串，格式为“帐号:密码@公司ID”<br>服务侧响应内容就是端侧login的响应内容，包括access_token/refresh_token/expires_at/token_type/id等内容|
+|DISCONNECT |1 |端侧主动断开连接，只有协议头部 |
+|HEARTBEAT	|2 |端侧心跳，只有协议头部|
+|GET	|3	|GET请求，无请求体<br>GET/PUT/DELETE/POST四个命令字的格式是一致的，在协议头部之后的格式为：<br>url长度（4）+url+请求头长度（4）+请求头+请求体长度（4）+请求体<br>如果没有请求头或请求体部分，仍然须有长度字段，对应的长度为0，后面不跟内容|
+|POST	|4	|POST请求|
+|DELETE	|5	|DELETE请求，无请求体|
+|PUT	|6	|PUT请求|
+

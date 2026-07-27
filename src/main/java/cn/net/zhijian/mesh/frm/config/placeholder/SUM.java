@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
@@ -42,8 +42,8 @@ final class SUM extends AbsListElement {
             this.places = -1.0; //小于0时，不做处理
         }
         
-        this.valType = Relation.parseType(tp);
-        if(!Relation.isNumber(this.valType)) {
+        this.valType = TV.parseType(tp);
+        if(!TV.isNumber(this.valType)) {
             throw new InvalidParameterException("invalid type");
         }
         parseListPara(ss[1]);
@@ -56,14 +56,14 @@ final class SUM extends AbsListElement {
         if(!(v instanceof List)) {
             return 0;
         }
-        if(valType == Relation.TYPE_LONG) {
+        if(valType == TV.TYPE_LONG) {
             return runLong((List<Object>)v);
         }
-        if(valType == Relation.TYPE_INT) {
+        if(valType == TV.TYPE_INT) {
             return (int)runLong((List<Object>)v);
         }
         double sum = runDouble((List<Object>)v);
-        if(valType == Relation.TYPE_DOUBLE) {
+        if(valType == TV.TYPE_DOUBLE) {
             return places >= 0 ? (Math.round(sum * places) / places) : sum;
         }
         //如果先处理保留位数，再强转为float，保留位数失败

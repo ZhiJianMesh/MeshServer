@@ -35,7 +35,11 @@ import cn.net.zhijian.util.ValParser;
 
 /**
  * 数据库工人抽象类，实现基本的数据库操作，比如初始化、增删改查等，
- * 实际的数据库操作，需要在子类中，根据数据库类型不同提供不同的实现
+ * 实际的数据库操作，需要在子类中，根据数据库类型不同提供不同的实现。
+ * 
+ * 因为两个原因，导致本系统不能使用PreparedStatement来规避sql注入：
+ * 1）基于sql的数据同步；
+ * 2）sql在调用方已替换占位符；
  * @author flyinmind of csdn.net
  *
  */
@@ -66,6 +70,8 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
     private static final char[] SQL_UPDATE_TIME = SEG_UPDATETIME.toCharArray();
     private static final char[] SQL_INSERTIGNORE = "or ignore".toCharArray();
     private static final String SQL_SINSERTIGNORE = " or ignore ";
+    
+    private static final int MAX_SUB_DEPTH = 10;
 
     private static final ReentrantLock InstanceLock = new ReentrantLock();
     protected static final Map<String, AbsRDBWorker> DBWorkers = new ConcurrentHashMap<>();
@@ -353,7 +359,8 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
         }
 
         try (AbsConnection conn = getReadConn()){
-            Object[] res = queryLine(conn, "select val from " + SYSTEM_TABLE + " where name='" + name + "'");
+            Object[] res = queryLine(conn, "select val from " + SYSTEM_TABLE
+                        + " where name='" + name.replace("'", "''") + "'");
             if(res == null) {
                 return IConst.EMPTY_STR;
             }
@@ -381,7 +388,8 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
     }
 
     private int innerSetSysConfig(String name, String val) {
-        String sql = "replace into " + SYSTEM_TABLE + "(name,val) values('" + name
+        String sql = "replace into " + SYSTEM_TABLE + "(name,val) values('"
+                + name.replace("'", "''")
                 + "','" + val.replace("'", "''") + "')";
         try(AbsConnection conn = getWriteConn()) {
             executeRawDML(conn, sql);
@@ -538,7 +546,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
                     list.add(segs[i].trim());
                 }
             }
-            querySubs(conn, tab, list, id, idName, fidName);
+            querySubs(conn, tab, list, id, idName, fidName, 0);
             return new ArrayList<>(list);
         }
         return querySingles(conn, cl.toString());
@@ -554,24 +562,27 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
     }
     
     private void querySubs(AbsConnection conn, String table, Set<String> list,
-            String id, String idName, String fidName) throws SQLException {
+            String id, String idName, String fidName, int depth) throws SQLException {
         String sql = "select " + idName + " from " + table
                 + " where " + fidName + "=" + id + " order by " + idName;
         List<Object> ids = querySingles(conn, sql);
         if(ids != null && !ids.isEmpty()) {
-            querySubs(conn, table, list, ids, idName, fidName);
+            querySubs(conn, table, list, ids, idName, fidName, depth++);
         }
     }
     
     private void querySubs(AbsConnection conn, String table, Set<String> list,
-            List<Object> ids, String idName, String fidName) throws SQLException {
+            List<Object> ids, String idName, String fidName, int depth) throws SQLException {
+        if (depth > MAX_SUB_DEPTH) {
+            throw new SQLException("Max recursion depth exceeded");
+        }
         for(Object i : ids) {
             String id = ValParser.parseString(i);
             if(list.contains(id)) { //环状，错误的，必须终止
                 continue;
             }
             list.add(id);
-            querySubs(conn, table, list, id, idName, fidName);
+            querySubs(conn, table, list, id, idName, fidName, depth++);
         }
     }
     

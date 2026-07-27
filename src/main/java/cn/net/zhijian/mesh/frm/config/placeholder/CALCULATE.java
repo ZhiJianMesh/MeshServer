@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import cn.net.zhijian.mesh.bean.ApiParaHolder;
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.util.Calculator;
 import cn.net.zhijian.util.StringUtil;
@@ -46,8 +46,8 @@ class CALCULATE extends ScriptElement {
             this.places = -1.0; //小于0时，不做处理
         }
         
-        this.valType = Relation.parseType(tp);
-        if(!Relation.isNumber(this.valType)) {
+        this.valType = TV.parseType(tp);
+        if(!TV.isNumber(this.valType)) {
             throw new InvalidParameterException("invalid type config");
         }
         
@@ -69,13 +69,13 @@ class CALCULATE extends ScriptElement {
     public Object run(AbsServerRequest req, Map<String, Object> resp) {
         String str = runAll(this.holders, req, resp);//连接起来，形成算式
         double v = Calculator.calculate(str);
-        if(valType == Relation.TYPE_INT) {
+        if(valType == TV.TYPE_INT) {
             return (int)v;
         }
-        if(valType == Relation.TYPE_LONG) {
+        if(valType == TV.TYPE_LONG) {
             return (long)v;
         }
-        if(valType == Relation.TYPE_FLOAT) {
+        if(valType == TV.TYPE_FLOAT) {
             float fv = (float)v;//如果先处理保留位数，再强转为float，保留位数失败
             return places >= 0 ? (Math.round(fv * places) / places) : fv;
         }

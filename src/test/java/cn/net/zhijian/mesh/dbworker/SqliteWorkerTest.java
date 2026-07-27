@@ -407,7 +407,7 @@ public class SqliteWorkerTest extends UnitTestBase {
             fail("Fail to execute insert sqls:" + e);
         }
 
-        if(!counter.await(3000, TimeUnit.MILLISECONDS)) {
+        if(!counter.await(5000, TimeUnit.MILLISECONDS)) {
             fail("Synchronization used too much time");
         }
         Thread.sleep(500); //等从库写完

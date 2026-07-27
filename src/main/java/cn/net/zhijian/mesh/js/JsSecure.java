@@ -5,7 +5,7 @@ import java.security.SecureRandom;
 
 import org.slf4j.Logger;
 
-import cn.net.zhijian.mesh.bean.Relation;
+import cn.net.zhijian.mesh.bean.TV;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.quickjs.JavascriptMethod;
 import cn.net.zhijian.util.AESUtil;
@@ -252,11 +252,11 @@ public final class JsSecure implements IConst {
             max = null;
         }
         
-        switch(Relation.parseType(type)) {
-        case Relation.TYPE_LONG: return Long.toString(rand.nextLong(ValParser.parseLong(max, Long.MAX_VALUE)));
-        case Relation.TYPE_FLOAT: return Float.toString(rand.nextFloat(ValParser.parseFloat(max, Float.MAX_VALUE)));
-        case Relation.TYPE_DOUBLE: return Double.toString(rand.nextDouble(ValParser.parseDouble(max, Double.MAX_VALUE)));
-        case Relation.TYPE_STRING: {
+        switch(TV.parseType(type)) {
+        case TV.TYPE_LONG: return Long.toString(rand.nextLong(ValParser.parseLong(max, Long.MAX_VALUE)));
+        case TV.TYPE_FLOAT: return Float.toString(rand.nextFloat(ValParser.parseFloat(max, Float.MAX_VALUE)));
+        case TV.TYPE_DOUBLE: return Double.toString(rand.nextDouble(ValParser.parseDouble(max, Double.MAX_VALUE)));
+        case TV.TYPE_STRING: {
             int len;
             int base = 16;
             idx = max.indexOf('.');

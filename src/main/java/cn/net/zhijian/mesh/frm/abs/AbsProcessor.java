@@ -411,7 +411,7 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
         final HandleResult errResult;
         final ScriptElement[] eles;
         final int type;
-        
+
         OnSuccess(int code, String info, ScriptElement[] eles, int type) {
             this.eles = eles;
             this.errResult = new HandleResult(code, info);

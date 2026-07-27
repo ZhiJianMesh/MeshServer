@@ -1,5 +1,5 @@
 <div align="center" style="font-size:2em;font-weight:bold;">
-  至简网格服务开发指导<br>
+  至简网格服务端开发指导<br>
   <img src="imgs/zhijian_logo.png" width="50">
 </div>
 
@@ -159,15 +159,14 @@ service.cfg配置非常简单，格式如下：
     "author":"flyinmind@zhijian.net.cn", //作者
     "company" : "zhijian.net.cn", //公司或组织名称
     "version":"0.1.0", //版本号
+    "displayName":"客户关系管理系统", //对外显示的名称
     "dependencies":[
         //依赖的服务列表，如果不申明，就不能调用这个服务
         //webdb、bios、oauth等服务无需申明依赖
-        //安卓等平台的单例版本，会根据此处的定义自动添加服务依赖
+        //单例运行，会根据此处的定义自动添加服务依赖
         //非单例版本，需要在OM平台上设置依赖关系
         {"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1"}
-    ],
-
-    "displayName":"客户关系管理系统" //对外显示的名称
+    ]
 }
 ```
 
@@ -261,22 +260,6 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 ]
 ```
 宏可以传递参数，宏参数名称前后要加上“#”，比如上例中的"#ACCLIST#"，这些宏参数最终都转成了字符串替换到宏定义中。
-
-## 静态接口
-
-".json"文件是用来定义静态内容的接口，与type为 [static的处理](#static)不同之处在于“这些接口必须public的”。常用在roles接口中，roles接口是定义服务中用户角色的，比如：
-```JSON
-{
-    "roles": {
-        "admin":{"name":"企业主","rights":{"sku":"\*","report":"\*","proxy":"\*"}},
-        "sales":{"name":"销售","rights":{}},
-        "finance":{"name":"财务","rights":{"report":"\*"}},
-        "support":{"name":"服务","rights":{}}
-    }
-}
-```
-
-这样在其他服务中就可以通过调用”/roles“获得服务中支持的角色，以及角色可以执行哪些接口。
 
 ---
 # 四、接口定义<a id="interfacedef"></a>
@@ -383,7 +366,8 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 2. toResp：默认为false，如果设为true，生成的变量会插入到响应的data中。
 ```JSON
 "vars":[
-    {"name":"flowid", "toResp":true, "val":"@{SEQUENCE|'flow',i}", "comment":"流程id"}
+    {"name":"flowid", "val":"@{SEQUENCE|'flow',i}", "toResp":true, "comment":"流程id"},
+    {"name":"curDay", "val":"@{NOW|unit86400000}", "comment":"距UTC第一天的天数"}
 ]
 ```
 
@@ -400,10 +384,14 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | ignores|可以忽略的错误码列表，如果发生的错误码在这个列表中，就忽略它，返回OK，否则结束当前处理以及后继的其他处理，返回错误码；[-1]表示忽略所有错误码|
 | when   |一个逻辑表达式，确定当前process是否执行，如果返回false则直接跳过当前process<br>只能使用请求参数、变量、请求头或上一步的响应参数作为判断条件|
 | convert|将start-end（包括start、end）范围内的错误码全部转换成"to"指定的错误码，info指定错误信息<br>如果“to”为OK，则可以设置data，data必须为一个json字符串，可以使用占位符<br>如果start与end相同，可以简化成code|
+| onSuccess | 如果process处理OK，则执行onSuccess补充逻辑，有两种方式补充方式：<br>1）直接返回一个json对象字符串，json对象中的成员会直接添加到响应体的data中；<br>2）设置condition(一个或多个@{CONDITION})、errorCode、errorInfo，如果condition为真，则当前处理最终返回OK，如果为假则返回errorCode及errorInfo，处理失败，并终止后继的处理，例子见后面的[例子](#onsuccessexample)。 |
 
 ### RDB
 
 RDB是使用最多的处理类型，调用webdb/api/rdb/request实现数据库读写。
+
+拼接sql是至简网格不得不采用的方法，在做sql占位符替换时，内部会将单引号变成两个单引号；数值型参数在定义时必须明确指定类型，参数检查时会校验类型，不能用字符串参数替代。
+
 ```JSON
 {
     "name" : "sys",
@@ -423,6 +411,7 @@ RDB是使用最多的处理类型，调用webdb/api/rdb/request实现数据库�
 #### 普通SQL
 
 SQL操作是最常见的接口操作。增删改比较简单，只有成功失败的返回；而查询SQL，因为要设置结果集的返回格式，所以每个sql还有name、multi、metas、merge配置。
+
 ```JSON
 {
     "name":"vips",
@@ -432,6 +421,7 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
     "comment":"返回字段与search保持一致"
 }
 ```
+
 
 | 属性  | 说明 |
 | ---  | ---  |
@@ -463,24 +453,54 @@ for(var i in vv){
 DB.sql(sqls.join(''));
 ```
 
-使用js拼装sql时，所有占位符都可以用，占位符解析时会将字符串中的单引号"'"变为两个单引号"''"。也可以使用服务端内置的js函数（请参考4.3.5）。
+使用js拼装sql时，所有占位符都可以用，也可以使用服务端内置的js函数（请参考4.3.5）。
+js中占位符解析时会将字符串中的单引号“'”变为两个单引号“''”。
+
+在用js拼接时，要注意sql注入问题，对于字符串参数调用DB.clearInjection处理一下，并调用DB.sql将sql传递给数据库。该函数中对sql做了严格的注入检查，sql中非字符串部分不得出现“--、/*、//”等注释开始标识，“or、||、union”不容许出现在单引号后。如此判断可能会导致误判，所以使用时注意避免。
 
 #### 带RS的SQL
 
-运行时拼接出来的sql，加载配置时还无法知道sql类型，需要以"rs:"开头。通常用来拼接一个批量执行的sql，通常用@{FOR}、@{SWITCH}等占位符，比如：
+运行时通过占位符拼接出来的sql，加载配置时还无法知道sql类型，需要以"rs:"(runtime script)开头。
+通常用来拼接一个批量执行的sql，常用@{FOR}、@{SWITCH}等占位符，比如：
 
 ```Javascript
-rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver=`, e.ver,
-` where partId=@{partId} and service='`, e.name, `' and addr='@{addr}'`}
+rs:@{FOR|services, `;`, `update srvstatus set srvstatus='N',ver='`, e.ver,
+`' where partId=@{partId} and service='`, e.name, `' and addr='@{addr}'`}
 ```
 假设servies为
 ```JSON
 [
-    {ver:"1.0",name:"test1"},{ver:"1.0",name:"test1"}
+    {ver:"1.0",name:"test1"},{ver:"1.1",name:"test2"}
 ]
 ```
 
 运行后会将请求参数services中所有元素拼接成多个update操作，每个update操作之间用“;”分隔。其中的e.ver就是指请求services参数每个元素中的ver字段。
+rs中的占位符，包括循环占位符(e.开头)，在运行替换时都会将单引号替换成两个单引号。
+
+```SQL
+update srvstatus set srvstatus='N',ver='1.0' where partId=250000 and service='test1' and addr='1.1.1.1';
+update srvstatus set srvstatus='N',ver='1.1' where partId=250000 and service='test2' and addr='1.1.1.1'
+```
+
+rs效率远高于js，所以，如果逻辑不复杂，尽量不用js，或使用rs替代js，比如上面的js例子可以改成：
+```SQL
+insert into tb(a,b,c,d) values @{FOR|signers,`,`, `(@{a},'@{b}',`, e, `@{ABSHASH|c,d})`}
+```
+上面例子中因为insert开头，至简网格指定sql类型，所以并不以rs开头；另外，在循环@{ABSHASH|c,d}是不推荐的，建议增加一个var处理，定义一个变量存放计算后的结果，再传入@{FOR}中，避免多次计算hash值。
+```JSON
+{
+    "name":"calculate_abshash",
+    "type":"var",
+    "vars":[
+        {"name":"cdHashVal", "val":"@{ABSHASH|c,d}"}
+    ]
+}
+```
+
+然后将上例改写为：
+```SQL
+insert into tb(a,b,c,d) values @{FOR|signers,`,`, `(@{a},'@{b}',`, e, `@{cdHashVal})`}
+```
 
 ### dataexists
 
@@ -881,8 +901,10 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
     ]
 }
 ```
+
 ### static
 
+#### 静态处理
 只有一个data配置项，定义一个静态的json串，响应时始终返回data中的内容。
 ```JSON
 {
@@ -891,6 +913,21 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
     "data": {"segs":["name","taxid","address","business","creator","createAt"]}
 }
 ```
+
+#### 静态数据
+与static不同，这种接口中直接写"接口名:{接口返回的data}"，必须写在".json"文件中。
+与静态处理的不同之处在于“这些接口必须public的”，常用在roles接口、端侧配置类接口中。roles接口是定义服务中用户角色的，aclChecker为RBAC时用到它，比如：
+```JSON
+{
+    "roles": {
+        "admin":{"name":"企业主","rights":{"sku":"\*","report":"\*","proxy":"\*"}},
+        "sales":{"name":"销售","rights":{}},
+        "finance":{"name":"财务","rights":{"report":"\*"}},
+        "support":{"name":"服务","rights":{}}
+    }
+}
+```
+在其他服务中就可以通过调用”/roles“获得服务中支持的角色，以及角色可以执行哪些接口。
 
 ### var
 
@@ -984,6 +1021,62 @@ toResp为true时，内容会作为响应的字段返回。
     ]
 }
 ```
+
+### onSuccess例子<a id="onsuccessexample"></a>
+
+直接返回json字符串，在后继的处理中可以用@{!publicKey}引用。
+```JSON
+{
+    "name" : "authInfo",
+    "type" : "biosmeta",
+    "actions": [
+        {"action":"get", "key":"/service/@{service}/key"},
+        {"action":"get", "key":"/service/@{service}/dbs/@{callee}/type", "as":"features"}
+    ],
+    "onSuccess":"{
+        \"publicKey\":\"@{ECKEYPAIR|public,!key}\"
+    }"
+}
+```
+
+使用@{SWITCH}根据不同的情况返回不同的JSON内容，解析时，如果发现有code字段，则解析为响应结果，否则解析为普通的data。所以，这种方式是不能返回带有code字段的data的。
+```JSON
+{
+    "name" : "query_customer_data",
+    "type" : "rdb",
+    "db": "crm",
+
+    "sqls" : [{
+        "multi":false,
+        "merge":true,
+        "metas" : "each",
+        "sql":"select name cname,flSta 'status' from customers where id=@{customer}"
+    }],
+    "onSuccess" : "
+        @{SWITCH|!cname,'s.==','', `{\"code\":\"NOT_EXISTS\",\"info\":\"customer not exist\"}`,
+        |,!status,'i.!=',100, `{\"code\":\"DATA_WRONG\",\"info\":\"customer not approved\"}`,
+        |,`{\"code\":\"OK\",\"info\":\"Success\"}`}
+    "
+}
+```
+
+用condition判断是否结束处理，condition中可以有一个或多个@{CONDITION}判断。
+```JSON
+{
+    "name":"save_up_msg",
+    "type":"rdb",
+    "db":"device",
+    "sqls":[
+        ...
+    ],
+    "onSuccess":{
+        "condition":"@{CONDITION|!total,'i.>',0} && @{CONDITION|!msg_num,'i.>',0}",
+        "errorCode":"NOT_EXISTS",
+        "errorInfo":"device not exsits"
+    }
+}
+```
+
 
 ## 响应response
 
@@ -1155,38 +1248,15 @@ toResp为true时，内容会作为响应的字段返回。
 | ---     | --- | --- |
 | @{xxx}  | 请求参数 | 引用参数列表中的字段或vars中定义的变量；如果引用了不存在的请求参数，启动时会失败；名称中可以包含'.'，表示多级引用 |
 | @{^xxx} | 请求头参数 | 引用http请求头中的字段 |
-| @{!xxx} | 响应参数 | 前面处理的响应内容；名称中可以包含'.'，表示多级引用 |
 | @{#xxx} | 系统参数 | 1)tokenCaller、tokenCallee、tokenPartId、tokenAcc、tokenCid、tokenExt：token中的信息，在私有接口中才有；<br> 2)reqAt参数：接受到请求时的utc时间戳；<br> 3)shard分片号：从接口配置的sharding字段计算得出；<br> 4)result：上一步的执行结果，与convert结合使用才有意义，因为任何一个处理只要返回值不是OK，则整个处理就终止了，不会走到下一步。 |
-| @[!xxx] | 前面步骤执行的响应内容 | 通常用在RDB处理中使用。当有多个sql时，上一个sql查询处理完毕，下一个sql可以使用上一个sql的结果集，比如@[!UserNum]。 【注意】这种参数在请求端不会被编译替换，而是在webdb中执行时才会被替换，所以对性能有少许影响 |
+| @{!xxx} | 响应参数 | 前面处理的响应内容；名称中可以包含'.'，表示多级引用 |
+| @[!xxx] | 前面操作的响应内容 | 只用在RDB处理中，当有多个sql时，上一个查询sql处理完毕，下一个sql可以使用上一个sql的结果集，比如@[!UserNum]； 这种参数在请求端不会被编译替换，而是在webdb中执行时才会被替换，这会增加少许webdb的负担，但是减少了网络交互 |
 
-## 处理之间的引用占位符
+## 处理/操作之间的引用占位符
 
-### 1）同一处理中多个操作间的引用
-同一个处理中，多个操作的情况，后面操作可以引用前面的响应结果，下面的@[FOR|!items...]就是这样的例子，items是上一个操作的的查询结果。
-这样的引用，必须是在同一个库中的多个操作之间，不能跨库使用。结果可以不从webdb中返回给调用方，直接在webdb中使用，减少了网络交互。
-```JSON
-"process":[{
-    "name": "update_status",
-    "type": "rdb",
-    "db": "log", //在同一个库中才可以使用@[!xxx]
-    "sqls": [
-        {
-            "name":"items",
-            "metas":"each",
-            "multi":true,
-            "merge":false,
-            "sql":"select productId,subTotal from sales_items where orderId=@{id}"
-        },
-        //确认时就按天统计计入报表，避免查询报表时再求和
-        "insert or ignore into sales_stats(day,type,productId) values@[FOR|!items, `,`, `(@{day},'SAL',`, e.productId, `)`]",              
-        "rs:@[FOR|!items, `;`, `update sales_stats set amount=amount+`, e.subTotal, ` where day=@{day} and type='SAL' and productId=`, e.productId]"
-    ]
-}]
-```
 
-### 2）同一接口中不同处理间的引用
-如果process中有多个不同的处理，后面的处理可以引用前面处理的结果，下面的@{FOR|!items...}是前一个处理get_items的查询结果（名称由sql的name指定，而不是处理的name指定）。
-这样引用时，结果会返回给调用方，通常用在不同库之间的互操作。
+### 1）不同处理间的引用
+如果process中有多个不同的处理，后面的处理可以引用前面处理的结果，下面的@{FOR|!items...}是前一个处理get_items的查询结果（名称由sql的name指定，而不是处理的name指定）。比如在一个数据库中查询内容，然后更新到另外一个数据库中。
 ```JSON
 "process": [
     {
@@ -1211,6 +1281,29 @@ toResp为true时，内容会作为响应的字段返回。
     ...
 ]
 ```
+
+### 2）不同操作间的引用
+同一个数据库处理中，有多个数据库操作的情况，后面的操作可以引用前面操作的响应结果，下面的@[FOR|!items...]就是这样的例子，items是上一个查询操作的结果。结果可以不从webdb中返回给调用方，而是直接在webdb中使用，减少了网络交互。
+```JSON
+"process":[{
+    "name": "update_status",
+    "type": "rdb",
+    "db": "log", //在同一个库中才可以使用@[!xxx]
+    "sqls": [
+        {
+            "name":"items",
+            "metas":"each",
+            "multi":true,
+            "merge":false,
+            "sql":"select productId,subTotal from sales_items where orderId=@{id}"
+        },
+        //确认时就按天统计计入报表，避免查询报表时再求和
+        "insert or ignore into sales_stats(day,type,productId) values@[FOR|!items, `,`, `(@{day},'SAL',`, e.productId, `)`]",              
+        "rs:@[FOR|!items, `;`, `update sales_stats set amount=amount+`, e.subTotal, ` where day=@{day} and type='SAL' and productId=`, e.productId]"
+    ]
+}]
+```
+
 
 ## 复杂功能占位符
 单纯的参数引用不能够满足某些特定的功能，比如要对字段加解密，这时需要用到一些函数，使用时，将函数名放在参数前面，并用“|”分隔，参数可以是请求参数、响应参数，也可以是系统参数、请求头，比如:

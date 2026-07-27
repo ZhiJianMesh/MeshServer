@@ -58,7 +58,7 @@ public abstract class AbsJDBCWorker extends AbsRDBWorker {
             LOG.debug("{}-{}.executeRawDML(`{}`)", service, dbName, sql);
         }
 
-        //synchronized(conn) {//conn本身是单例，一个线程获取后，其他线程无法获取
+        //synchronized(conn) {//一个线程获取后，其他线程无法获取
             try(Statement stmt = ((Connection)conn.get()).createStatement()) {
                 return stmt.executeUpdate(sql);
             }
@@ -254,23 +254,24 @@ public abstract class AbsJDBCWorker extends AbsRDBWorker {
     public Object[] queryLine(AbsConnection conn, String sql) throws SQLException {
         JDBCResultSet resultSet = new JDBCResultSet();
         
-        try (PreparedStatement stmt = ((Connection)conn.get()).prepareStatement(sql);
-            ResultSet rs = stmt.executeQuery()) {
-            if(!rs.next()) { //必须在取meta之前，调用一次next，否则抛异常
-                return null;
-            }
-            ColumnMeta[] metas = parseMetas(rs.getMetaData());
-            resultSet.setResultSet(rs);
-            Object[] line = new Object[metas.length];
-            boolean isNull = true;
-            for(int i = 0; i < metas.length; i++) { //zero based
-                Object o = metas[i].get(resultSet, longToStr);
-                if(o != null) { //在没有记录时仍然返回一个全空的行
-                    isNull = false;
+        try (PreparedStatement stmt = ((Connection)conn.get()).prepareStatement(sql)) {
+            try(ResultSet rs = stmt.executeQuery()) {
+                if(!rs.next()) { //必须在取meta之前，调用一次next，否则抛异常
+                    return null;
                 }
-                line[i] = o;
+                ColumnMeta[] metas = parseMetas(rs.getMetaData());
+                resultSet.setResultSet(rs);
+                Object[] line = new Object[metas.length];
+                boolean isNull = true;
+                for(int i = 0; i < metas.length; i++) { //zero based
+                    Object o = metas[i].get(resultSet, longToStr);
+                    if(o != null) { //在没有记录时仍然返回一个全空的行
+                        isNull = false;
+                    }
+                    line[i] = o;
+                }
+                return isNull ? null : line;
             }
-            return isNull ? null : line;
         }
     }
 
