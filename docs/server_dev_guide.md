@@ -384,9 +384,74 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | ignores|可以忽略的错误码列表，如果发生的错误码在这个列表中，就忽略它，返回OK，否则结束当前处理以及后继的其他处理，返回错误码；[-1]表示忽略所有错误码|
 | when   |一个逻辑表达式，确定当前process是否执行，如果返回false则直接跳过当前process<br>只能使用请求参数、变量、请求头或上一步的响应参数作为判断条件|
 | convert|将start-end（包括start、end）范围内的错误码全部转换成"to"指定的错误码，info指定错误信息<br>如果“to”为OK，则可以设置data，data必须为一个json字符串，可以使用占位符<br>如果start与end相同，可以简化成code|
-| onSuccess | 如果process处理OK，则执行onSuccess补充逻辑，有两种方式补充方式：<br>1）直接返回一个json对象字符串，json对象中的成员会直接添加到响应体的data中；<br>2）设置condition(一个或多个@{CONDITION})、errorCode、errorInfo，如果condition为真，则当前处理最终返回OK，如果为假则返回errorCode及errorInfo，处理失败，并终止后继的处理，例子见后面的[例子](#onsuccessexample)。 |
+| onSuccess | 如果process处理OK，则执行onSuccess补充逻辑，有两种方式补充方式：<br>1）直接返回一个json对象字符串，json对象中的成员会直接添加到响应体的data中；<br>2）设置condition(一个或多个@{CONDITION})、errorCode、errorInfo，如果condition为真，则当前处理最终返回OK，如果为假则返回errorCode及errorInfo，处理失败，并终止后继的处理，见下面的例子 |
 
-### RDB
+
+
+onSuccess较为复杂，举几个例子来更清楚的说明它的用法。
+
+**直接返回json字符串**
+
+在后继的处理中可以用@{!publicKey}引用。
+```JSON
+{
+    "name" : "authInfo",
+    "type" : "biosmeta",
+    "actions": [
+        {"action":"get", "key":"/service/@{service}/key"},
+        {"action":"get", "key":"/service/@{service}/dbs/@{callee}/type", "as":"features"}
+    ],
+    "onSuccess":"{
+        \"publicKey\":\"@{ECKEYPAIR|public,!key}\"
+    }"
+}
+```
+
+**用condition判断是否结束处理**
+
+condition中可以有一个或多个@{CONDITION}判断。
+```JSON
+{
+    "name":"save_up_msg",
+    "type":"rdb",
+    "db":"device",
+    "sqls":[
+        ...
+    ],
+    "onSuccess":{
+        "condition":"@{CONDITION|!total,'i.>',0} && @{CONDITION|!msg_num,'i.>',0}",
+        "errorCode":"NOT_EXISTS",
+        "errorInfo":"device not exsits"
+    }
+}
+```
+
+**使用@{SWITCH}根据不同的情况返回不同的JSON内容**
+
+解析时，如果发现有code字段，则解析为响应结果，否则解析为普通的data。所以，这种方式是不能返回带有code字段的data的。
+```JSON
+{
+    "name" : "query_customer_data",
+    "type" : "rdb",
+    "db": "crm",
+
+    "sqls" : [{
+        "multi":false,
+        "merge":true,
+        "metas" : "each",
+        "sql":"select name cname,flSta 'status' from customers where id=@{customer}"
+    }],
+    "onSuccess" : "
+        @{SWITCH|!cname,'s.==','', `{\"code\":\"NOT_EXISTS\",\"info\":\"customer not exist\"}`,
+        |,!status,'i.!=',100, `{\"code\":\"DATA_WRONG\",\"info\":\"customer not approved\"}`,
+        |,`{\"code\":\"OK\",\"info\":\"Success\"}`}
+    "
+}
+```
+
+处理的配置中用type指定处理的类型，现在支持的类型有以下几种，分别一一介绍。
+
+### 1. RDB
 
 RDB是使用最多的处理类型，调用webdb/api/rdb/request实现数据库读写。
 
@@ -502,7 +567,7 @@ insert into tb(a,b,c,d) values @{FOR|signers,`,`, `(@{a},'@{b}',`, e, `@{ABSHASH
 insert into tb(a,b,c,d) values @{FOR|signers,`,`, `(@{a},'@{b}',`, e, `@{cdHashVal})`}
 ```
 
-### dataexists
+### 2. dataexists
 
 执行查询sql，根据sql执行的返回计数，判断数据是否存在。
 
@@ -525,7 +590,7 @@ insert into tb(a,b,c,d) values @{FOR|signers,`,`, `(@{a},'@{b}',`, e, `@{cdHashV
 | numSeg    | 返回计数的字段名，比如“select count(*) productNum from products where supplier=@{id}”，numSeg为productNum<br>如果使用select *方式，内部处理时将sql变为"select (select *...) as exists_or_not"，此时的numSeg为exists_or_not，如上例，numSeg不用配置 |
 
 
-### TreeRDB
+### 3. TreeRDB
 
 TreeDB是记录树状关系数据的数据库，比如：
 ```
@@ -584,7 +649,7 @@ TreeDB是记录树状关系数据的数据库，比如：
 | rmvFromList | 删除value中一个元素 | 把value当作list，删除List中由value参数指定的元素 |
 | rmvs | 删除目录下全部K-V | 删除由key指定的目录下的所有K-V |
 
-### Search
+### 4. Search
 
 SearchDB是逆向索引的数据库，用于分词查找。action有put、update、get、rmv。 db指定搜索的库名称，table指定虚拟表名（并不存在实体的表），did指定内容对应的数据唯一标识。
 
@@ -752,13 +817,13 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 }
 ```
 
-### LocalxxxDB
+### 5. LocalxxxDB
 
 每种db都对应有本地版本，localrdb、localtreedb、localsearch。
 
 本地版的各类数据处理的数据，只在服务实例本地可用，数据不会在不同实例间复制，没有两份拷贝，也不会往云端备份。比如地址库，包括了localrdb、localsearch，它只能在一个服务实例中使用。如果服务需要多实例运行，每个实例上的数据库不能有更新操作，否则不同实例上的数据会不一致，导致请求分发到不同会得到不同的结果。
 
-### js
+### 6. js
 
 如果基本的数据库操作无法满足处理逻辑，可以使用js进行开发。脚本中可以使用参数、变量，通过@{xxx}引用，前面processor返回的结果可以通过@{!xxx}引用。
 ```JSON
@@ -853,7 +918,7 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 @{RANDOM}、@{UUID}、@{UNIQUEID}等占位符有相同问题，不会在循环中被多次执行，因为在执行js之前已被替换成具体内容了。
 与占位符不同，js内置函数Secure.random与String.uuid是可以在循环中被多次执行产生不同内容。
 
-### call
+### 7. call
 
 用于在一个接口中，调用其他服务接口或本服务的其他接口，可以并发几个调用。call只能调用同一个分区或公共分区中的服务。
 
@@ -902,7 +967,7 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 }
 ```
 
-### static
+### 8. static
 
 #### 静态处理
 只有一个data配置项，定义一个静态的json串，响应时始终返回data中的内容。
@@ -929,7 +994,7 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 ```
 在其他服务中就可以通过调用”/roles“获得服务中支持的角色，以及角色可以执行哪些接口。
 
-### var
+### 9. var
 
 定义一个或多个参数，与请求中的[vars](#vars)定义相同，在下一步可以当作普通参数使用，比如@{varName}。
 toResp为true时，内容会作为响应的字段返回。
@@ -944,7 +1009,7 @@ toResp为true时，内容会作为响应的字段返回。
 }
 ```
 
-### 组合处理
+### 10. 组合处理
 
 一个接口可能由多个processor组合而成，比如用户注册接口，首先校验验证码，然后判断用户是否已经存在，最后才是将用户名、密码录入数据库。每个processor可以是基本的数据库操作，也可以调用其他服务的接口。
 
@@ -1019,61 +1084,6 @@ toResp为true时，内容会作为响应的字段返回。
     "response":[
         {"name":"uid", "type":"int", "comment":"用户id"}
     ]
-}
-```
-
-### onSuccess例子<a id="onsuccessexample"></a>
-
-直接返回json字符串，在后继的处理中可以用@{!publicKey}引用。
-```JSON
-{
-    "name" : "authInfo",
-    "type" : "biosmeta",
-    "actions": [
-        {"action":"get", "key":"/service/@{service}/key"},
-        {"action":"get", "key":"/service/@{service}/dbs/@{callee}/type", "as":"features"}
-    ],
-    "onSuccess":"{
-        \"publicKey\":\"@{ECKEYPAIR|public,!key}\"
-    }"
-}
-```
-
-使用@{SWITCH}根据不同的情况返回不同的JSON内容，解析时，如果发现有code字段，则解析为响应结果，否则解析为普通的data。所以，这种方式是不能返回带有code字段的data的。
-```JSON
-{
-    "name" : "query_customer_data",
-    "type" : "rdb",
-    "db": "crm",
-
-    "sqls" : [{
-        "multi":false,
-        "merge":true,
-        "metas" : "each",
-        "sql":"select name cname,flSta 'status' from customers where id=@{customer}"
-    }],
-    "onSuccess" : "
-        @{SWITCH|!cname,'s.==','', `{\"code\":\"NOT_EXISTS\",\"info\":\"customer not exist\"}`,
-        |,!status,'i.!=',100, `{\"code\":\"DATA_WRONG\",\"info\":\"customer not approved\"}`,
-        |,`{\"code\":\"OK\",\"info\":\"Success\"}`}
-    "
-}
-```
-
-用condition判断是否结束处理，condition中可以有一个或多个@{CONDITION}判断。
-```JSON
-{
-    "name":"save_up_msg",
-    "type":"rdb",
-    "db":"device",
-    "sqls":[
-        ...
-    ],
-    "onSuccess":{
-        "condition":"@{CONDITION|!total,'i.>',0} && @{CONDITION|!msg_num,'i.>',0}",
-        "errorCode":"NOT_EXISTS",
-        "errorInfo":"device not exsits"
-    }
 }
 ```
 
@@ -1585,9 +1595,11 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 ---
 # 八、高阶开发<a id="advancedev"></a>
 
-如果sql脚本、js脚本已不能满足业务要求，则需要做Java开发。 比如系统内置的user、oauth、webdb等服务，都内置了Java实现的逻辑。因为安卓的字节码不同于JVM字节码，Java编译后的class文件不能在安卓上直接使用，所以在安卓服务器不能使用。
+如果sql脚本、js脚本已不能满足业务要求，则需要做Java开发。内置的类型本质上是使用type来指定内置的处理类，自定义的处理类，必须写完整的“包名+类名称”来指定处理类。
+内置的Java实现逻辑，在发布版本时已编译连接进去了。
+因为安卓的字节码不同于JVM的字节码，Java编译后的class文件不能在安卓上直接使用，所以在安卓服务器不能使用自定义类。
 
-实现时，需要用Java实现IProcessor接口，或继承AbsProcessor、AbsDBProcessor、AbsRDBProcessor、RDBProcessor、TreeDBProcessor等类进行扩展。 在process中，指定handler为自定义的实现类即可，比如：
+实现自定义处理时，需要用Java实现IProcessor接口，或继承AbsProcessor、AbsDBProcessor、AbsRDBProcessor、RDBProcessor、TreeDBProcessor等类进行扩展。 在process中，指定handler为自定义的实现类即可，比如：
 ```JSON
 {
     "name" : "get\_token",

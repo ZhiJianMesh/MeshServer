@@ -319,6 +319,8 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 | pkg install openssh -y | sshd服务，用于远程命令行操控 |
 | pkg install -y openjdk-21 | Java运行环境安装 |
 
+每次重启termux后，建议运行一下 pkg update && pkg upgrade 命令及时更新系统。
+
 #### B）必要的配置
 
 1. 用nano命令在home目录下编辑”.bashrc”文件（注意文件前面有个点），添加以下内容；
