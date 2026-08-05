@@ -11,14 +11,8 @@
 | 2024.3.1 | 创建文档 | flyinmind |
 | 2024.4.8 | 增加安装部分的内容 | flyinmind |
 | 2026.6.24 | 1）修改占位符；<br>2）转为markdown格式；<br>3）更正部分内容；<br>4）将安装部分删除，独立成一个文档| flyinmind |
+| 2026.8.3 | 1）修改onSuccess、var等的描述；<br>2) 增加版本号描述| flyinmind |
 
-# 摘要
-
-至简网格是一款基于HTTP协议的、完全服务化、极具弹性的通用业务服务器，用于开发基于数据库的端云结合的服务程序，服务程序可以运行在资源极其有限的设备上，比如安卓手机、树莓派等，使得服务器可以尽量前移到生产端，可以运用于边沿计算、企业信息化、办公自动化等场景。
-
-它致力于简化开发、部署与运维工作；通过简单的配置即可实现数据库、接口开发；内置了可靠性、安全性能力，业务开发无需过多关注；具备伸缩能力，单例模式可以安装在一部老旧的安卓手机上；集群模式可以跨实例、跨机房、跨城市部署。
-
-本文主要用于指导至简网格服务端程序开发，包括数据库定义、接口定义等。
 
 # 术语
 
@@ -33,11 +27,32 @@
 | 分区 | Partition，分区是逻辑上的，一个分区一定在一个AZ中；同一个分区中的服务实例是共享的；除了公共分区（分区号0-1023），不同分区之间不可互访 |
 
 ![terms](imgs/server/terms.png)
+---
+
+# 版本号定义
+服务版本号定义采用Semantic原则，由三组数字组成，各组之间用“.”分隔，分别代表主版本号、次版本号、修订号，比如1.2.3。
+
+![terms](imgs/server/version.png)
+
+具体到至简网格，分成两种版本号，一种是至简网格平台的版本，一种是运行于至简网格中服务的版本。
+
+任何平台的版本变化都需要重新安装平台版本；服务版本变化分成三种情况：
+
+1. 修订版本变化，只会在交互上做调整，可以随意升级； 
+2. 次版本号变化，会增加一部分功能，涉及接口或界面，甚至会出现数据库小范围调整，升级后需要重启后才能完全生效； 
+3. 主版本号变化，代表着功能、数据库都出现了较大变化，需要重启服务端后才可以完成升级，此类升级有风险，所以升级前一定要做好数据备份。
 
 ---
 # 一、简介
 
-至简网格是一个完全服务化、具有巨大弹性的平台，为解决企业信息化、自动化而生，服务侧与端侧配合，简化信息记录、统计等繁琐的日常工作。至简网格服务端可以安装在多个节点上实现大规模集群工作，承载巨大的访问量，也可以安装在单个节点上，满足一些小流量的使用场景。
+至简网格是一款基于HTTP协议的、完全服务化、极具弹性的通用业务服务器，用于开发基于数据库的端云结合的服务程序，服务程序可以运行在资源极其有限的设备上，比如安卓手机、树莓派等，使得服务器可以尽量前移到生产端，可以运用于边沿计算、企业信息化、办公自动化等场景。
+
+它致力于简化开发、部署与运维工作；通过简单的配置即可实现数据库、接口开发；内置了可靠性、安全性能力，业务开发无需过多关注；具备伸缩能力，单例模式可以安装在一部老旧的安卓手机上；集群模式可以跨实例、跨机房、跨城市部署，承载巨大的访问量。
+
+本文主要用于指导至简网格服务端程序开发，包括数据库定义、接口定义等。
+
+至简网格[服务端](https://gitee.com/zhijian_net/MeshServer)、[服务](https://gitee.com/zhijian_net/enterprise)都已开源。
+如果文档中未写明白的，可以直接参照代码获得更深入的理解。
 
 服务器最小可以安装在一部老旧的安卓手机上，使得管理企业服务与使用普通手机应用一样简单。 只需要简单操作就可以实现企业服务的安装、启停、升级、卸载等维护工作，无需聘请专门的技术人员。
 
@@ -49,7 +64,7 @@
 
 无论是服务端还是客户端，都竭尽全力地简化，降低开发难度与使用难度。总之，它是一套非常好用的端云结合的开发框架。
 
-以下是至简网格端&云结合的总体部署框架：
+以下是至简网格“端&云”结合的总体部署框架：
 
 ![networking](imgs/server/networking.png)
 
@@ -331,7 +346,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | options | 可选值列表 | List | 对String、Int类型有效，如果请求参数不在可选列表中，则参数校验失败 |
 | log | 是否可以打印在日志中 | Bool | 默认为true，表示可以打印到日志中 |
 | | | | **Object特有的配置项** |
-| props | 嵌套定义复杂的结构 | List | 每一项是一个基本参数配置，用于指定object中的字段。props里面的字段还可以设为object类型，以此实现复杂的结构嵌套。 {"name":"infos", "type":"object", "must":true, "props":[ {"name":"name", "type":"string"}, {"name":"val", "type":"string"} ]} |
+| props | 嵌套定义复杂的结构 | List | 每一项是一个基本参数配置，用于指定object中的字段。props里面的字段还可以设为object类型，以此实现复杂的结构嵌套。 {"name":"infos", "type":"object", "must":true, "props":[{"name":"name", "type":"string"}, {"name":"val", "type":"string"}]} |
 | checkAll | 是否检查每个字段 | Bool | 默认为true，检查props中定义的每个字段合法性。 如果是响应内容，checkAll为false时，无论object有什么冗余内容，都会原样放过。 |
 | | | | **数值、日期类型特有的配置项** |
 | biggerThan | 必须大于的参数的名称 | String | 指定必须大于的参数的名称，long、int、float、double、date中有效 |
@@ -388,7 +403,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 
 
-onSuccess较为复杂，举几个例子来更清楚的说明它的用法。
+onSuccess较为复杂，举几个例子来更清楚的说明它的用法。<a id="onsuccess"></a>
 
 **直接返回json字符串**
 
@@ -486,7 +501,6 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
     "comment":"返回字段与search保持一致"
 }
 ```
-
 
 | 属性  | 说明 |
 | ---  | ---  |
@@ -897,7 +911,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 
 #### 循环中的占位符
 
-因为占位符是在执行script之前已解析、替换完毕，所以如果在js中使用循环，循环中的占位符并不会被多次执行，比如：
+因为占位符是在执行script之前已解析、替换完毕，所以如果在js循环中使用，循环中的占位符并不会被多次执行，比如：
 ```Javascript
 //items=[{product:1,subTotal:100},{product:2,subTotal:10}]
 var sql=['insert into sales_items(id,product,subTotal) values'];
@@ -909,7 +923,7 @@ for(var i in items) {
 DB.sql(sql.join(''));
 ```
 
-最终生成的两行插入记录不会如期望的那样有不同的id，而可能是这样的：
+最终生成的两行插入记录不会如期望的那样有不同的id，而会是这样的：
 
 ```SQL
 insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
@@ -969,7 +983,7 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 
 ### 8. static
 
-#### 静态处理
+#### A)静态处理
 只有一个data配置项，定义一个静态的json串，响应时始终返回data中的内容。
 ```JSON
 {
@@ -979,7 +993,7 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 }
 ```
 
-#### 静态数据
+#### B)静态数据
 与static不同，这种接口中直接写"接口名:{接口返回的data}"，必须写在".json"文件中。
 与静态处理的不同之处在于“这些接口必须public的”，常用在roles接口、端侧配置类接口中。roles接口是定义服务中用户角色的，aclChecker为RBAC时用到它，比如：
 ```JSON
@@ -994,6 +1008,61 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 ```
 在其他服务中就可以通过调用”/roles“获得服务中支持的角色，以及角色可以执行哪些接口。
 
+#### C)特殊接口
+
+**接口列表(/api/apis)**
+
+接口是一个特殊的public接口，返回当前服务所有接口列表。比如调用/bios/api/apis返回：
+```JSON
+{
+  "code": 0,
+  "info": "Success",
+  "data": {
+    "apis": [
+      {
+        "method": "GET",
+        "property": "PRIVATE",
+        "cls": "db",
+        "url": "/bios/api/db/getconfig",
+        "tokenChecker": "APP"
+      },
+      {
+        "method": "GET",
+        "property": "PUBLIC",
+        "cls": "service",
+        "url": "/bios/api/service/getpubkey"
+      },
+      ...
+    ]
+  }
+}
+```
+
+**端侧信息(/api/client_info)**
+
+返回端侧UI信息，包括版本号、依赖服务的端侧UI等，用于端侧启动时及时升级UI。
+```JSON
+{
+  "code": 0,
+  "info": "Success",
+  "data": {
+    "level": 10000,
+    "displayName": "极简CRM(业财一体)",
+    "author": "flyinmind@zhijian.net.cn",
+    "name": "icrm",
+    "type": 0,
+    "version": 3002,
+    "dependencies": [ //依赖服务的端侧UI列表
+      {
+        "name": "ifinance",
+        "minVer": 1000
+      },
+      ...
+    ]
+  }
+}
+```
+
 ### 9. var
 
 定义一个或多个参数，与请求中的[vars](#vars)定义相同，在下一步可以当作普通参数使用，比如@{varName}。
@@ -1006,6 +1075,24 @@ toResp为true时，内容会作为响应的字段返回。
     "vars":{
         {"name":"uid","val":"@{SEQUENCE|'userid',i}","toResp":true}
     }
+}
+```
+
+var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结果是否符合要求：
+```JSON
+{
+    "name" : "check",
+    "type" : "var",
+    "vars" : [
+        {"name":"pbkdfChkResult", "val":"@{PBKDFCHECK|pwd, !pwd}"},
+        {"name":"pwdSignature", "val":"@{SHA256|pwd, '-', !ut, '-', !balance}"}
+    ],
+    "onSuccess" : "
+	@{SWITCH|!left, 'f.<', 0, `{\"code\":\"SERVICE_ERROR\",\"info\":\"balance un-sufficient\"}`,
+	  |, pbkdfChkResult, 'b.!=', true, `{\"code\":\"WRONG_PARAMETER\",\"info\":\"fail to check pwd\"}`,
+	  |, pwdSignature, 's.!=', !sign, `{\"code\":\"SERVICE_ERROR\",\"info\":\"invalid balance sign\"}`,
+	  |, `{\"code\":\"OK\",\"info\":\"Success\"}`}
+    "
 }
 ```
 
@@ -1090,9 +1177,9 @@ toResp为true时，内容会作为响应的字段返回。
 
 ## 响应response
 
-### 响应格式定义
+### 响应字段定义
 
-如果对response没有做特殊转换，可以不用定义，各个处理返回内容会全部响应给请求方。当需要对响应的字段做格式检查、转换、解密等情况时，必须定义。responose可以是一个json对象也可以是一个json数组，其中字段定义与request中的字段定义形式相同。
+如果对response没有做特殊转换，可以不用定义，各个处理返回内容会全部响应给请求方。当需要对响应的字段做格式检查、转换、解密等情况时，必须定义。responose可以是一个json对象也可以是一个json数组，其中字段定义与request中的请求参数定义形式相同。
 
 比如，下面这段是会员中的/vip/get接口的响应格式定义，因为mobile字段需要解密，所以需要定义response的格式。
 ```JSON
@@ -1107,7 +1194,7 @@ toResp为true时，内容会作为响应的字段返回。
 ]
 ```
 
-响应内容的解析是需要占用CPU的，如果不是特别需要，可以不用定义。考虑到有些服务希望自动生成文档，那么就需要定义response的字段，但是，可以设置在运行时不解析。这时就需要将response定义成一个json对象，例如：
+响应内容的解析是需要占用CPU的，如果不是特别需要，可以不用定义。考虑到有些服务希望自动生成文档，那么就需要定义响应字段，可以设置在运行时不解析。这时就需要将response定义成一个json对象，例如：
 ```JSON
 "response":{
     "check":false, //默认为true，即，只要定义了response，就默认解析
@@ -1147,7 +1234,7 @@ toResp为true时，内容会作为响应的字段返回。
 
 ### 返回码
 
-响应体中的code为返回码，如果无错误则为OK(0)，返回码在js脚本中用RetCode.xx可以直接引用，code定义如下：
+响应体中的code为返回码，如果无错误则为OK(0)，返回码在js脚本、errorCode中可以用RetCode.xx直接引用，code定义如下：
 
 | 名称 | 值 | 含义 |
 | --- | --- | --- |
@@ -1179,6 +1266,74 @@ toResp为true时，内容会作为响应的字段返回。
 | INVALID\_STATE | 5001 | 无效的状态 |
 | CLIENT\_ERROR | 100000 | 客户端发生错误 |
 | NO\_OPERATION | 200000 | 没有任何可以执行的操作，只用于服务侧 |
+
+此处未定义的返回码直接写数字，不能在errorCode或JS中随意写一个名字，比如以下定义就是错误的，因为ALREADY_DONE没有定义。
+
+```JSON
+{
+    "name":"mark_completed",
+    "sql":"update purchase_orders set status=1 where id=@{id} and status=0",
+    //幂等：已完成的订单再次完成时受影响行数为0，直接报错，避免重复加库存、重复累计报表
+    "expected":{"num":1,"errorCode":"ALREADY_DONE","errorInfo":"order already completed"}
+}
+```
+
+### 响应类型
+响应体中还可以指定输出类型，目前支持JSON、DOCX、XLSX、TEXT，默认是JSON格式，就是"响应内容"中的样子。如果type为DOCX、XLSX、TEXT，则会在服务端将数据输出到指定的模板中，再以文件方式返回。
+
+```JSON
+"response":{
+    "check":false,
+    "type":"DOCX",
+    "template":"/conf/service_logs.zip",
+    "saveAs":"@{!userName}_logs.docx"
+}
+```
+上例中，template指定模板文件，template的目录是相对于服务根目录的，不可以出现".."这样的相对路径。
+如果模板不是zip，则直接将数据输出到模板中，形成一个临时文件；如果是zip（DOCX、XLSX本质都是zip文件），服务端每次会解开zip到一个临时目录，然后对目录下每个文件执行模板替换操作，最后再将临时目录打包成zip。
+
+以下是DOCX(word文档)模板中document.xml的例子，最终返回一个字符串。
+```Javascript
+js:
+var xml=[`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>...`];
+
+var baseSegs=@{!baseSegs};
+var baseInfo=@{!baseInfo};
+var seg, name;
+for(var i in baseInfo) {
+    seg=baseSegs[i];
+	name=seg?seg.n:i;
+	xml.push(`<w:p><w:pPr><w:rPr><w:rFonts w:hint="default" w:eastAsiaTheme="minorEastAsia"/><w:vertAlign w:val="baseline"/><w:lang w:val="en-US" w:eastAsia="zh-CN"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:vertAlign w:val="baseline"/><w:lang w:val="en-US" w:eastAsia="zh-CN"/></w:rPr><w:t>`,name,`:`,baseInfo[i],`</w:t></w:r></w:p>`);
+}
+
+xml.push(`</w:tc></w:tr><w:tr>...`);
+
+var logs=@{!logs};
+var cols=[["1337","creator"],["1553","createAt"],["4026","comment"],["1200","val"],["1200","balance"]];
+var t;
+var dt=new Date();
+
+for(var log of logs) {
+	dt.setTime(log.createAt);
+	log.createAt=dt.toLocaleDateString();
+    xml.push(`<w:tr><w:tblPrEx><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4" w:space="0"/><w:left w:val="single" w:color="auto" w:sz="4" w:space="0"/><w:bottom w:val="single" w:color="auto" w:sz="4" w:space="0"/><w:right w:val="single" w:color="auto" w:sz="4" w:space="0"/><w:insideH w:val="single" w:color="auto" w:sz="4" w:space="0"/><w:insideV w:val="single" w:color="auto" w:sz="4" w:space="0"/></w:tblBorders><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPrEx>`);
+    for(var c of cols) {
+		xml.push(`<w:tc><w:tcPr><w:tcW w:w="`,c[0],`" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:rPr><w:rFonts w:hint="default" w:eastAsiaTheme="minorEastAsia"/><w:vertAlign w:val="baseline"/><w:lang w:val="en-US" w:eastAsia="zh-CN"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:hint="eastAsia"/><w:vertAlign w:val="baseline"/><w:lang w:val="en-US" w:eastAsia="zh-CN"/></w:rPr><w:t>`,log[c[1]],`</w:t></w:r></w:p></w:tc>`)
+	
+	}
+	xml.push('</w:tr>');
+}
+
+xml.push(`</w:tbl>...`);
+xml.join('');
+```
+
+模板中可以使用处理中返回的所有内容，所有的占位符都可以使用。
+
+[word(DOCX)](https://blog.csdn.net/flyinmind/article/details/139258334?spm=1001.2014.3001.5502)、[excel(XLSX)](https://blog.csdn.net/flyinmind/article/details/143379744?spm=1001.2014.3001.5502)模板定义方法并不难，请参照方法定义。
+
+最终生成的文件以chunked格式返回，文件名由saveAs指定。
+
 
 ## 初始化接口
 
@@ -1262,10 +1417,7 @@ toResp为true时，内容会作为响应的字段返回。
 | @{!xxx} | 响应参数 | 前面处理的响应内容；名称中可以包含'.'，表示多级引用 |
 | @[!xxx] | 前面操作的响应内容 | 只用在RDB处理中，当有多个sql时，上一个查询sql处理完毕，下一个sql可以使用上一个sql的结果集，比如@[!UserNum]； 这种参数在请求端不会被编译替换，而是在webdb中执行时才会被替换，这会增加少许webdb的负担，但是减少了网络交互 |
 
-## 处理/操作之间的引用占位符
-
-
-### 1）不同处理间的引用
+## 不同处理间的引用占位符
 如果process中有多个不同的处理，后面的处理可以引用前面处理的结果，下面的@{FOR|!items...}是前一个处理get_items的查询结果（名称由sql的name指定，而不是处理的name指定）。比如在一个数据库中查询内容，然后更新到另外一个数据库中。
 ```JSON
 "process": [
@@ -1292,8 +1444,8 @@ toResp为true时，内容会作为响应的字段返回。
 ]
 ```
 
-### 2）不同操作间的引用
-同一个数据库处理中，有多个数据库操作的情况，后面的操作可以引用前面操作的响应结果，下面的@[FOR|!items...]就是这样的例子，items是上一个查询操作的结果。结果可以不从webdb中返回给调用方，而是直接在webdb中使用，减少了网络交互。
+## 不同操作间的引用占位符
+同一个数据库处理中，有多个数据库操作的情况，后面的操作可以引用前面操作的响应结果，下面的@[FOR|!items...]就是这样的例子，items是上一个查询操作的结果。前面查询操作的结果集直接在webdb中使用，减少了网络交互。
 ```JSON
 "process":[{
     "name": "update_status",
@@ -1605,21 +1757,15 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
     "name" : "get\_token",
     "type" : "java",
     //因为type为java，所以SampleDBProcessor必须继承自AbstractProcessor，或者IProcessor
-    "handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
-},
-{
-    "name" : "get\_token",
-    "type" : "rdb",
-    //因为type为rdb，所以SampleDBProcessor必须继承自RDBProcessor
-    //类似的情况，比如treedb、search必须分别继承自TreeDBProcessor、SearchProcessor
+	//类似的情况，比如treedb、search必须分别继承自TreeDBProcessor、SearchProcessor
     "handler" : "cn.net.zhijian.mesh.builtin.xsv.SampleDBProcessor"
 }
 ```
 
-至简网格中内置了加载第三方jar的能力，但是，因为安卓中需要对jar做转换后才能加载，对研发人员有很高要求，所以没有放开此能力。如果对此有强烈的需求，请联系至简网格，有三种方法可以解决此问题：
+至简网格中内置了加载第三方jar的能力，但是，因为安卓中需要对jar做转换后才能加载，对研发人员有很高要求，所以没有放开此能力。如果对此有需求，有三种方法可以解决此问题：
 
-1. 使用其他方法规避，或使用js实现；
-2. 至简网格将功能内置到系统中；
+1. 使用JS或改业务流程规避；
+2. 请在开源社区提需求让它将功能内置到系统中，如果是通用功能，一般会加入；
 3. 放弃兼容性，只提供java版本，这是最不希望看到的。
 
 ---

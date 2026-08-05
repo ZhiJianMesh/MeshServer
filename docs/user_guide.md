@@ -216,9 +216,9 @@ Android环境的服务器本质是一个驻留后台的安卓应用，与普通�
 ![db_backup](imgs/install/android_login.png)
 在配置发生变更后，会出现“保存”按钮，只有保存后，配置才会生效。
 
-# 三、服务安装
+## 服务安装
 
-## 系统管理工具
+### 系统管理工具
 服务器程序都内置了SystemOM服务，客户端登录公司后，可以在“应用管理-公司服务”中安装此服务。
 ![server_install](imgs/client/market_list.png)
 
@@ -226,7 +226,7 @@ Android环境的服务器本质是一个驻留后台的安卓应用，与普通�
 
 ![server_install](imgs/client/sysom_home.png)
 
-## 常见服务
+### 常见服务
 
 至简网格提供了二十多个公司服务，能满足大部分中小企业IT工具需求。
 
@@ -242,7 +242,7 @@ Android环境的服务器本质是一个驻留后台的安卓应用，与普通�
 
 
 
-# 四、Mesh编译&运行环境安装
+# 三、Mesh编译&运行环境安装
 Mesh开发、运行环境安装方法，以及所需原生库跨平台编译方法。
 
 
@@ -305,7 +305,10 @@ Termux是一个安卓应用，下载安装就能运行。因为安卓内核是Li
 
 至简网格服务器坚持极小的外部依赖，所以可以运行在这种资源极其有限的环境中，仍然可以实现多实例、多区域集群能力，即便于开发测试，也能以极小的成本运行。
 
-从github下载Termux应用，连接为`https://github.com/termux/termux-app/releases`。选择合适的版本，下载后在安卓手机中安装，安卓版本至少为7.0。
+从github[下载Termux应用](https://github.com/hanxinhao000/ZeroTermux/releases)选择最新arm64 release版本，下载后在安卓手机中安装（安卓版本至少为7.0）。
+
+如果无法访问github，可以安装[watt加速工具](https://apps.microsoft.com/detail/9mtcfhs560ng?launch=true&hl=zh-CN&gl=CN)，运行加速就可以访问了。
+
 因为不是从厂商的应用市场下载安装的，所以安装过程会有告警，请忽略所有告警。
 
 #### A）工具安装
@@ -315,8 +318,10 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 | 命令 | 用处 |
 | --- | --- |
 | pkg install termux-auth -y | 提供passwd命令，设置或修改用户密码 |
+| passwd	|设置root用户的秘密，termux中可以直接root用户访问|
 | pkg install termux-services -y | 服务管理，比如运行sv-enable sshd |
 | pkg install openssh -y | sshd服务，用于远程命令行操控 |
+| sshd | 启动ssh服务，启动后就可以远程操作了 |
 | pkg install -y openjdk-21 | Java运行环境安装 |
 
 每次重启termux后，建议运行一下 pkg update && pkg upgrade 命令及时更新系统。
@@ -326,16 +331,15 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 1. 用nano命令在home目录下编辑”.bashrc”文件（注意文件前面有个点），添加以下内容；
 ```bash
 alias ll=’ls -l’
-export LD_LIBRARY_PATH=$PREFIX/lib:/system/lib64:/system/lib
 ```
 
-1. 修改$PREFIX/etc/apt/sources.list使用清华的镜像，提升安装速度；
+2. 修改$PREFIX/etc/apt/sources.list使用清华的镜像，提升安装速度；
 ```bash
 deb https://mirrors.tuna.tsinghua.edu.cn/termux/apt/termux-main stable main
 ```
-2. termux-wake-lock：让termux保持运行，忽略电池优化，运行后手机上会弹出窗口确认，请选择“总是允许”（或其他类似选项，每个品牌不同版本都不同）；
-3. sv-enable sshd：使sshd服务自动启动（第一次要用sshd启动）；
-4. termux-setup-storage：允许访问外部存储（可以不设置）。
+3. termux-wake-lock：让termux保持运行，忽略电池优化，运行后手机上会弹出窗口确认，请选择“总是允许”（每个品牌不同版本都不同）；
+4. sv-enable sshd：使sshd服务自动启动（第一次要用sshd启动）；
+5. termux-setup-storage：允许访问外部存储（可以不设置）。
 
 #### C）ssh客户端连接
 

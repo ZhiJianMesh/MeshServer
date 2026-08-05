@@ -492,7 +492,7 @@ Platform.scanCode(jsCbId);
 ```JavaScript
 <script src="/assets/v3/qrcode.js"></script>
 
-showQrCode() {
+function showQrCode() {
     var txt = JSON.stringify({data...});//待生成的内容必须为一个字符串
     new QRCode(this.$refs.qrCodeArea, {
         text: txt,
@@ -796,7 +796,7 @@ echarts已集成到客户端版本中，业务无需自己下载。 除折线图
 ```HTML
 <script src="/assets/v3/echarts.js"></script>
 ```
-echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apache.org/zh/index.html%22%20%5Ct%20%22http%3A//www.zhijian.net.cn/_blank)
+echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apache.org/zh/index.html)
 
 ---
 # 二、服务举例
@@ -859,7 +859,7 @@ echarts详细使用方法，请参考 [echarts官方文档](https://echarts.apa
 
 【注意】长连接端侧除了可以用长连接请求服务侧接口，同时也可以使用http协议请求服务侧的接口。
 
-## 2. 实现交互协议
+## 2. 交互协议
 
 ### 协议头部
 
@@ -898,4 +898,4 @@ Java开发语言与网络传输中都使用大端序，所以协议中的数值�
 | 命令字  | 编码  | 定义 |
 | ---    | ---  | ---  |
 | CLOSE	 | 7	| 服务侧关闭连接<br>**下次重连时间（4，单位秒）+请求头长度（4，固定为0）+请求体长度（4，固定为0）**|
-|CONTROL |	8	| 服务侧给端侧发出的控制命令。<br>**子命令（4，为GET/PUT/DELETE/POST其中之一）+请求头长度（4）+请求头+请求体长度（4）+请求体**<br>如果没有请求头或请求体部分，对应的长度为0，后面不跟内容。<br>因为控制命令都是其他http端侧发到服务侧的，服务侧将端侧的http请求转译成长连接端侧的协议，然后发往长连接端侧。<br>当长连接端侧处理完毕，给服务侧响应后，服务侧再将响应内容转为http响应返回给端侧。<br>端侧实现时，界面中要有恰当的进度提示，设置恰当的超时时间，并处理好可能的响应超时问题。|
+|CONTROL | 8    | 服务侧给端侧发出的控制命令。<br>**子命令（4，为GET/PUT/DELETE/POST其中之一）+请求头长度（4）+请求头+请求体长度（4）+请求体**<br>如果没有请求头或请求体部分，对应的长度为0，后面不跟内容。<br>因为控制命令都是其他http端侧发到服务侧的，服务侧将端侧的http请求转译成长连接端侧的协议，然后发往长连接端侧。<br>当长连接端侧处理完毕，给服务侧响应后，服务侧再将响应内容转为http响应返回给端侧。<br>端侧实现时，界面中要有恰当的进度提示，设置恰当的超时时间，并处理好可能的响应超时问题。|
