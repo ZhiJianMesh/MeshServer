@@ -9,11 +9,14 @@ bcpkix-jdk18on-176.jar
 ===json
 fastjson2-2.0.50.jar
 
-===javascript(quickjs的java封装，自实现)
+===javascript(quickjs的java封装，支持termux原生库，开源网址https://gitee.com/zhijian_net/QuickJS)
 cn.net.zhijian.quickjs
 
-===fileq(本地文件队列，自实现)
+===fileq(本地文件队列，开源网址https://gitee.com/zhijian_net/fileq)
 cn.net.zhijian.fileq
+
+===util(工具集合)
+cn.net.zhijian.util
 
 ===log
 slf4j-api-1.7.36.jar
@@ -25,6 +28,6 @@ okhttp-3.14.9.jar
 okio-1.17.2.jar
 
 ===sqlite
-sqlite-jdbc-xxx.jar（安卓不需要）
-HikariCP-7.0.2.jar（JDBC连接池实现，用于支持大型数据库，安卓不需要）
+sqlite-jdbc-3.53.1.0.jar（支持termux原生库）
+HikariCP-7.0.2.jar（JDBC连接池实现，用于支持大型数据库）
 

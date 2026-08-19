@@ -155,90 +155,227 @@ Windows版本的客户端与此类似，应用栏显示在屏幕的右侧。
 
 授权时可以指定是否可以在公网访问内网的服务，如果未授权公网访问，则只能在内网访问服务。
 
-# 二、服务器安装
+# 二、服务端安装与维护
 
 ## 运行环境安装
 
-在Linux、Window、Termux中只需安装OpenJDK11及以上版本即可，安装方法请参照[运行环境安装](#compile_and_install)。
+在Linux、Windows、Termux中只需安装OpenJDK11及以上版本即可，安装方法请参照[运行环境安装](#compile_and_install)。
+Linux中需要创建mesh用户，以mesh身份下载、安装、运行。
 
-## 服务程序安装
+## 服务器程序安装
 
-### 1、JVM环境
+### JVM环境
 
-Linux、Termux、Windows中使用Java运行服务器。Linux、Termux中需要创建mesh用户，以mesh身份下载、安装、运行。
+1. 在home目录创建server子目录；
 
-1. 创建server目录；
-
-2. 从[码云](https://gitee.com/zhijian_net/MeshServer)或[GitHub](https://github.com/ZhiJianMesh/MeshServer)下载发布的版本；
+2. 从[码云](https://gitee.com/zhijian_net/MeshServer/releases)或[GitHub](https://github.com/ZhiJianMesh/MeshServer/releases)下载发布的版本；
 
 3. 解压安装包到server目录；
 
-4. 访问`http://www.zhijian.net.cn/`，点右上角菜单“使用指南”，选择“注册”，进入注册界面，输入注册信息获得注册命令行；
+4. 配置
 
-![register](imgs/install/register.png)
+**channel.cfg**
 
-5. 在server目录下运行注册命令，等待注册成功；
+通常默认配置即可，如果不用网关，每个实例中都相同
+```JSON
+{
+    "httpPort":8523, //访问http接口的端口号
+    "mode":"NORMAL" //NORMAL或GATEWAY网关模式
+    //"tcpPort":8524, //tcp端口号，用于端侧用tcp直连服务器，比如ROS中连接服务器接受命令、上报数据；不开启长连接，不用配置
+    //"tcpChecker":"" //tcp接入鉴权类，默认使用user服务的用户名密码登录
+}
+```
 
-6. 在server目录下运行启动命令，等待启动成功。
+**partition.cfg**
+
+通常默认配置即可，每个实例中需要相同
+```JSON
+{
+    //固定为250000，如果集群复杂到需要划分多个分区时，请联系我们
+    "partition":250000,
+    //SINGLETON单例模式、CLUSTER集群模式
+    "runMode":"CLUSTER",
+	//bios节点的ip:port列表，第一个为主bios，如果发生切换，bios服务会自主决定，单例时可以不配置，默认当前节点就是bios
+    "biosServers":[],
+	//是否在公有云部署，私网部署时设为false
+    "inCloud":false,
+	//静态文件缓存时间
+    "fileCacheTime":300
+}
+```
+
+5. 访问`http://www.zhijian.net.cn/`，点右上角菜单“使用指南”，选择“注册”，进入注册界面，输入注册信息获得注册命令行；
+
+![register](imgs/usage/register.png)
+
+6. 在server目录下运行注册命令，等待注册成功；
+
+注册界面主要用来获取`验证码ID`与`验证码`，输入公司信息后，形成完整的命令行，拷贝这个命令行，在系统中运行即可完成注册。
+
+```BASH
+#linux
+sbin/command.sh company register 公司名称 公司或个体户统一信用码 公司密码 确认公司密码 验证码ID 验证码
+
+rem windows
+sbin\command.bat company register 公司名称 公司或个体户统一信用码 公司密码 确认公司密码 验证码ID 验证码
+```
+
+注册之后获得公司ID，请记录此ID与你输入的公司密码。在公司员工从客户端接入服务器时，用到公司ID；公司密码在以下情况用到：
+	- 在第一个节点上登录公司获得证书、初始化company.cfg；
+	- 第一次启动系统；
+	- 登录SystemOM服务；
+	- 数据库恢复。
 
 
-### 2、Android服务器
-Android环境的服务器本质是一个驻留后台的安卓应用，与普通应用没有任何差异，所以安装运行与普通应用也没有任何差异，不需要提前安装运行环境。
-1. 从[码云](https://gitee.com/zhijian_net/MeshServer)或[GitHub](https://github.com/ZhiJianMesh/MeshServer)下载发布的安装服务器版本；
+7. 如果是第一个实例，则需要安装bios服务，请从[码云](https://gitee.com/zhijian_net/enterprise/releases)或[GitHub](https://github.com/ZhiJianMesh/endterprise/releases)下载正确版本的bios服务；
 
-2. 安装服务器应用，因为不是从厂商的应用市场下载，安装时会有告警，请忽略；
+8. 在server目录下运行登录命令，获取证书，生成company.cfg文件、totpkey； 
+```BASH
+#linux|termux
+sbin/command.sh company login 公司ID 公司密码
 
-3. 第一次启动会自动弹出登录&注册界面，如果尚未注册，请先输入信息注册；
+rem windows
+sbin\command.bat company login 公司ID 公司密码
+```
 
-![register](imgs/install/android_register.png)
+9. 在server目录下运行启动命令，等待启动完成。
 
-4. 注册完成后，输入公司id及密码登录；
+```BASH
+#linux|termux
+sbin/mesh.sh start [totp_or_company_pwd [main_bios]]
+sbin/mesh.sh stop|restart|status
 
-![register](imgs/install/android_login.png)
+rem windows
+sbin\mesh.bat start [totp_or_company_pwd [main_bios]]
+sbin\mesh.bat stop|restart|status
+```
+如果主bios实例已经启动，在其他节点上启动至简网格服务器时，输入公司密码与主bios的地址(ip:port)就可以自动完成配置。
 
-5. 登录完成后就可以点击启动按钮启动服务器。
 
-### 3、数据备份设置
+### Android环境
 
-默认不开启每日备份。开启后，每天会自动将数据打包加密后存到至简网格的空间中，会产生一定的费用，每年大约几十元。
+最新版本不再支持以Apk方式运行的服务器，推荐在Android手机上安装termux应用，然后在termux中运行服务器程序，安装操作与linux相同。
 
-因为数据是打包加密的，所以至简网格无法读取您的数据。在恢复数据时必须输入数据备份密码才可以解开。
+如果有特殊需求，请通过[邮件](mailto:zhijianmesh@sina.com)联系我们。
 
-一旦恢复数据，最多会丢失一天的数据，所以建议只有在极端的情况才执行， 比如手机损坏、丢失，或者换机时才考虑恢复数据。
-
-在换机的情况下，可以先关闭服务器，然后执行“立即备份”，将数据备份到至简网格。 当新手机安装好服务器软件后，再选择恢复数据，这样不会有数据损失。立即备份与定时备份一样，会消耗一次备份机会。
-
-以下几个参数的注意事项：
-| 参数 | 注意事项 |
-| ---- | ------ |
-| 每日备份时间点 | 默认为凌晨2点，时间点建议设置在业务低峰期，通常在凌晨2点 |
-|备份站点	| 请选择离自己距离近的备份站点，这样可以缩短备份与恢复时间。每多一个备份站点，数据丢失的可能性越低，系统按“G.年”计费，每多一个站点，相应多占用一份空间 |
-![db_backup](imgs/install/android_login.png)
-在配置发生变更后，会出现“保存”按钮，只有保存后，配置才会生效。
 
 ## 服务安装
 
-### 系统管理工具
-服务器程序都内置了SystemOM服务，客户端登录公司后，可以在“应用管理-公司服务”中安装此服务。
+至简网格服务器可以只运行一个实例（单例），也可以在多个机房中多个节点中运行，互相配合提供服务（集群）。
+
+单例环境可以使用SystemOM在界面上安装、升级与卸载；集群环境只能手动安装。
+
+### 手动安装
+
+将服务目录拷贝到服务程序安装目录的serivces子目录下即可，如果是zip包，请解压到services子目录下。
+如果有数据库定义，请使用`sbin/mesh.sh stop`停止服务，再使用`sbin/mesh.sh start 公司密码或totp密码`启动服务，让服务初始化数据库。
+
+
+### 界面安装
+
+界面安装只能用在单例部署时。服务器程序内置了SystemOM服务，客户端登录公司后，可以在“应用管理-公司服务”中安装此服务。
 ![server_install](imgs/client/market_list.png)
 
 进入SystemOM就会要求输入公司登录密码（公司注册时设置的密码），验证成功后，在它的应用市场中可以在服务端安装、升级或卸载服务。
 
 ![server_install](imgs/client/sysom_home.png)
 
+
+### 使用AI智能体操作
+
+至简网格提供了mesh-app-factory技能，将该技能导入AI智能体，然后向AI智能体提要求，可以实现以下功能：
+1. 至简网格服务器安装、启停；
+2. 至简网格集群维护；
+3. 至简网格服务安装、升级与卸载；
+4. **至简网格服务开发与定制**。
+
+无论是单例还是集群部署，AI智能体都可以支持。
+
+为了方便与AI智能体配合，实现脚本自动化，系统提供了两个公开接口： 
+
+- `http://localhost:8523/backend/api/where`
+
+获得服务程序所在位置，以便于脚本中实现自动安装、卸载、升级服务，返回内容如下：
+```JSON
+{
+  "code": 0,
+  "info": "Success",
+  "data": {
+    "at": "E:\\Work\\code\\CloudMesh\\server"
+  }
+}
+```
+响应中的data.at就是服务器运行的根目录，其下的子目录services存放服务，conf存放配置文件。
+
+- `http://localhost:8523/backend/api/enginever`
+
+获得服务器引擎版本，返回内容如下：
+```JSON
+{
+  "code": 0,
+  "info": "Success",
+  "data": {
+    "ver": "0.13.1"
+  }
+}
+```
+响应中的data.ver就是引擎版本，从github或gitee下载对应引擎版本的服务（非服务器的编译版本）。
+
+- 在命令行sbin\command.bat company，可以获得公司相关的命令列表
+| 命令  | 作用 |
+| ---   | ---  |
+| register company_name company_creditcode password cfm_password session verify_code | 注册公司 |
+| login company_id password [outside_addr [inside_addr]] | 登录公司，获得证书，产生company.cfg |
+| chgpwd old_password new_password | 修改公司密码 |
+| chgAuth password | 传入公司密码，修改公司鉴权密钥对 |
+| setinfo company_name [country [province [city [info]]]] | 修改公司信息 |
+| accesscode [code\|generate] | 产生公司公司接入码，如果不输入[code\|generate]，则为查询接入码 |
+| pubKey | 显示公司认证的公钥 |
+| info | 显示公司信息，包括ID、名称、密钥对等 | 
+| backupAt [backupAt] | 设置公司数据库备份时间点，不传[backupAt]用来查询备份时间点<br>backupAt用的时UTC分钟，比如东八区2点，传入1080（120-480+1440） |
+| setTotp | 设置totp密钥 |
+
 ### 常见服务
 
 至简网格提供了二十多个公司服务，能满足大部分中小企业IT工具需求。
 
-| 名称  | 主要功能 |
-| ---- | ----    |
-| 极简会员 | 会员信息记录、消费信息记录、积分管理等，会员可以选择使用密码，消费记录可以一键导出为word文档 |
-| 课时管理 | 学员信息记录、课时信息记录、积分管理等，课时记录可以一键导出为word文档 |
-| 业财一体 | 包括ibfbase基础服务、ibusiness差旅、ifinance财务、iproject项目管理、ihr人事管理、iresource资源管理，icrm客户关系管理。ibusiness、iproject、ihr、iresource、icrm都围绕ifinance的收支平衡表展开，支出与收入都记入ifinance服务，ifinance定时输出财务报表；<br>icrm负责客户信息管理、销售机会管理等，关联的销售项目、差旅、采购、发货、回款等调用iproject、ibusiness、iresource、ifinance完成 |
-| 简易记账 | 实现分散的团队管理，组织者给队员分发任务，组织者提成、队员分成计算、收支报表等 |
-| 消息交换中心 | 接受端侧定时请求，在请求的响应中下发命令，完成对设备的远程管理 |
-| 进销存系统 | 实现采购、销售两个主要功能，商品、分类、客户、供应商管理等辅助功能 |
-| 用户管理 | 包括公司用户帐号管理、授权管理，是所有服务的基础服务 |
+| 名称    | 英文名 |主要功能 |
+| ----   |  ---   |----    |
+| 极简会员 | member|会员信息记录、消费信息记录、积分管理等，会员可以选择使用密码，消费记录可以一键导出为word文档 |
+| 课时管理 | classhour|学员信息记录、课时信息记录、积分管理等，课时记录可以一键导出为word文档 |
+| 业财一体 || 包括ibfbase基础服务、ibusiness差旅、ifinance财务、iproject项目管理、ihr人事管理、iresource资源管理，icrm客户关系管理。<br>ibusiness、iproject、ihr、iresource、icrm都围绕ifinance的资产负债表展开，支出与收入都记入ifinance服务，ifinance定时输出财务报表；<br>icrm负责客户信息管理、销售机会管理等，关联的销售项目、差旅、采购、发货、回款等调用iproject、ibusiness、iresource、ifinance完成 |
+| 简易记账 | tally |实现分散的团队管理，组织者给队员分发任务，组织者提成、队员分成计算、收支报表等 |
+| 消息交换中心 | dmxcenter|接受端侧定时请求，在请求的响应中下发命令，完成对设备的远程管理 |
+| 进销存系统 | inventory|实现采购、销售两个主要功能，商品、分类、客户、供应商管理等辅助功能 |
+| 用户管理 | user| 包括公司用户帐号管理、授权管理，是所有服务的基础服务 |
+
+## 系统维护
+
+在SystemOM服务中可以实现基本的维护
+
+### 基本信息设置
+
+可以设置公司名称、重置接入码、外网入口，也可以直接连接数据库执行sql脚本、下载运行时日志、查看服务运行状态等。
+
+### 数据备份设置
+
+在SystemOM服务中设置数据每日云端备份，可以选则多个异地备份点。
+
+默认每日备份不开启，开启后，每天会自动将数据打包加密后存到至简网格的空间中，会产生一定的费用，每年大约几十元。
+
+因为数据是打包加密的，所以至简网格无法读取您的数据。在恢复数据时必须输入公司密码才可以解开，公司密码是通过pbkdf2混淆后存在至简网格，只能用于认证，无法知道原始密码。
+
+一旦恢复数据，最多会丢失一天的数据，所以建议只有在极端的情况才执行，比如服务器或手机损坏、丢失，或者换机时才考虑恢复数据。
+
+在换机的情况下，可以先关闭服务器，然后执行“立即备份”，将数据备份到至简网格。 在新环境安装好服务器软件后，再选择恢复数据，这样不会有数据损失。立即备份与定时备份一样，会消耗一次备份机会。
+
+以下几个参数的注意事项：
+| 参数 | 注意事项 |
+| ---- | ------ |
+| 每日备份时间点 | 默认为凌晨2点，时间点建议设置在业务低峰期，通常在凌晨2点 |
+|备份站点	| 请选择离自己距离近的备份站点，这样可以缩短备份与恢复时间。每多一个备份站点，数据丢失的可能性越低，系统按“G.年”计费，每多一个站点，相应多占用一份空间 |
+
+在配置发生变更后，会出现“保存”按钮，只有保存后，配置才会生效。
 
 
 
@@ -307,7 +444,7 @@ Termux是一个安卓应用，下载安装就能运行。因为安卓内核是Li
 
 从github[下载Termux应用](https://github.com/hanxinhao000/ZeroTermux/releases)选择最新arm64 release版本，下载后在安卓手机中安装（安卓版本至少为7.0）。
 
-如果无法访问github，可以安装[watt加速工具](https://apps.microsoft.com/detail/9mtcfhs560ng?launch=true&hl=zh-CN&gl=CN)，运行加速就可以访问了。
+如果无法访问github，安装[watt加速工具](https://apps.microsoft.com/detail/9mtcfhs560ng?launch=true&hl=zh-CN&gl=CN)，运行加速就可以访问了。
 
 因为不是从厂商的应用市场下载安装的，所以安装过程会有告警，请忽略所有告警。
 
@@ -321,10 +458,12 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 | passwd	|设置root用户的秘密，termux中可以直接root用户访问|
 | pkg install termux-services -y | 服务管理，比如运行sv-enable sshd |
 | pkg install openssh -y | sshd服务，用于远程命令行操控 |
-| sshd | 启动ssh服务，启动后就可以远程操作了 |
+| sshd |启动sshd服务，启动后就可以使用Bitvise等工具远程连接|
 | pkg install -y openjdk-21 | Java运行环境安装 |
 
-每次重启termux后，建议运行一下 pkg update && pkg upgrade 命令及时更新系统。
+每次在termux中安装新工具前，建议运行一下 pkg update && pkg upgrade 命令及时更新系统。
+
+运行 termux-info可以查看termux、linux、android的版本信息。
 
 #### B）必要的配置
 
@@ -332,6 +471,7 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 ```bash
 alias ll=’ls -l’
 ```
+如果需要查看隐藏文件可以使用 alias ll='ls -lA'
 
 2. 修改$PREFIX/etc/apt/sources.list使用清华的镜像，提升安装速度；
 ```bash

@@ -43,7 +43,7 @@
 3. 主版本号变化，代表着功能、数据库都出现了较大变化，需要重启服务端后才可以完成升级，此类升级有风险，所以升级前一定要做好数据备份。
 
 ---
-# 一、简介
+# 简介
 
 至简网格是一款基于HTTP协议的、完全服务化、极具弹性的通用业务服务器，用于开发基于数据库的端云结合的服务程序，服务程序可以运行在资源极其有限的设备上，比如安卓手机、树莓派等，使得服务器可以尽量前移到生产端，可以运用于边沿计算、企业信息化、办公自动化等场景。
 
@@ -69,7 +69,7 @@
 ![networking](imgs/server/networking.png)
 
 ---
-# 二、为什么要造轮子
+# 为什么要造轮子
 
 已经有很多服务端开发框架与端侧开发框架，为什么还要重复造端&云两个轮子？
 
@@ -126,9 +126,159 @@
 
 	- F) 数据库两份拷贝，支持每日往云端备份……
 
+---
+# 快速上手
+
+本文档是完整参考手册，按主题组织。对于第一次开发（尤其是使用 AI 辅助生成服务的场景），建议先完整走一遍本节，10 分钟从零跑通一个最小可运行服务，建整体认知，再按章节查阅细节。
+
+## 1. 新建服务目录
+
+一个服务对应一个目录，**目录名就是服务名**（`service.cfg` 中不能设置 `name`）。以"极简记账"为例：
+
+```
+account/
+├── service.cfg      # 服务描述（必须）
+├── database.cfg     # 数据库定义（必须）
+├── api/             # 接口定义目录
+│   ├── init.cfg     # （可选）启动初始化时自动调用的接口
+│   ├── item.cfg     # 业务接口定义文件
+│   └── pub.json     # （可选）角色定义等静态接口
+└── ui/              # （可选）端侧界面
+    └── index.html
+```
+
+## 2. service.cfg
+
+```JSON
+{
+    "author":"you@example.com",
+    "company" : "example.com",
+    "version":"0.1.0",
+    "displayName":"极简记账",
+    "dependencies":[
+        //依赖列表：需要调用某服务就必须申明，webdb、bios、oauth等无需申明
+        //单例运行时会根据此处定义自动添加服务依赖
+        {"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1"}
+    ]
+}
+```
+
+## 3. database.cfg
+
+最小配置：一个 `rdb`（建表）+ 一个同名 `sdb`（搜索库，与 rdb 同库）：
+
+```JSON
+[
+    {
+        "name":"account",
+        "version":"0.1.0",
+        "type":"rdb",
+        "versions":[{
+            "minVer":"0.0.0", //最小可升级的版本
+            "toVer":"0.1.0", //升级后的版本
+            "maxVer":"0.0.9", //最大可升级的版本，不配置时，与minVer相同
+            "sqls":[
+                "create table if not exists items (
+                    id int not null primary key, -- seq_id
+                    name varchar(100) not null,
+                    amount double not null default 0
+                )"
+            ]
+        }]
+    },
+    {
+        "name":"account", //如果有需要模糊搜索的接口才需要建sdb
+        "type":"sdb"
+    }
+]
+```
+
+## 4. 定义第一个接口
+
+在 `api/item.cfg` 中定义创建与列表两个接口：
+
+```JSON
+[
+    {
+        "name": "create",
+        "method":"POST",
+        "property" : "private",
+        "request": [
+            {"name":"name","type":"string","must":true,"max":100},
+            {"name":"amount","type":"double","must":true}
+        ],
+        "process": [{
+            "name":"add","type":"rdb","db":"account",
+            "sqls":[
+               //sql字符串中可以加换行
+               "insert into items(id,name,amount)
+               values(@{SEQUENCE|'itemid',i},@{name},@{amount})"
+            ]
+        }]
+    },
+    {
+        "name": "list",
+        "method":"GET",
+        "property" : "private",
+        "request": [
+            {"name":"num","type":"int","must":true}
+        ],
+        "process": [{
+            "name":"items",
+            "type":"rdb",
+            "db":"account",
+            "sqls":[{
+                "name":"items",
+                "metas":"each",
+                "multi":true,
+                "sql":"select * from items order by id desc limit @{num}"
+            }]
+        }],
+        "response":[
+            {"name":"items","type":"object", "list":true, "props":[
+	            {"name":"id","type":"string"},
+	            {"name":"name","type":"string"},
+	            {"name":"amount","type":"double"}
+	    ]}
+        ]
+    }
+]
+```
+
+
+## 5. 端侧调用（最小页面）
+
+`ui/index.html` 中最核心的调用方式（完整结构见[端侧UI开发](#端侧ui开发)部分）：
+
+```JavaScript
+request({method:"POST", url:"/api/item/list?num=10"}, "account").then(resp => {
+    if(resp.code != RetCode.OK) { return; }
+    // resp.data.items 即为响应
+});
+```
+
+## 6. 启动并验证
+
+把服务目录放入服务端工作目录的services子目录中，然后后启动。启动成功后：
+
+- 用 `/account/api/apis` 可列出本服务全部接口，用于核对接口是否定义正确（详见[开发自检清单](#开发自检清单)）；
+- 客户端先用公司ID、公司接入码登录公司后，在"应用管理-公司服务"中安装服务后即可在端侧访问。
+
+
+## 开发要点速查（动手前必读）
+
+以下约束分散在文档各处，但都是开发中最高频的"坑"，先集中列出：
+1. **宽松 JSON**：接口定义文件（cfg/json/def）采用宽松 JSON 解析，**允许 `//` 行注释，SQL字符串中可以换行**（SQL可以跨行书写，一个字符串中可含多条SQL，用分号分隔）；
+2. **服务名 = 目录名**：`service.cfg` 中不用写 `name`、`router`、`port` 等非标准字段；
+3. **访问 URL 规则**：`/服务名/api/{cfg文件名}/{接口名}`（如 `/account/api/item/list`），只有 `root.cfg` 中的接口可以省略文件名（如`/account/api/list`）；
+4. **新增 cfg 文件必须同步授权**：如果接口需要区分角色权限，要在 `pub.json` 的 `roles.rights` 中登记（key 必须是 **cfg 文件名**，不含扩展名），否则对应角色调用接口会返回 `NO_RIGHT`；
+5. **response 的三种模式**：默认（`"check":true`）会运行时过滤并校验——只返回 response 中定义的字段，且字段默认 `must:true`，data中如果缺失字段会报 `DATA_WRONG`(3003)；设置 `"check":false` 时response中定义仅用于生成文档，数据原样透传、不过滤不校验；不定义response则返回每个process的全部处理结果；
+6. **`update_time` 是系统自动添加的列**：webdb 会为每个表自动加 `update_time`，建表语句中不要手动定义；
+7. **ID 精度**：JS 中long型有精度损失，涉及跨端传递的ID时，建议在response中以string类型输出（参照 ifinance 等官方示例）；
+8. **`@[!xxx]` 只在本process内有效**：同一rdb process内的多个SQL之间，用`@[!xxx]`引用**之前已执行SQL的输出**（结果按执行顺序累积）；注意只有`toResp:true`（默认true）的SQL输出才可引用，写操作的行数 `name_result` 默认不传，需显式 `"toResp":true`；不同process之间用 `@{!xxx}` 引用上一步的响应字段；不同库的操作不能放在同一个process中，所以跨库引用必须用 `@{!xxx}`。
 
 ---
-# 三、服务开发概览
+# 服务开发概览
 
 在至简网格中，每个服务对应一个独立的目录，目录中存放端侧界面实现，以及服务定义、数据库定义、接口定义，这些定义文件的内容都是json格式的，很容易理解。
 
@@ -231,11 +381,50 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
     }
 ]
 ```
-如果数据库只用在当前实例，每个服务实例上的数据是独立的（比如地址查询，每个实例都有完整的地址信息记录），无需同步、备份，这种数据库可以用database.loc.cfg定义，定义方法与database.cfg完全相同。
+
+**一个服务可以申明多个独立库**：`database.cfg` 是一个 JSON 数组，可以并列声明多个 `rdb`（以及各自对应的 `sdb`）。每个 `rdb` 都有独立的库名，业务接口中通过 process 的 `"db":"库名"` 指定操作哪个库。典型场景是"单服务、多业务库分离"（如项目管理/财务/人事各一个库）。示例（节选）：
+
+```JSON
+[
+    {"name":"prj","version":"0.1.0","type":"rdb",
+     "versions":[
+	    {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists project (...)", "create table if not exists task (...)"]}
+	]},
+    {"name":"prj","type":"sdb"},
+
+    {"name":"fin","version":"0.1.0","type":"rdb",
+     "versions":[
+	    {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists income (...)", "create table if not exists expense (...)"]}
+	]},
+    {"name":"fin","type":"sdb"},
+
+    {"name":"hr","version":"0.1.0","type":"rdb",
+     "versions":[
+	     {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists employee (...)"]}
+	]},
+    {"name":"hr","type":"sdb"}
+]
+```
+
+多库开发时的约定：
+
+1. **`sdb` 与 `rdb`可同名**：与同名的库建在一个数据库中，如果不同名，则sdb建在独立的库中；
+2. 各库**独立升级**：每个 `rdb` 都要有自己的 `version` 与 `versions` 段，修改表结构只影响本库版本；
+3. 每个库的表都会自动带 `update_time` 列，所有表级 SQL 都会自动附带 `update_time` 更新，不要在建表语句中手动定义该列；
+4. 跨库查询：数据库之间没有外键关联，需要关联数据时通过接口层做"先查主库 → 再按结果查另一库"的多次查询（参见 search 应用举例）。
+
+如果数据库只用在当前实例，则每个服务实例上的数据是独立的（比如地址查询，每个实例都有完整的地址信息记录），无需同步、备份，这种数据库可以用database.loc.cfg定义，定义方法与database.cfg完全相同。
 
 ## 接口定义文件
 
 接口定义文件分成3类，扩展名分别为cfg、json、def。每个”.cfg“文件中，是一个json数组，数组中每个元素定义一个接口。访问时url有接口定义文件以及接口名称共同决定。比如，在接口文件customer.cfg中定义了create接口，则可以通过 "/customer/create" 访问。
+
+**宽松 JSON 说明**：cfg/json/def 文件都采用宽松JSON解析，与严格JSON有两个重要差异（本文档所有示例都按此书写）：
+
+- **允许 `//`、`/**/`注释**：可以用于给字段、SQL加注释；
+- **字符串可以跨行**：一个字符串值中可以包含换行，因此**一条SQL可以写成多行**。
+
+因此在编写接口/建表SQL时无需刻意压缩成一行，按可读性自由换行即可。
 ```JSON
 [
     {
@@ -276,8 +465,27 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 ```
 宏可以传递参数，宏参数名称前后要加上“#”，比如上例中的"#ACCLIST#"，这些宏参数最终都转成了字符串替换到宏定义中。
 
+宏定义最常见的使用场景是**通用数据校验与公共权限判断**，在多个接口中复用。
+**宏体就是单个处理（process）定义**，与process数组中一个处理的写法完全一致，用 `{"macro":"宏名"}` 即可在接口的process中引用。
+宏体内可以使用的处理类型（`call`、`dataexists`、`var`、`rdb` 等）都有各自的专门章节讲解，宏只是把这些处理定义"抽取复用"。
+
+宏定义用在权限定义场景比较多，比如在aclChecker为ABAC时，可以在aclProcess中引用，比如：
+```
+"aclProcess":[
+    {"macro": "has_right", "#DID#":"@{order}", "#TYPE#":"OD"}
+]
+```
+
+使用宏的注意事项：
+
+1. **宏体是单个处理定义，不 process数组**：宏名对应的值就是那一个处理的完整配置（如上面的 `"type":"dataexists"`），引用后等价于把该配置原样放入process数组；
+2. **宏参数是字符串替换**：引用时以 `#参数名#` 形式传参，如 `{"macro": "check_accounts", "#ACCLIST#":"@{JSON|to,0}"}`，宏体中出现的 `#ACCLIST#` 会被替换成传入的值；如果没有参数，可以不传；
+3. 宏体内可以像普通process一样使用 `@{请求参数}`、`@{#tokenAcc}`、`@[!xxx]` 等占位符；
+4. 校验类宏（如 `dataexists`）在条件不满足时按配置返回 `errorCode`/`errorInfo` 作为接口的错误码与错误信息，因此校验类宏的 `errorCode` 命名应全局唯一、有明确含义；
+5. 一个 def 文件中可以定义多个宏，宏名需要全局唯一。
+
 ---
-# 四、接口定义<a id="interfacedef"></a>
+# 接口定义<a id="interfacedef"></a>
 
 绝大部分服务都需要服务端接口配合客户端实现端云交互，接口定义的文件都在服务根目录的api子目录下，扩展名有cfg、def、json三种，每种文件记录的都是json格式的接口配置。def文件是宏定义，配合cfg完成接口定义，json文件中记录返回静态内容的接口，本章只讲解cfg文件中的接口定义。
 
@@ -485,7 +693,7 @@ RDB是使用最多的处理类型，调用webdb/api/rdb/request实现数据库�
 | ------- | ---  |
 | db      |指定需要操作的数据库 |
 | sharding|指定分片计算方法，可以引用请求参数、变量、请求头或者上一步的返回结果， 也可以使用token中的数据或请求头中的数据，但是最终结果要转换为一个无符号整型数，更多详情在 [数据分片](#数据分片)中|
-| sqls    |可以只有一个sql，也可以有多个；<br>A) 多个sql是顺序执行的；<br>B) 下一个sql可以使用上一个sql的查询结果，通过[占位符](#placeholder)@\[!xxx\]引用(注意是中括号不是大括号)；<br>C) 每个sql的配置可以是一个字符串，也可以是一个map，通常增删改操作可以写成一个字符串，查询操作写成map，因为需要对返回结果进行定义；<br>D) 多个写sql是放在一个事务中执行的，如果一个发生了错误，则所有操作都会回滚|
+| sqls    |可以只有一个sql，也可以有多个；<br>A) 多个sql是顺序执行的；<br>B) 下一个sql可以使用之前已执行所有sql的输出，通过[占位符](#placeholder)@\[!xxx\]引用(注意是中括号不是大括号)；注意只有 `toResp:true`（默认true）的sql输出才可引用，写操作行数`name_result`需显式`toResp:true`；<br>C) 每个sql的配置可以是一个字符串，也可以是一个map，通常增删改操作可以写成一个字符串，查询操作写成map，因为需要对返回结果进行定义；<br>D) 多个写sql是放在一个事务中执行的，如果一个发生了错误，则所有操作都会回滚|
 | any     |多个sql的情况，如果any为true，则，任意一个执行成功就返回结果，否则将所有sql的执行结果都汇总后再返回|
 
 #### 普通SQL
@@ -504,10 +712,11 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
 
 | 属性  | 说明 |
 | ---  | ---  |
-|name  |执行结果的名称，在merge为true时，无意义，只用于日志中打印|
-|multi |返回结果是否为多行|
-|metas |返回结果中每一行是否携带字段名信息<br>each：返回的每行记录中，每个字段都带有列名，如，{mobile:189…}<br>none：  每行记录都是一个数组，如，返回[1,"hello",4]，这样可以减少响应体大小<br>oneCol：如果结果集有多行，且只有一列，可以指定oneCol，返回一个数组， 如，ids:[1,2,3,4...]，这样可以减少响应内容<br>列信息字段名：数据记录按数组返回，但是在最后添加一行各列的列名，如，cols:["name","age",...]，这里的cols就是用metas指定的， 解析时可以利用它，既可以减少返回内容的体积，又可以方便标识每一列|
-|merge |是否将结果直接存在HandleResult.data中，当multi为false时才有效<br>false：响应形如data.'name'.mobile:189…，其中的name就是sql配置中的列名称<br>true：响应形如data.mobile:189…，省去了中间一层|
+|name  |执行结果的名称，多行查询结果放在data.{name}下；在merge为true时，字段直接放在data中，name无意义，只用于日志中打印|
+|multi |返回结果是否为多行，默认true；多行结果放在data.{name}下（如上例中data.vips）|
+|metas |返回结果中每一行是否携带字段名信息<br>each：返回的每行记录中，每个字段都带有列名，如，{mobile:189…}<br>none：  每行记录都是一个数组，如，返回[1,"hello",4]，这样可以减少响应体大小<br>oneCol：如果结果集有多行，且只有一列，可以指定oneCol，返回一个数组， 如，ids:[1,2,3,4...]，这样可以减少响应内容<br>列信息字段名：数据记录按数组返回，但是在最后添加各列的列名，如，配置"metas":"cols"，则响应中有cols:["name","age",...]，解析时可以利用它，既可以减少返回内容的体积，又可以方便标识每一列；如果接口定义中配置了response，则需要增加一个字段{"name":"cols", "type":"string", "list":true}|
+|merge |是否将结果直接存在HandleResult.data中，当multi为false时才有效<br>false：响应形如data.'name'.mobile:189…，其中的name就是sql配置中的列名称<br>true：响应形如data.mobile:189…，省去了中间一层<br>默认值：仅当multi=false且metas=each时默认true，其余情况默认false；multi=false且metas≠each时显式设置merge:true会报WRONG_PARAMETER|
+|toResp|是否把本SQL的执行结果写入响应数据，供同process内后续SQL用@[!xxx]引用<br>查询sql中默认为true，增删改默认为false<br>注意：该配置也**可控制**结果是否返回前端|
 |expected|如果是增删改操作，用expected指定期望的受影响行数，如果真实情况不是如此，就返回指定的返回码及错误信息，比如<br>"expected":{"num":1,"errorCode":"NO_RIGHT","errorInfo":"order is completed"}|
 
 【注意】
@@ -515,7 +724,9 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
 1. update_time字段是系统在建表语句中插入的字段，用于辅助数据复制，查询时可以使用；
 2. 简单增删改，系统自动添加update\_time及对应的当前时间戳；
 3. 复杂sql，比如批量插入，系统需要将它们变成多行简单的sql，并逐行添加update\_time；
-4. 增删改操作会返回操作受影响的行数，响应中的字段名为“操作名称+_result”。
+4. 增删改操作会返回操作受影响的行数，返回data中的字段名为“操作名称+_result”（同process内相同name的写操作行数自动汇总）。它**默认不写入**全局响应，后续SQL用@[!xxx]引用不到，需要引用时给该写SQL加"toResp":true；
+5. **查询无结果返回NOT_EXISTS(2001)，不是空数组/空对象**：多行或单行查询查不到数据时，process返回NOT_EXISTS错误。想让列表接口空结果也返回OK，给该SQL加"ignores":["NOT_EXISTS"]；但被忽略后该字段不会出现在data中，端侧需自行兜底为空列表，response中相应字段要must:false，设置默认值；
+6. 多条读SQL的结果会**全部**合并进返回data（如果字段同名，后面的会覆盖前面的）；不需要的字段可在response中过滤掉。
 
 #### 带JS的SQL
 
@@ -1066,7 +1277,7 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 ### 9. var
 
 定义一个或多个参数，与请求中的[vars](#vars)定义相同，在下一步可以当作普通参数使用，比如@{varName}。
-toResp为true时，内容会作为响应的字段返回。
+toResp为true时，变量会作为响应字段直接写入 data 返回给调用方。
 
 ```JSON
 {
@@ -1194,7 +1405,7 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
 ]
 ```
 
-响应内容的解析是需要占用CPU的，如果不是特别需要，可以不用定义。考虑到有些服务希望自动生成文档，那么就需要定义响应字段，可以设置在运行时不解析。这时就需要将response定义成一个json对象，例如：
+响应内容的解析是需要占用CPU的，如果不是特别需要，可以不定义。考虑到有些服务希望自动生成文档，那么就需要定义响应字段，但是在运行时不解析。这时就需要将response定义成一个json对象，设置`"check":false`，例如：
 ```JSON
 "response":{
     "check":false, //默认为true，即，只要定义了response，就默认解析
@@ -1232,6 +1443,58 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
 2. 如果无response定义，则不会做任何过滤，处理中返回什么内容，全部返回；
 3. 如果是一个长度为0的response，则会丢弃所有内容，如："response":[]。
 
+### response易错点
+
+1. **字段默认 `must:true`**：只要定义了response（check默认true），data 中缺失某个响应字段就会返回 `DATA_WRONG`(3003)。当查询结果可能缺列时，请显式设置 `"must":false` ，此时可提供 `"default":xxx`；
+2. **`check:false` 是"不校验"，不是"宽松校验"**，而是数据原样透传，不做过滤，缺内容也不报DATA_WRONG，response中的字段定义仅用于生成接口文档；此时未在response中声明的字段在调用方也能取到；
+3. **列表接口的 response 写法**：
+    - sql的multi为true：表示有多行查询结果，放在 `data.{name}`（name是rdb中sql的name），response中必须定义一个同名顶层字段并加 `"list":true`、`"type":"object"`，字段定义写在 `props` 中（每个字段的 must 校验对每行生效）：
+    ```JSON
+       "response":[
+           {"name":"items","type":"object", "list":true, "props":[
+               {"name":"id","type":"string"},
+               {"name":"name","type":"string"}
+           ]}
+       ]
+    ```
+    - sql的multi为false：只有一行查询结果，即使结果集有多行，也只返回第一行。当merge为false时，定义与multi为true时一样，只是不必再加`"list":true`，返回的是一个对象；当merge为true时，字段（SQL列名）直接合并到data顶层，此时response直接定义字段即可，**不要再包一层`"object"`+`props`**；注意该字段名必须等于SQL的**列别名**（如`select count(*) as total ...`），而不是sql的`name`；
+    
+    merge为false时：
+    ```JSON
+       "response":[
+           {"name":"user","type":"object", "list":true, "props":[
+               {"name":"id","type":"string"},
+               {"name":"name","type":"string"}
+           ]}
+       ]
+       //响应例子
+       {
+           "code":0,
+           "info":"Success",
+           "data":{
+               "user":{"id":1,"name":"张三"}
+           }
+       }
+    ```
+    
+    merge为true时：
+    ```JSON
+       "response":[
+           {"name":"id","type":"string"},
+           {"name":"name","type":"string"}
+       ]
+       //响应例子
+       {
+           "code":0,
+           "info":"Success",
+           "data":{
+               "id":1,
+               "name":"张三"
+           }
+       }
+    ```
+	 
+4. **response过滤只对返回OK的请求生效**：process 链中某一步返回非 OK（如查询无结果的 NOT_EXISTS）时，直接返回错误码，不存在响应data，不会继续处理字段过滤。
 ### 返回码
 
 响应体中的code为返回码，如果无错误则为OK(0)，返回码在js脚本、errorCode中可以用RetCode.xx直接引用，code定义如下：
@@ -1403,7 +1666,7 @@ xml.join('');
 这类接口必须保证能够重入，因为每个实例每次重启时都会调用，如果不能重入，则每次启动都会影响服务的状态。
 
 ---
-# 五、占位符<a id="placeholder"></a>
+# 占位符<a id="placeholder"></a>
 
 在sql、js脚本，以及一些配置项中（比如searchdb、 treedb的action、 title、 when中），用占位符引用请求参数、变量、响应参数、系统参数、请求头。
 
@@ -1529,7 +1792,7 @@ xml.join('');
 | BASE64IMG | 将指定图片存到模板临时目录 | @{BASE64IMG\|para,path[,rootpath]}<br> 用在服务端模板中，存图片到指定目录，可以是base64格式，也可以是原始文件 |
 
 ---
-# 六、认证&鉴权
+# 认证&鉴权
 
 ## 服务间认证&鉴权<a id="serviceauth"></a>
 
@@ -1634,7 +1897,16 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
     ...
 }
 ```
-为了实现对角色功能更加细致的限制，在每个接口中都可以定义feature，在角色定义时，限制角色在某个接口定义文件中，只能执行特定的几类接口。详情请参照 [接口定义](#interfacedef)。
+为了实现对角色功能更加细致的限制，在每个接口中都可以定义feature，在角色定义时，限制角色在某个接口定义文件中，只能执行特定的几类接口。
+
+##### 角色授权的实践高频坑
+
+`roles.rights` 的 **key必须是接口定义文件的文件名（不含扩展名）**，value 是 `"*"`（全部接口）或 feature 列表。开发中最常见的错误是**新增/删除了一个 cfg 文件却忘记同步修改 `pub.json`**，导致角色调用该文件的接口时返回 `NO_RIGHT`。
+
+1. **每新增一个cfg文件，都必须检查所有角色的rights**：即便只有"能访问其中所有接口"这一种需求，也要显式写上 `"模块名" : "*"`，否则该角色调用时无权限；
+2. **未登记的cfg文件不是"全部禁止"**：没有配置feature的接口（未写 `feature` 字段）仍可访问，所以"漏配"的表现往往是"部分接口能调、部分接口 NO_RIGHT"，排查时注意核对；
+3. 建议在开发自检阶段（见[开发自检清单](#开发自检清单)）用 `/服务名/api/apis` 与 `pub.json` 逐文件核对：cfg 文件名集合与 rights 的 key 集合一致；
+4. 当某个角色只需要个别接口时，使用feature做细粒度控制，并保持接口的 `feature` 命名与rights值一致（拼写差异会静默失败，表现为 NO_RIGHT）。feature 的具体配置方法参照 [接口定义](#interfacedef)。
 
 #### ABAC
 
@@ -1655,7 +1927,7 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 先基于角色鉴权，如果通过，再基于属性鉴权，如果都通过，则返回成功，否则返回失败。 注意，必须同时提供aclProcess配置，与ABAC一样。
 
 ---
-# 七、数据库开发
+# 数据库开发
 
 ## 数据库定义
 
@@ -1745,7 +2017,7 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 4. treedb、searchdb不支持分片。
 
 ---
-# 八、高阶开发<a id="advancedev"></a>
+# 高阶开发<a id="advancedev"></a>
 
 如果sql脚本、js脚本已不能满足业务要求，则需要做Java开发。内置的类型本质上是使用type来指定内置的处理类，自定义的处理类，必须写完整的“包名+类名称”来指定处理类。
 内置的Java实现逻辑，在发布版本时已编译连接进去了。
@@ -1813,7 +2085,7 @@ assets不是通常意义的服务，不运行于服务侧，只用于给每个�
 它没有任何接口，只提供了vue、quasar、echarts等基本的UI库，以及一些内置的vue组件、公共函数等。
 
 ---
-# 十、公共服务
+# 公共服务
 
 公共服务为企业服务提供支撑，降低企业服务开发的难度、工作量。
 以下公共服务都已上传至[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)。比如公司帐号服务对应user目录、序列ID服务对应seq目录...

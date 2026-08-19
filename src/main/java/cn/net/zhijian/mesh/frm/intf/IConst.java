@@ -25,7 +25,8 @@ public interface IConst extends IUtil {
     String SERVICE_ASSETS = "assets";
     String SERVICE_SEQID = "seqid";
     String SERVICE_BIOS = "bios"; //记录服务信息、节点状态、底层密码
-    String SERVICE_OM = "om";
+    String SERVICE_OM = "om"; //根环境的管理服务
+    String SERVICE_SYSTEMOM = "systemom"; //私有环境的管理服务
     String SERVICE_GATEWAY = "gateway";
     String SERVICE_ADDRESS = "address";
     String SERVICE_WORKFLOW = "workflow"; //工作流服务
