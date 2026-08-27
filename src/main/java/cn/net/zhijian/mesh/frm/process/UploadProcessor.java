@@ -104,7 +104,7 @@ public class UploadProcessor extends AbsProcessor {
         }
         
         String name = ValParser.getAsStr(params, REQ_FILENAME);
-        if(name.contains("./")) {//不容许相对路径
+        if(FileUtil.containsRelative(name)) {//不容许相对路径
             return HandleResult.future(RetCode.WRONG_PARAMETER, "invalid file name,contains relative path");
         }
         

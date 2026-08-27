@@ -55,7 +55,7 @@ public class PartitionConfig {
     private static final String SEG_CLOUD_HTTPDNS = "cloudHttpdns";
     private static final String SEG_TIMEZONE = "timeZone";
     private static final String SEG_RUNMODE = "runMode"; //运行模式
-    
+   
     //公司服务运行方式
     public enum DeployMode {
         SINGLETON, //公司自己单例部署，只有一个实例，此时会自动初始化数据库
@@ -94,6 +94,7 @@ public class PartitionConfig {
      * //减少bios服务节点发现的请求
      */
     private BiosDNS biosDns;
+    
     private static PartitionConfig instance;
 
     /**
@@ -133,6 +134,7 @@ public class PartitionConfig {
             biosServers = new ArrayList<>();
             biosServers.add(ChannelConfig.instance().localHttpAddr());//默认只有本机是bios
         }
+        
         return new PartitionConfig(cfgFile, inCloud,
                 partition, cloudHttpdns, fileCacheTime,
                 runMode, enviorment, timeZone, biosServers);
@@ -215,6 +217,14 @@ public class PartitionConfig {
         return n.addr.equals(ChannelConfig.instance().localHttpAddr());
     }
 
+    public boolean isBios(String addr) {
+        return biosDns.isBios(addr);
+    }
+    
+    public boolean isBios() {
+        return isBios(ChannelConfig.instance().localHttpAddr());
+    }
+    
     public NodeAddress mainBios() {
         return biosDns.mainNode();
     }

@@ -8,8 +8,8 @@ import cn.net.zhijian.util.IUtil;
  *
  */
 public interface IConst extends IUtil {
-    String ENGINEVERSION = "0.11.1";
-    String BUILDVERSION = "0.10.0";
+    String ENGINEVERSION = "0.13.1";
+    String BUILDVERSION = "1.4.2";
     String SERVICES_ROOT = "services"; //服务根路径
 
     String SERVICE_WEBDB = "webdb";

@@ -84,7 +84,7 @@ public class DownloadProcessor extends AbsProcessor {
         }
 
         String name = URLDecoder.decode(ValParser.getAsStr(params, REQ_FILENAME), IConst.DEFAULT_CHARSET);
-        if(name.contains("./")) {//不容许相对路径
+        if(FileUtil.containsRelative(name)) {//不容许相对路径
             return HandleResult.future(RetCode.WRONG_PARAMETER, "invalid filename,contains relative path");
         }
         String fullName = fullPath(req, resp, name);

@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-//import cn.net.zhijian.mesh.bean.RootKeystore;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.RootKeystore;
 import cn.net.zhijian.mesh.bean.ServerSecurity;
@@ -33,6 +32,7 @@ import cn.net.zhijian.platform.cmd.Json;
 import cn.net.zhijian.platform.cmd.KeyID;
 import cn.net.zhijian.platform.cmd.Md5;
 import cn.net.zhijian.platform.cmd.MergeWords;
+import cn.net.zhijian.platform.cmd.Password;
 import cn.net.zhijian.platform.cmd.Pbkdf2;
 import cn.net.zhijian.platform.cmd.PortMapping;
 import cn.net.zhijian.platform.cmd.Queue;
@@ -42,7 +42,6 @@ import cn.net.zhijian.platform.cmd.Service;
 import cn.net.zhijian.platform.cmd.Sha1;
 import cn.net.zhijian.platform.cmd.Sha256;
 import cn.net.zhijian.platform.cmd.Source;
-import cn.net.zhijian.platform.cmd.TotpKey;
 import cn.net.zhijian.platform.cmd.UUID;
 import cn.net.zhijian.platform.cmd.Utc;
 import cn.net.zhijian.platform.util.SrvKeystoreHelper;
@@ -84,7 +83,7 @@ public final class ToolMain {
         addCmd(new Md5("md5"));
         addCmd(new Sha1("sha1"));
         addCmd(new Sha256("sha256"));
-        addCmd(new TotpKey("totp"));
+        addCmd(new Password("password"));
         addCmd(new Cert("cert")); //自签名证书管理
         addCmd(new ApiTest("apitest")); //接口测试
         addCmd(new Pbkdf2("pbkdf2")); //密码加密

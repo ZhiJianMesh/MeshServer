@@ -1,8 +1,10 @@
 package cn.net.zhijian.platform.cmd;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.KeyPair;
@@ -11,6 +13,7 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.security.Provider;
@@ -24,6 +27,7 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
@@ -67,6 +71,9 @@ public class Cert extends AbsCommand {
         } else if((idx = StringUtil.indexOf(params, "list")) >= 0) {
             params = StringUtil.removeEle(params, idx);
             result = list(params);
+        } else if((idx = StringUtil.indexOf(params, "der2pem")) >= 0) {
+            params = StringUtil.removeEle(params, idx);
+            result = derToPem(params[0], params[1]);
         }
 
         if(!result) {
@@ -84,7 +91,8 @@ public class Cert extends AbsCommand {
             "  name example:\"CN=ZhiJian Root CA,C=CN,OU=zhijian.net.cn,O=ZhiJianNetCN\"",
             "2)createsub path_to_parentcert_file parentpwd path_to_cert_file password valid_days name",
             "  name example:\"CN=ZhiJian Mesh CA,C=CN,OU=zhijian.net.cn,O=ZhiJianNetCN\"",
-            "3)list path_to_cert_file password"
+            "3)list path_to_cert_file password",
+            "4)der2pem path_to_der_file path_to_pem_file"
         };
     }
     
@@ -132,6 +140,21 @@ public class Cert extends AbsCommand {
         //jks证书，包括公私钥，用于服务器，当前都使用bks
         saveToJks(file, KS_ALIAS, chain, pk, pwd);
         
+        return true;
+    }
+
+    private static boolean derToPem(String defFile, String pemFile) throws Exception {
+        // 1. 读取DER文件并生成X509Certificate对象
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        X509Certificate cert;
+        try (InputStream in = new FileInputStream(defFile)) {
+            cert = (X509Certificate) cf.generateCertificate(in);
+
+            // 2. 使用JcaPEMWriter将证书对象直接写入PEM文件
+            try (JcaPEMWriter pemWriter = new JcaPEMWriter(new FileWriter(pemFile))) {
+                pemWriter.writeObject(cert);
+            }
+        }
         return true;
     }
 
@@ -342,6 +365,7 @@ public class Cert extends AbsCommand {
             jks.store(fos, pwd);
         }
     }
+
     
     /**
      * 产生256位ECC密钥对

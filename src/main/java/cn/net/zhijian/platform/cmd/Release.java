@@ -17,6 +17,7 @@ import cn.net.zhijian.mesh.frm.config.ServiceInfo.ClientType;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo.Dependency;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo.ServiceType;
 import cn.net.zhijian.mesh.frm.intf.IConst;
+import cn.net.zhijian.platform.IPlatformConst;
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.StringSpliter;
@@ -28,8 +29,6 @@ import cn.net.zhijian.util.ValParser;
  */
 public class Release extends AbsCommand implements IConst {
     private static final String WORKDIR = System.getProperty("user.dir");
-
-    private static final Set<String> ServerExcludes = new HashSet<>();
     
     private static final String INSERT_SERVICE_VALUES = "('%s','%s','%s',%d,%d,%d,'%s','%s','%s',%d,%d,%d)\n";
     private static final String INSERT_SEARCH_VALUES = "('%s',%d,'%s','%s','%s',%d)\n";
@@ -66,17 +65,17 @@ public class Release extends AbsCommand implements IConst {
     private final StringBuilder updateRuleSqls = new StringBuilder();
 
     private final StringBuilder insertVerSqls = new StringBuilder("insert or ignore into vers\n"
-            + "(service,ver,minCVer,size,digest,cmt,update_time) values\n");
+            + "(service,engineVer,ver,minCVer,size,digest,cmt,update_time) values\n");
     private final StringBuilder updateVerSqls = new StringBuilder();
     
     private final Map<String, ServiceCfg> services = new LinkedHashMap<>();
     private String srcRoot, dstRoot;
     private ServiceCfg BIOS, OAUTH, WEBDB;
+    private final int ENGINE_VRESION;
 
     public Release(String name) {
         super(name);
-        ServerExcludes.add("file/_imgs");
-        ServerExcludes.add("api/introduction.json");
+        ENGINE_VRESION = StringUtil.verToInt(IConst.ENGINEVERSION);
     }
 
     @Override
@@ -102,15 +101,16 @@ public class Release extends AbsCommand implements IConst {
             srcRoot = srcRoot.substring(0, srcRoot.length() - 1);
         }
         ServiceInfo.setWorkDir(srcRoot);
-        dstRoot = ValParser.getAsStr(cfg, "dst");
-        if(!dstRoot.endsWith("/") && !dstRoot.endsWith("\\")) {
-            dstRoot = dstRoot + File.separatorChar;
+        String dst = ValParser.getAsStr(cfg, "dst");
+        dstRoot = FileUtil.addPath(dst, IPlatformConst.ENGINEVERSION);
+        File dstPath = new File(dstRoot);
+        if(!dstPath.exists()) {
+            dstPath.mkdirs();
         }
-        int defaultMinCptVer = ValParser.getAsInt(cfg, "minCptVer"); //最小可兼容版本
-        List<String> DEFAULT_LIST = ValParser.getAsStrList(cfg, "defaultServerInclude");
+        List<String> DEFAULT_LIST = ValParser.getAsStrList(cfg, "defaultInclude");
         List<String> DEFAULT_BASEVERS = new ArrayList<>();
         DEFAULT_BASEVERS.add("0");//默认从0版本升级
-        
+
         String dicPath = ValParser.getAsStr(cfg, "spliter");
         System.out.println("load default dictionary from " + dicPath);
         try {
@@ -136,22 +136,25 @@ public class Release extends AbsCommand implements IConst {
             }
 
             String cmt = ValParser.getAsStr(prj, "cmt").replace("'", "''");
-            List<String> serverIncludes = ValParser.getAsStrList(prj, "server_include");
-            if(serverIncludes == null || serverIncludes.size() == 0) {
-                serverIncludes = DEFAULT_LIST;
+            List<String> includes = ValParser.getAsStrList(prj, "include");
+            if(includes == null || includes.size() == 0) {
+                includes = DEFAULT_LIST;
+            } else {
+                includes.addAll(DEFAULT_LIST);
             }
-            Set<String> clientExcludes = ValParser.getAsStrSet(prj, "client_exclude");
-            if(clientExcludes == null) {
-                clientExcludes = new HashSet<>();
+            Set<String> excludes = ValParser.getAsStrSet(prj, "exclude");
+            if(excludes == null) {
+                excludes = new HashSet<>();
             }
             
             List<String> baseVers = ValParser.getAsStrList(prj, "baseVers");
             if(baseVers == null) {
                 baseVers = DEFAULT_BASEVERS;
             }
-            int minCptVer = ValParser.getAsInt(prj, "minCptVer", defaultMinCptVer);
+            String ver = ValParser.getAsStr(prj, "minCptVer", "0.0.0");
+            int minCptVer = StringUtil.verToInt(ver);
             ServiceInfo si = ServiceInfo.parse(serviceDir, name, null, true);
-            services.put(si.name, new ServiceCfg(id, minCptVer, si, cmt, serverIncludes, clientExcludes, baseVers));
+            services.put(si.name, new ServiceCfg(id, minCptVer, si, cmt, includes, excludes, baseVers));
         }
         
         //以下三个服务，即使依赖，也不用申明，所以需要单独处理
@@ -187,6 +190,7 @@ public class Release extends AbsCommand implements IConst {
         }
         
         int no = 0;
+
         for(Map.Entry<String, ServiceCfg> o : services.entrySet()) {
             ServiceCfg sc = o.getValue();
             if(allowedServices != null //命令行设置了需要重新生成的服务列表
@@ -229,21 +233,11 @@ public class Release extends AbsCommand implements IConst {
         ServiceInfo si = serviceCfg.si;
         int n = 0;
         long lastest = System.currentTimeMillis();
-        String dst = FileUtil.addPath(dstRoot, si.name);
-        String packagePath = FileUtil.addPath(dst, si.version());
-        File serverZip = new File(FileUtil.addPath(packagePath, SERVICE_SERVER_ZIP));
+        File packageFile = new File(FileUtil.addPath(dstRoot, si.name + "-" + si.version() + ".zip"));
         if(si.type == ServiceType.COMMON || si.type == ServiceType.COMPANY) {
-            lastest = serverZip.exists() ? serverZip.lastModified() : 0;
+            lastest = packageFile.exists() ? packageFile.lastModified() : 0;
             if(lastest == 0 || updated(serviceCfg, lastest)) {
-                File iconFile = new File(FileUtil.addPath(si.homeDir, SERVICE_UI_DIR, FAVICON_FILE));
-                FileUtil.createDir(dst);
-                File dstFile = new File(FileUtil.addPath(dst, FAVICON_FILE));
-                if(iconFile.exists()) {
-                    FileUtil.copyFile(iconFile, dstFile);
-                }
-                FileUtil.createDir(packagePath); //只有需要生成server.zip的才创建目录
-
-                n = compressServer(serviceCfg, serverZip);
+                n = compressServer(serviceCfg, packageFile);
                 lastest = System.currentTimeMillis();
             }
         }
@@ -272,14 +266,15 @@ public class Release extends AbsCommand implements IConst {
         line = String.format(UPDATE_SERVICE_SQL, vals);
         updateServiceSqls.append(line);
         
-        if(serverZip.exists()) {
+        if(packageFile.exists()) {
             //service,ver,minCVer,size,digest,cmt,update_time
             if(updateVerSqls.length() > 0) {
                 insertVerSqls.append(",\n");
             }
-            String digest = FileUtil.digest(serverZip);
-            long size = serverZip.length();
+            String digest = FileUtil.digest(packageFile);
+            long size = packageFile.length();
             insertVerSqls.append("(").append(serviceCfg.id)
+                .append(',').append(ENGINE_VRESION)
                 .append(',').append(serviceCfg.si.version)
                 .append(',').append(serviceCfg.minCptVer)
                 .append(',').append(size)
@@ -395,10 +390,9 @@ public class Release extends AbsCommand implements IConst {
         int n = 0;
         ServiceInfo si = serviceCfg.si;
         FileUtil.remove(serverZip);
-        System.out.println("Compress server:" + si.homeDir + ",versio:" + si.version());
+        System.out.println("Compress server:" + serverZip);
         Set<String> excludes = new HashSet<>();
-        excludes.addAll(ServerExcludes); //公共的、不必压缩的文件
-        for(String s : serviceCfg.clientExcludes) {
+        for(String s : serviceCfg.excludes) {
             excludes.add(SERVICE_UI_DIR + "/" + s); //从服务根目录压缩，所以需要加上file
         }
 
@@ -423,31 +417,6 @@ public class Release extends AbsCommand implements IConst {
         }
         return n;
     }
-    /**
-     * 压缩服务目录下file子目录中的所有文件，并添加app.cfg文件，
-     * 此文件是提供给客户端的，是客户端的UI。
-     */
-//    private int compressClient(ServiceCfg sc, File clientZip) {
-//        ServiceInfo si = sc.si;
-//        System.out.println("Compress client:" + si.homeDir);
-//        File srcZip = new File(FileUtil.addPath(AbsPlatform.clientsRoot(), si.name + ".zip"));
-//        int n = si.compressClient(sc.clientExcludes, srcZip);
-//        if(n > 0) {
-//            FileUtil.copyFile(srcZip, clientZip);
-//        }
-//        return n;
-//    }
-    
-//    /**
-//     * 压缩服务包，包括客户端与服务端zip，以及介绍
-//     */
-//    private int compressService(String root, File serviceZip) {
-//        System.out.println("Compress service:" + root);
-//        FileUtil.remove(serviceZip);
-//        Set<String> excludes = new HashSet<>();
-//        excludes.add(SERVICE);
-//        return FileUtil.zipDir(serviceZip, root, excludes);
-//    }
 
     @Override
     public String[] help() {
@@ -464,18 +433,18 @@ public class Release extends AbsCommand implements IConst {
         final int minCptVer; //最小可兼容版本
         final List<String> serverIncludes;
         final List<String> baseVers; //可以升级到此版本的基础版本
-        final Set<String> clientExcludes;
-        final ServiceInfo si;
+        final Set<String> excludes;
+          final ServiceInfo si;
         int dependTimes = 0;
         
         ServiceCfg(int id, int minCptVer, ServiceInfo si, String cmt, List<String> serverIncludes,
-                Set<String> clientExcludes, List<String> baseVers) {
+                Set<String> excludes, List<String> baseVers) {
             this.id = id;
             this.minCptVer = minCptVer;
             this.si = si;
             this.cmt = cmt;
             this.serverIncludes = serverIncludes;
-            this.clientExcludes = clientExcludes;
+            this.excludes = excludes;
             this.baseVers = baseVers;
         }
     }

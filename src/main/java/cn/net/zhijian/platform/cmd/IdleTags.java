@@ -23,7 +23,7 @@ public class IdleTags extends AbsCommand implements IConst {
 
     @Override
     public boolean run(String[] args) throws Exception {
-        String path = "./services";
+        String path = "." + File.separatorChar + "services";
         int maxLevel = 0;
         if(args.length > 0) {
             path = args[0];

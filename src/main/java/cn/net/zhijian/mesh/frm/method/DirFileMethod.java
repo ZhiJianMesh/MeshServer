@@ -34,7 +34,7 @@ public class DirFileMethod extends AbsFileMethod {
     @Override
     public void response(AbsServerRequest req, AbsServerResponse resp) {
         String name = getFileName(req);
-        if(name.contains("./")) {
+        if(FileUtil.containsRelative(name)) {
             LOG.error("Invalid file name {}", name);
             resp.error(HttpResponseStatus.BAD_REQUEST, RetCode.WRONG_PARAMETER);
             return;

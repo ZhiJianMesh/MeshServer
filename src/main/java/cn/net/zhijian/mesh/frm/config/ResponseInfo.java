@@ -348,6 +348,10 @@ public final class ResponseInfo {
                 LOG.error("Null {} config in '{}'", PROPERTY_TEMPLATE, si.name);
                 return false;
             }
+            if(FileUtil.containsRelative(template)) { //不容许相对目录
+                LOG.error("Invalid {} config `{}` in '{}'", PROPERTY_TEMPLATE, template, si.name);
+                return false;
+            }
             String tmplName = FileUtil.addPath(si.homeDir, template);
             this.template = new File(tmplName);
             LOG.debug("Load template file {}", tmplName);

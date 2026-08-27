@@ -71,11 +71,9 @@ final class OmPwdChecker extends AbsTokenChecker {
 
             LOG.debug("Fail to verify om TOTP password,then verify company password");
             long cur = System.currentTimeMillis();
-            //一个环境只有一个公司验证，密码长期不变，即使多个公司，也只使用首要公司
-            if(!verifyResult.token.equals(token)) {
-                verifyResult.token = token;
-                verifyResult.expiresAt = -1L;
-            } else if(cur < verifyResult.expiresAt) {//避免频繁的重复验证
+            //避免频繁的重复验证
+            //一个环境只有一个公司验证，密码长期不变
+            if(verifyResult.token.equals(token) && cur < verifyResult.expiresAt) {
                 return CompletableFuture.completedFuture(at);
             }
 
@@ -85,6 +83,7 @@ final class OmPwdChecker extends AbsTokenChecker {
                     verifyResult.expiresAt = -1L;
                     return null;
                 }
+                verifyResult.token = token;
                 verifyResult.expiresAt = cur + 600 * 1000;
                 return at;
             });

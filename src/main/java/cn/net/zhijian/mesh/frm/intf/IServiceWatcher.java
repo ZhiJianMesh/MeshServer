@@ -261,19 +261,19 @@ public interface IServiceWatcher extends IConst, IThreadPool {
         /**
          * 在bios中注册服务、在webdb中初始化数据库
          * @param si 服务名称
-         * @param pwd om密码或公司密码，不用sha256
+         * @param pwd om totp密码或公司密码，不用sha256
          * @return 成功则返回true，否则返回false
          */
         private CompletableFuture<HandleResult> init(ServiceInfo si, String pwd) {
             List<Object> dbDefines = si.loadDbDefines();
             List<Object> dds = new ArrayList<>();
             if(!dbDefines.isEmpty()) { //存在时，才需初始化数据库
-                for(Object o : dbDefines) { //删除不必要的字段，用于告知bios服务可以使用的数据库，用在oAuth2中
+                for(Object o : dbDefines) { //删除不必要的字段，用于告知bios，该服务可以使用的数据库，用在oAuth2中
                     Map<String, Object> d = ValParser.parseObject(o);
                     dds.add(MapBuilder.of("name", d.get("name"), "type", d.get("type")));
                 }
             }
-            
+
             CompanyInfo ci = CompanyInfo.instance();
             //注册服务，并且添加必须的依赖项
             return si.register(ci.id, dds, pwd).thenComposeAsync(hr -> {
@@ -286,7 +286,7 @@ public interface IServiceWatcher extends IConst, IThreadPool {
                     return CompletableFuture.completedFuture(hr);
                 }
                 return si.initWebDb(ci.id, dbDefines);
-             });
+            });
         }
     }
 

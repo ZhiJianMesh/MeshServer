@@ -20,7 +20,7 @@ public final class JsPlatform {
      */
     @JavascriptMethod
     public String buildVersion() {
-        return "Java_" + IConst.BUILDVERSION;
+        return "Jvm_" + IConst.BUILDVERSION;
     }
 
     /**

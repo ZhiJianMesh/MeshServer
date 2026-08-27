@@ -26,8 +26,8 @@ import cn.net.zhijian.util.upnp.UPnP;
 public class ChannelConfig {
     private static final Logger LOG = LogUtil.getInstance();
 
-    //内网IP，有多个内网IP时，可用配置指定哪一个
-    private static final String SEG_INSIDEIP = "insideIp";
+    //服务器有多个内网IP时，可用配置指定哪一个
+    private static final String SEG_LOCALIP = "localIp";
     private static final String SEG_ISGATEWAY = "isGateway";
     private static final String SEG_WANACCESSIBLE = "wanAccessible";
     private static final String SEG_TCPPORT = "tcpPort";
@@ -98,7 +98,7 @@ public class ChannelConfig {
             }
         }
 
-        String internalIp = ValParser.getAsStr(cfg, SEG_INSIDEIP);
+        String internalIp = ValParser.getAsStr(cfg, SEG_LOCALIP);
         if(!StringUtil.isEmpty(internalIp)) {
             internalIp = IPUtil.takeOffPort(internalIp);
             if(!IPUtil.isLanIp(internalIp)) {
@@ -158,7 +158,7 @@ public class ChannelConfig {
     
     @Override
     public String toString() {
-        return "{\n\"" + SEG_INSIDEIP + "\":\"" + localIp
+        return "{\n\"" + SEG_LOCALIP + "\":\"" + localIp
                 + "\",\n\"" + SEG_HTTPPORT + "\":" + httpPort
                 + "\",\n\"" + SEG_TCPPORT + "\":" + tcpPort
                 + ",\n\"" + SEG_ISGATEWAY + "\":" + isGateway

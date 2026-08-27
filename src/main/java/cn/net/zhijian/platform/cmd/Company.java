@@ -60,10 +60,6 @@ public class Company extends AbsCommand {
             return login(args1);
         }
 
-        if(cmd.equals("password")) {
-            return encodePassword(args1);
-        }
-        
         if(cmd.equals("pubkey")) {
             return publicKey(args1);
         }
@@ -96,8 +92,13 @@ public class Company extends AbsCommand {
             return setTotp(args1);
         }
         
+        if(cmd.equals("enginever")) {
+            System.out.println(IConst.ENGINEVERSION);
+            return true;
+        }
+        
         printHelp(help());
-        return false;
+        return true;
     }
 
     @Override
@@ -106,15 +107,15 @@ public class Company extends AbsCommand {
                 "1)register company_name company_creditcode password cfm_password session verify_code",
                 "  get session and verify_code from `http://http://www.zhijian.net.cn/www/cmdaide.html`",
                 "2)login company_id password [outside_addr [inside_addr]]",
-                "3)password pwd - base64(pbkdf2(sha256(pwd),6))",
-                "4)pubKey - display auth-public-key",
-                "5)chgpwd old_password new_password[ cid]",
-                "6)chgAuth password[ cid]",
-                "7)setinfo company_name [country [province [city [info]]]]",
-                "8)accesscode [code|generate]",
-                "9)info",
-                "10)backupAt cid [backupAt]",
-                "11)setTotp cid",
+                "3)pubKey - display auth-public-key",
+                "4)chgpwd old_password new_password",
+                "5)chgAuth password",
+                "6)setinfo company_name [country [province [city [info]]]]",
+                "7)accesscode [code|generate]",
+                "8)info",
+                "9)backupAt [backupAt]",
+                "10)setTotp",
+                "11)engineVer"
                 };
     }
 
@@ -328,35 +329,25 @@ public class Company extends AbsCommand {
             return false;
         }
 
-        CompanyInfo localCompany = getLocalCompany(args, 2);
+        CompanyInfo localCompany = getLocalCompany();
         HandleResult hr = localCompany.changePwd(args[0], args[1]).get(10, TimeUnit.SECONDS);
         System.out.println("Change password,result:{}" + hr.brief());
         return hr.code == RetCode.OK;
     }
-    
-    private boolean encodePassword(String[] args) throws Exception {
-        if(args.length < 1) {
-            printHelp(help());
-            return false;
-        }
-        String pwd = SecureUtil.pbkdf2(SecureUtil.sha256(args[0]), 6);
-        System.out.println(pwd);
-        return true;
-    }
 
     private boolean publicKey(String[] args) throws Exception {
-        CompanyInfo localCompany = getLocalCompany(args, 0);
+        CompanyInfo localCompany = getLocalCompany();
         System.out.println(localCompany.authKeyPair().publicKey2Str());
         return true;
     }
     
     private boolean changeAuth(String[] args) throws Exception {
-        CompanyInfo localCompany = getLocalCompany(args, 1);
+        CompanyInfo localCompany = getLocalCompany();
         localCompany.changeAuth(args[0]);
         return true;
     }
     
-    private CompanyInfo getLocalCompany(String[] args, int no) throws MeshException {
+    private CompanyInfo getLocalCompany() throws MeshException {
         CompanyInfo localCompany = CompanyInfo.instance();
         if(!localCompany.isValid()) {
             System.out.println("failed,haven't logined,use login command to do it");
@@ -368,7 +359,7 @@ public class Company extends AbsCommand {
     
     private boolean accessCode(String[] args) throws Exception {
         if(args.length < 1) {
-            CompanyInfo localCompany = getLocalCompany(args, 0);
+            CompanyInfo localCompany = getLocalCompany();
             System.out.println(localCompany.accessCode());
             return true;
         }
@@ -379,7 +370,7 @@ public class Company extends AbsCommand {
             return true;
         }
         
-        CompanyInfo localCompany = getLocalCompany(args, 1);
+        CompanyInfo localCompany = getLocalCompany();
         localCompany.saveToHttpdns(null, null, args[0]).whenComplete((hr, e) -> {
             if(e != null) {
                 System.out.println("Fail to set accesscode:" + e.getMessage());
@@ -391,7 +382,6 @@ public class Company extends AbsCommand {
                 System.out.println("succeeded,valid it by restarting the server");
             }
         }).get(10, TimeUnit.SECONDS);
-        System.exit(0);
 
         return true;
     }
@@ -402,7 +392,7 @@ public class Company extends AbsCommand {
             return false;
         }
 
-        CompanyInfo localCompany = getLocalCompany(args, 6);
+        CompanyInfo localCompany = getLocalCompany();
         String name = args[0];
         String country = args.length > 1 ? args[1] : localCompany.country();
         String province = args.length > 2 ? args[2] : localCompany.province();
@@ -426,12 +416,11 @@ public class Company extends AbsCommand {
                 System.out.println("info:" + info);
             }
         }).get(10, TimeUnit.SECONDS);
-        System.exit(0);
         return true;
     }
     
     private boolean info(String[] args) throws Exception {
-        CompanyInfo localCompany = getLocalCompany(args, 0);
+        CompanyInfo localCompany = getLocalCompany();
         System.out.println("id: " + localCompany.id);
         System.out.println("name: " + localCompany.name());
         System.out.println("inside addr: " + localCompany.insideAddr);
@@ -449,7 +438,7 @@ public class Company extends AbsCommand {
     private boolean backupAt(String[] args) throws Exception {
         try {
             if(args.length > 1) {
-                CompanyInfo localCompany = getLocalCompany(args, 1);
+                CompanyInfo localCompany = getLocalCompany();
                 int backupAt = ValParser.parseInt(args[0], -1);
                 if(backupAt < 0) {
                     System.out.println("Invalid backupAt value:" + args[0]);
@@ -463,7 +452,7 @@ public class Company extends AbsCommand {
                     System.out.println("set backupAt to " + backupAt);
                 }).get(10, TimeUnit.SECONDS);
             } else {
-                CompanyInfo localCompany = getLocalCompany(args, 0);
+                CompanyInfo localCompany = getLocalCompany();
                 localCompany.getBackupAt().whenComplete((hr, e) -> {
                     if(e != null) {
                         System.out.println("Fail to get backupAt:" + e.getMessage());
@@ -484,33 +473,27 @@ public class Company extends AbsCommand {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.exit(0);
         return true;
     }
     
     private boolean setTotp(String[] args) {
         try {
-            if(args.length > 0) {
-                CompanyInfo ci = getLocalCompany(args, 0);
-                ServiceReqBuilder builder = ServiceClient.backendReqBuilder(IConst.SERVICE_BIOS)
-                        .url("/keys/setTotpPwd")
-                        .token(ci.adminToken(IConst.SERVICE_BIOS).generate())
-                        .cid(ci.id)
-                        .nodeId(ci.id);
-                HandleResult hr = BiosClient.put(builder).get(10, TimeUnit.SECONDS);
-                if(hr.code != RetCode.OK) {
-                    System.out.println(hr.brief());
-                } else {
-                    String pwd = ValParser.getAsStr(hr.data, "pwd");
-                    System.out.println("pwd " + pwd);
-                }
+            CompanyInfo ci = getLocalCompany();
+            ServiceReqBuilder builder = ServiceClient.backendReqBuilder(IConst.SERVICE_BIOS)
+                    .url("/keys/setTotpPwd")
+                    .token(ci.adminToken(IConst.SERVICE_BIOS).generate())
+                    .cid(ci.id)
+                    .nodeId(ci.id);
+            HandleResult hr = BiosClient.put(builder).get(10, TimeUnit.SECONDS);
+            if(hr.code != RetCode.OK) {
+                System.out.println(hr.brief());
             } else {
-                System.out.println("setTotp cid");
+                String pwd = ValParser.getAsStr(hr.data, "pwd");
+                System.out.println("pwd " + pwd);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.exit(0);
         return true;
     }
 }

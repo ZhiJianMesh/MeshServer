@@ -147,10 +147,9 @@ public class ServiceTool implements IThreadPool {
                 }
 
                 String serviceHomeDir = FileUtil.addPath(serviceDir, sp.service);
-                FileUtil.remove(new File(serviceHomeDir)); //先删原来的服务路径，避免与原版本混杂
-                if (FileUtil.unzipFile(packageZip, serviceHomeDir) <= 0) {
-                    LOG.error("Fail to unzip file {}", packageZip);
-                    return HandleResult.future(RetCode.DATA_WRONG, "invalid package file");
+                HandleResult r = installService(serviceHomeDir, packageZip);
+                if (r.code != RetCode.OK) {
+                    return HandleResult.future(r);
                 }
 
                 FileUtil.removeFile(packageZip);
@@ -163,6 +162,15 @@ public class ServiceTool implements IThreadPool {
                 ServiceClient.cloudPost(reportReq);
             }
         }, Pool);
+    }
+    
+    public static HandleResult installService(String serviceHomeDir, String packageZip) {
+        FileUtil.remove(new File(serviceHomeDir)); //先删原来的服务路径，避免与原版本混杂
+        if (FileUtil.unzipFile(packageZip, serviceHomeDir) <= 0) {
+            LOG.error("Fail to unzip file {}", packageZip);
+            return new HandleResult(RetCode.DATA_WRONG, "invalid package file");
+        }
+        return HandleResult.OK;
     }
 
     /**
