@@ -126,11 +126,12 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
             }
         }
         
-        s = ValParser.getAsStr(cfg, CFG_NAMESPACE).trim();
-        if(!StringUtil.isEmpty(s)) {
-            this.nameSpace = s;
+        String ns = ValParser.getAsStr(cfg, CFG_NAMESPACE).trim();
+        if(!StringUtil.isEmpty(ns)) {
+            this.nameSpace = ns;
+            ns = "(" + ns + ')';
         }
-        
+
         Object tranObj = cfg.get(CFG_CONVERT);
         if(tranObj != null) { //错误码转换配置，可以配置一个map，也可以配置一个map数组
             List<Object> transCfg;
@@ -154,12 +155,12 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
         
         Object o = cfg.get(CFG_ONSUCCESS);
         if(o == null) {
-            LOG.debug("{}({}).{}=>when:{},convert:{},onSuccess:false",
-                url, nameSpace, processName, when != null, trans != null);
+            LOG.debug("{}{}.{}=>when:{},convert:{},onSuccess:false",
+                url, ns, processName, when != null, trans != null);
             return true; //onSuccess可以不配置
         }
-        LOG.debug("{}({}).{}=>when:{},convert:{},onSuccess:true",
-            url, nameSpace, processName, when != null, trans != null);
+        LOG.debug("{}{}.{}=>when:{},convert:{},onSuccess:true",
+            url, ns, processName, when != null, trans != null);
         this.onSuccess = OnSuccess.parse(o, availableParas(request));
         if(this.onSuccess == null) {
             LOG.error("Invalid '{}' when parsing in `{}`", CFG_ONSUCCESS, url.toString());

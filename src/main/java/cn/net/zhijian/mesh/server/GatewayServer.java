@@ -65,7 +65,7 @@ public class GatewayServer extends ServiceServer implements IThreadPool {
                     throw new MeshException("Invalid service key pair of " + SERVICE_GATEWAY, e);
                 }
             }
-            
+
             if(ekp == null) {
                 //本地没有，则从主bios获取，所以gateway启动前需要保证主bios已启动
                 ekp = IServiceWatcher.DefaultWatcher.getKey(gateway, omPwd).get(5, TimeUnit.SECONDS);

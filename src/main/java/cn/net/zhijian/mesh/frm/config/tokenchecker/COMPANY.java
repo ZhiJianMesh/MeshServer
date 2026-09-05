@@ -94,7 +94,6 @@ public class COMPANY extends AbsTokenChecker {
         }
 
         //在私有云中，admin访问自己公司的管理接口时，使用本地公司公钥验签
-        //比如ServiceTool中的安装、卸载等操作
         CompanyInfo ci = CompanyInfo.instance();
         if(ci.id == cid) { //只要本地有，则使用本地的验证
             ITokenWorker tw = ci.tokenWorker();

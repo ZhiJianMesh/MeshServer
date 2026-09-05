@@ -270,7 +270,11 @@ public interface IServiceWatcher extends IConst, IThreadPool {
             if(!dbDefines.isEmpty()) { //存在时，才需初始化数据库
                 for(Object o : dbDefines) { //删除不必要的字段，用于告知bios，该服务可以使用的数据库，用在oAuth2中
                     Map<String, Object> d = ValParser.parseObject(o);
-                    dds.add(MapBuilder.of("name", d.get("name"), "type", d.get("type")));
+                    dds.add(MapBuilder.of(
+                        "name", d.get("name"),
+                        "type", d.get("type"),
+                        "ver", d.get("version"))
+                    );
                 }
             }
 
@@ -281,7 +285,7 @@ public interface IServiceWatcher extends IConst, IThreadPool {
                     LOG.error("Fail to register primary.{} into bios,result:{}", si.name, hr.brief());
                     return CompletableFuture.completedFuture(hr);
                 }
-                
+
                 if(dbDefines.isEmpty()) {
                     return CompletableFuture.completedFuture(hr);
                 }

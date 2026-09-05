@@ -25,7 +25,7 @@ import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
 
 /**
- * 用户token换服务级token，此token可以通过user.very校验
+ * 用户token换服务级token，此token可以通过user.verify校验
  * 用户token(UT)不同于用户服务级token(UST)，
  * UT只能用于访问user服务，UST只能用于访问服务，每个服务一个UST。
  * 有了UT，才能向user服务申请UST，然后用UST访问服务。

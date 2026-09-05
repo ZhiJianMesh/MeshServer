@@ -24,6 +24,7 @@ import cn.net.zhijian.mesh.frm.service.backend.BackendBase;
 import cn.net.zhijian.mesh.server.GatewayServer;
 import cn.net.zhijian.mesh.server.Launcher;
 import cn.net.zhijian.mesh.server.ServiceServer;
+import cn.net.zhijian.mesh.server.RootServer;
 import cn.net.zhijian.platform.util.AssetsWrapper;
 import cn.net.zhijian.platform.util.SrvKeystoreHelper;
 import cn.net.zhijian.platform.util.SrvPlatformUtil;
@@ -177,8 +178,8 @@ public final class ServerMain implements IThreadPool {
             throw new MeshException("invalid ca file");
         }
 
+        CompanyInfo ci = CompanyInfo.instance();
         if(LOG.isDebugEnabled()) {
-            CompanyInfo ci = CompanyInfo.instance();
             LOG.debug("company id:{}", ci.id);
             LOG.debug("company name:{}", ci.name());
             LOG.debug("access code:{}", ci.accessCode());
@@ -193,6 +194,8 @@ public final class ServerMain implements IThreadPool {
             //作为服务网关使用，从ServiceServer继承，当本地不能处理时，转发接口调用
             //与ServiceServer不能共存
             realServer = new GatewayServer(workDir, pwd);
+        } else if(ci.isRoot()){
+            realServer = new RootServer(workDir); //云上服务有计费逻辑
         } else {
             realServer = new ServiceServer(workDir);
         }

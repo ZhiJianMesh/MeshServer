@@ -960,7 +960,7 @@ public final class ServiceInfo {
                 IConst.EMBEDED_TOKEN_EXT, token.ext);
         AbsServerRequest req = new NullServerRequest(IConst.METHOD_GET, "init",
                 headers, params, this, token);
-        req.setServiceInfo(this);
+        req.setServiceInfo(this); //用以解析数据库定义中的占位符
         
         for(Object o : dbDefines) { //逐个db处理
             Map<String, Object> dbCfg = ValParser.parseObject(o);
@@ -1097,8 +1097,8 @@ public final class ServiceInfo {
             for(Map.Entry<String, HandleResult> e : results.entrySet()) {
                 hr = e.getValue();
                 if(hr.code != RetCode.OK) {//只要有一个失败则整体失败
-                    LOG.error("Fail to init DB(cid:{},dbNo:{},service:{},db:{})",
-                            cid, dbNo, this.name, db);
+                    LOG.error("Fail to init DB(cid:{},dbNo:{},service:{},db:{},result:{}",
+                            cid, dbNo, this.name, db, hr.brief());
                     return CompletableFuture.completedFuture(hr);
                 }
                 d.put(e.getKey(), hr.toMap());
@@ -1132,6 +1132,7 @@ public final class ServiceInfo {
             .put("key", key)
             .put("type", this.type.name())
             .put("dispName", this.displayName)
+            .put("ver", this.version())
             .put("common", this.type != ServiceType.COMPANY)
             .put("visible", this.visible ? 1 : 0) //客户端路由中是否可见
             .cid(cid);

@@ -5,12 +5,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 
 import cn.net.zhijian.mesh.MeshException;
-import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.abs.AbsFileMethod;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
@@ -76,29 +74,6 @@ public interface IServiceServer {
     String homeDir();
     
     /**
-     * 安装服务，并将服务注册到系统中，使得它可以被使用
-     * @param service 服务名
-     * @param pwd 公司密码或om密码，有新服务，重启时需要pwd获取服务密钥对
-     * @return 异步结果
-     */
-    CompletableFuture<HandleResult> install(String service, String pwd);
-    
-    /**
-     * 卸载服务，并从系统中注销掉该服务
-     * @param service 服务名称
-     * @param omPwd om密码
-     */
-    CompletableFuture<HandleResult> unInstall(String service, String omPwd);
-
-    /**
-     * 升级服务，并将升级后的服务重新注册到系统中
-     * @param service 服务名
-     * @param omPwd om密码
-     * @return 异步结果
-     */
-    CompletableFuture<HandleResult> update(String service, String omPwd);
-
-    /**
      * 销毁
      */
     void destroy();
@@ -133,8 +108,8 @@ public interface IServiceServer {
     void addService(ServiceInfo si);
     
     /**
-     * 加载服务配置
-     * @param pwd 公司密码或om密码
+     * 加载当前节点所有服务配置
+     * @param pwd 公司密码或om totp密码
      * @return 成功则返回true
      */
     boolean startServices(String pwd);
@@ -185,18 +160,23 @@ public interface IServiceServer {
             for(String serviceHome : serviceList) {
                 int pos = serviceHome.lastIndexOf(File.separatorChar);
                 String serviceName = serviceHome.substring(pos + 1);
-                ServiceInfo si = services.get(serviceName);
-                if(si == null) { //内置的服务，即使本地有相应的服务配置，也无需再次加载
-                    EccKeyPair ekp = getServiceKeypair(serviceName, kps);
-                    si = ServiceInfo.parse(serviceHome, serviceName, ekp, true);
-                    if(si == null) {//服务加载失败，不影响服务器启动
-                        LOG.error("Fail to parse service {}", serviceName);
-                        continue;
-                    }
-                }
-
-                services.put(si.name, si);
+                EccKeyPair ekp = getServiceKeypair(serviceName, kps);
+                loadService(serviceName, serviceHome, ekp);
             }
+        }
+        
+        protected ServiceInfo loadService(String serviceName, String serviceHome, EccKeyPair ekp) {
+            ServiceInfo si = services.get(serviceName);
+            if(si == null) { //内置的服务，即使本地有相应的服务配置，也无需再次加载
+                si = ServiceInfo.parse(serviceHome, serviceName, ekp, true);
+                if(si == null) {//服务加载失败，不影响服务器启动
+                    LOG.error("Fail to parse service {}", serviceName);
+                    return null;
+                }
+            }
+
+            services.put(serviceName, si);
+            return si;
         }
         
         private EccKeyPair getServiceKeypair(String service, Map<String, String> kps) throws MeshException {

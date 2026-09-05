@@ -15,8 +15,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 
@@ -67,6 +68,7 @@ import cn.net.zhijian.util.ValParser;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
+ * 公司私有网络运行的服务器
  * 1）加载所有service的配置，并更新注册表
  * 2）初始化或升级数据库
  * 安卓版本，在files目录下的目录结构
@@ -95,7 +97,6 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     private static final String TIMER_STATUS_REPORT = "status_reporter";
 
     private static final int BLOCK_INTERVAL = 15 * 1000; //milliseconds
-    private static final int BILLING_INTERVAL = 600 * 1000;
     private static final int REPORT_INTERVAL = 300 * 1000; //ms，状态上报间隔时间
     private static final long BIGFIIE_SIZE = 64 * 1024; //最小的大文件，超过此值，使用bigfilemethod
 
@@ -104,13 +105,10 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     private static int reportStatsAt = 0; //访问技术上报至简网格的时间，UTC-hour
     private static int saveStatsAt = 0; //访问计数存本地时间，UTC-hour
 
-    private static final Map<String, Balance> billings = new ConcurrentHashMap<>(); //key:service+'_'+cid
-
     private final Map<String/*url*/, ApiMethod> apiMethods = new ConcurrentHashMap<>();
     private final Map<String/*url*/, AbsFileMethod> fileMethods = new ConcurrentHashMap<>();
     
     private AbsRDBWorker visitStats;
-    private boolean started = false;
 
     /**
      * 加载所有服务的配置信息，并初始化omagent的接口
@@ -159,6 +157,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     /**
      * 加载所有服务信息，遍历services目录下的所有子目录，
      * 如果子目录下存在service.cfg文件，则加载，否则不加载
+     * @param pwd 公司密码或totp密码
      * @return 加载成功则返回false，只要有一个加载失败则返回false
      */
     private boolean loadResOfAllServices(String pwd) throws MeshException {
@@ -246,7 +245,15 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
                 LOG.debug("{} not installed in this instance", i);
                 continue;
             }
-            if(!initOne(si, pwd)) {
+            
+            try {
+                HandleResult hr = initService(si, pwd).get(10, TimeUnit.SECONDS);
+                if(hr.code != RetCode.OK) {
+                    LOG.error("Fail to initService `{}`,result:{}", si.name, hr.brief());
+                    return false;
+                }
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                LOG.error("Fail to initService `{}`", si.name, e);
                 return false;
             }
         }
@@ -312,8 +319,6 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
             }
         ));
         TimerKeeper.startTimer(); //启动公用定时器
-
-        started = true;
         return true;
     }
 
@@ -576,61 +581,18 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
                 + (from - 1) + " and at<" + (to + 1)
                 + " order by at asc");
     }
+
     
-    /**
-     * 增加计费，不管余额是否充足
-     * 当上报消费量之后，得知余额不足，则会将其置为无效，此后就不能使用。
-     * 如果重启，未上报的计费会消失。因为计费只针对运行在云侧的服务，所以此种缺陷可以容忍。
-     * 为了简化设计，尽量由平台承担损失，减少用户损失。
-     * @param cid 公司id
-     * @param service 服务
-     * @return 计费结果，true表示通过
-     */
-    private Balance getBalance(int cid, ServiceInfo service) {
-        String k = service.name + '_' + cid;
-        Balance balance = billings.get(k);
-        if(balance == null) {
-            balance = new Balance(service, cid);
-            billings.put(k, balance);
-        }
-        balance.val.incrementAndGet();
-        return balance;
-    }
-    
-    /**
-     * 退出时，强制计费一遍
-     */
-    private CompletableFuture<Void> billingAll() {
-        CompletableFuture<HandleResult> cf;
-        List<CompletableFuture<HandleResult>> tasks = new ArrayList<>();
-        for(Balance b : billings.values()) {
-            cf = b.billing(System.currentTimeMillis(), true);
-            if(cf != null) {
-                tasks.add(cf);
-            }
-        }
-        return CompletableFuture.allOf(tasks.toArray(new CompletableFuture<?>[]{}));
-    }
-    
-    private boolean initOne(ServiceInfo si, String pwd) {
-        try {
-            HandleResult hr = si.watcher.afterLoad(this, si, pwd).get(BLOCK_INTERVAL, TimeUnit.SECONDS);
+    //初始化单个服务，用在加载基础服务或安装服务时
+    private CompletableFuture<HandleResult> initService(ServiceInfo si, String pwd) {
+        return si.watcher.afterLoad(this, si, pwd).thenComposeAsync(hr -> {
             if(hr.code != RetCode.OK) {
                 LOG.error("Fail to call {}.afterLoad,result:{}", si.name, hr.brief());
-                return false;
+                return CompletableFuture.completedFuture(hr);
             }
             //基础服务需要提前启动，不是在startupServices中启动
-            hr = si.watcher.startup(this, si).get(BLOCK_INTERVAL, TimeUnit.SECONDS);
-            if(hr.code != RetCode.OK) {
-                LOG.error("Fail to startup service {},result:{}", si.name, hr.brief());
-                return false;
-            }
-            LOG.info("Success to startup service {}", si.name);
-            return true;
-        } catch (Exception e) {
-            LOG.error("Fail to initialize service {}", si.name, e);
-            return false;
-        }
+            return si.watcher.startup(this, si);
+        }, Pool);
     }
 
     /**
@@ -657,7 +619,6 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
         }
         saveKeyPairs(kps);
     }
-
     
     /**
      * 加载一个服务的资源，包括接口定义与静态文件
@@ -668,45 +629,37 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     private CompletableFuture<HandleResult> loadResOfService(ServiceInfo si, String pwd) {
         LOG.debug("load service {} from {}", si.name, si.homeDir);
 
-        return si.watcher.beforeLoad(this, si, pwd).thenComposeAsync(result -> {
+        return si.watcher.beforeLoad(this, si, pwd).thenApplyAsync(result -> {
             if(result.code != RetCode.OK) {
                 LOG.error("Fail to call {}.watcher.beforeLoad, result:{}", si.name, result.brief());
-                return CompletableFuture.completedFuture(result);
+                return result;
             }
+            
             LOG.debug("Success to call {}.watcher.beforeLoad", si.name);
             if(si.type == ServiceType.BUILTIN) { //builtin服务，接口都是内部实现的，无需加载
-                return CompletableFuture.completedFuture(result);
+                return result;
             }
-            CompanyInfo ci = CompanyInfo.instance();
-            CompletableFuture<HandleResult> cf;
-            if(PartitionConfig.instance().isPrivate()) {//只有私有云才需要下载介绍
-                cf = ServiceInfo.getIntroduction(si, ci.id, ci.area());
-            } else {
-                cf = HandleResult.future();
-            }
-            //先下载介绍，否则加载api时无法加载introduction接口
-            return cf.thenComposeAsync(hr -> {
-                try {
-                    int apiNum = loadApis(si);
-                    if (apiNum < 0) {
-                        LOG.error("Fail to load apis of `{}`", si.name);
-                        return HandleResult.future(RetCode.INTERNAL_ERROR, "invalid apis config");
-                    }
-    
-                    int fileNum = loadFiles(si);
-                    if(fileNum < 0) {
-                        LOG.error("Fail to load files of `{}`", si.name);
-                        return HandleResult.future(RetCode.INTERNAL_ERROR, "invalid static files");
-                    }
-    
-                    LOG.info("Success to load {} apis and {} files of {} from {}",
-                            apiNum, fileNum, si.name, si.homeDir);
-                    return HandleResult.future();
-                } catch (IOException e) {
-                    LOG.error("Fail to load service config", e);
-                    return HandleResult.future(RetCode.INTERNAL_ERROR, "exception happened");
+            
+            try {
+                int apiNum = loadApis(si);
+                if (apiNum < 0) {
+                    LOG.error("Fail to load apis of `{}`", si.name);
+                    return new HandleResult(RetCode.INTERNAL_ERROR, "invalid apis config");
                 }
-            }, Pool);
+
+                int fileNum = loadFiles(si);
+                if(fileNum < 0) {
+                    LOG.error("Fail to load files of `{}`", si.name);
+                    return new HandleResult(RetCode.INTERNAL_ERROR, "invalid static files");
+                }
+
+                LOG.info("Success to load {} apis and {} files of {} from {}",
+                        apiNum, fileNum, si.name, si.homeDir);
+                return HandleResult.OK;
+            } catch (IOException e) {
+                LOG.error("Fail to load service config", e);
+                return new HandleResult(RetCode.INTERNAL_ERROR, "exception happened");
+            }
         }, Pool);
     }
 
@@ -1044,7 +997,6 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
                 LOG.warn("Fail to close visitStats", e);
             }
         }
-        started = false;
     }
     
     private void destroyOne(ServiceInfo si) {
@@ -1062,40 +1014,6 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
         } catch (Exception e) {
             LOG.error("Fail to call {}.destory", si.name, e);
         }
-    }
-    
-    
-    /**
-     * 安装服务
-     * 除了加载服务基本信息外，还需要执行在bios注册服务、在webdb中初始化数据库
-     * @param service 服务名称
-     * @param pwd 公司密码或om密码
-     * @return 成功则返回true，否则返回false
-     */
-    @Override
-    public CompletableFuture<HandleResult> install(String service, String pwd) {
-        return ServiceTool.install(service, PartitionConfig.instance().environment).whenCompleteAsync((hr, e) -> {
-            if(e != null) {
-                LOG.error("Fail to install {}", service, e);
-            } else if(hr.code != RetCode.OK) {
-                LOG.error("Fail to install {},result:{}", service, hr.brief());
-            } else if(started) {
-                startServices(pwd); //必须全部重新加载，因为可能有依赖服务
-            }
-        }, Pool);
-    }
-    
-    @Override
-    public CompletableFuture<HandleResult> update(String service, String omPwd) {
-        return ServiceTool.update(service, omPwd, PartitionConfig.instance().environment).whenCompleteAsync((hr, e) -> {
-            if(e != null) {
-                LOG.error("Fail to update {}", service, e);
-            } else if(hr.code != RetCode.OK) {
-                LOG.error("Fail to update {},result:{}", service, hr.brief());
-            } else if(started) {
-                startServices(null); //必须全部重新加载，因为可能有依赖服务
-            }
-        }, Pool);
     }
     
     /**
@@ -1143,63 +1061,6 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
             LOG.error("Fail to call registered", e);
             return false;
         }
-    }
-
-    /**
-     * 卸载服务
-     * 从内存中删除服务信息，如果removeDb，还需要在webdb中删除数据库
-     * @param service 服务名
-     * @param omPwd om密码
-     */
-    @Override
-    public CompletableFuture<HandleResult> unInstall(String service, String omPwd) {
-        return ServiceTool.unInstall(service, omPwd).thenComposeAsync(hr -> {
-            if(hr.code != RetCode.OK) {
-                LOG.error("Fail to unInstall {},result:{}", service, hr.brief());
-                return CompletableFuture.completedFuture(hr);
-            }
-
-            ServiceInfo si = null;
-            if(started) {
-                //没有使用startServices，它会导致业务中断，以下操作不会
-                String sn = '/' + service + '/';
-                List<String> rmvs = new ArrayList<>();
-                for (String n : apiMethods.keySet()) {
-                    if (n.startsWith(sn)) {
-                        rmvs.add(n);
-                    }
-                }
-
-                for (String n : rmvs) {
-                    apiMethods.remove(n);
-                }
-
-                rmvs.clear();
-                for (String n : fileMethods.keySet()) {
-                    if (n.startsWith(sn)) {
-                        rmvs.add(n);
-                    }
-                }
-
-                for (String n : rmvs) {
-                    fileMethods.remove(n);
-                }
-                si = services.get(service);
-            }
-            if(si == null) { //刚安装，还没加载完成时卸载，或未启动时
-                LOG.debug("Service {} has not loaded", service);
-                return HandleResult.future();
-            }
-            return si.watcher.destroy(this, si);
-        }, Pool).thenApplyAsync(result -> {
-            if(result.code != RetCode.OK) {
-                LOG.error("Fail to call {}.destroy when unInstall, result:{}", service, result.brief());
-            } else {
-                LOG.info("Success to call {}.destroy when unInstall", service);
-            }            
-            services.remove(service); //无论成功与否，都删除
-            return result;
-        }, Pool);
     }
     
     @Override
@@ -1304,15 +1165,9 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
              * public接口、或在私有云中，不计费
              */
             if(CompanyInfo.instance().mode == RunMode.ROOT) {
-                int cid = req.cid();
-                if(am.serviceInfo.type == ServiceType.COMPANY && cid > ROOT_COMPANY_ID) {
-                    Balance balance = getBalance(cid, am.serviceInfo);
-                    if(!balance.valid) {
-                        LOG.warn("Fail to bill {}.{}", am.serviceInfo.name, cid);
-                        resp.end(new HandleResult(RetCode.PAST_DUE));
-                        return;
-                    }
-                    balance.billing(req.reqTime, false);
+                if(!checkBalance(am, req)) {
+                    resp.end(new HandleResult(RetCode.PAST_DUE));
+                    return;
                 }
             }
             am.execute(req, resp);
@@ -1320,6 +1175,14 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
             resp.end(am.onException);
             LOG.error("Fail to execute {}, times:{}", req.uri, req.getStat().incExceptions(1), e);
         }
+    }
+    
+    protected boolean checkBalance(ApiMethod am, AbsServerRequest req) {
+        return true;
+    }
+    
+    protected CompletableFuture<Void> billingAll() {
+        return new CompletableFuture<Void>();
     }
     
     @Override
@@ -1348,54 +1211,5 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     @Override
     public AbsFileMethod getFile(String url) {
         return fileMethods.get(url.toLowerCase());
-    }
-
-    private static class Balance {
-        final ServiceInfo si;
-        final int cid;
-
-        final AtomicInteger val = new AtomicInteger(0); //当前用量
-        long nextBillAt = System.currentTimeMillis(); //下次计费时间
-        volatile boolean valid = true;
-        
-        Balance(ServiceInfo si, int cid) {
-            this.si = si;
-            this.cid = cid;
-        }
-        
-        private CompletableFuture<HandleResult> billing(long cur, boolean force) {
-            if(!force && cur < this.nextBillAt) {
-                return null;
-            }
-            this.nextBillAt = System.currentTimeMillis() + BILLING_INTERVAL;
-            int v = this.val.get();
-            if(v == 0 && this.valid) {
-                return null;//计费已失效时，即使用量为0也需上报，因为此期间可能充值了，上报后获得当前的新余量
-            }
-            
-            ServiceReqBuilder req = new ServiceReqBuilder(si, SERVICE_COMPANY)
-                    .url("/service/billing")
-                    .traceId(this.si.name)
-                    .cid(this.cid)
-                    .appToken("*")
-                    .put("service", this.si.name)
-                    .put("cid", this.cid)
-                    .put("val", v);
-            return ServiceClient.servicePost(req).whenCompleteAsync((hr, e) -> {
-                if(e != null) {
-                    LOG.error("Fail to bill {}.{}", si.name, cid, e);
-                    return;
-                }
-                
-                if(hr.code != RetCode.OK) {
-                    LOG.error("Fail to bill {}.{}, {}", si.name, cid, hr.brief());
-                    this.valid = hr.code != RetCode.NOT_EXISTS;
-                } else {
-                    long left = ValParser.getAsLong(hr.data, "balance");
-                    this.valid = left > 0;//会有一些损失，但是最长损失10分钟用量
-                    this.val.addAndGet(-v); //即使无余量，也要减去已上报的量
-                }
-            }, Pool);
-        }
     }
 }

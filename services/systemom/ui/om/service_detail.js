@@ -45,9 +45,10 @@ query_service() {
         this.pwds=resp.data.pwds;
         var dbList=[];
         
-        resp.data.dbs.forEach(db=>{
-            var pos = db.name.lastIndexOf('/');
-            var name=db.name.substr(pos + 1); //name,key(type),val(type-value)
+        resp.data.dbs.forEach(db=>{ //name(dbname.type),val(type),ut
+            var pos = db.name.lastIndexOf('.');
+            var name=db.name.substr(0, pos);
+
             var type='storage';
             if(db.val=="tdb") {
                 type="device_hub";

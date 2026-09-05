@@ -51,9 +51,6 @@ public class Command extends AbsProcessor {
         super(serviceInfo, apiInfo, "execute_commands");
         this.server = server;
         commands.put("query", this::query); //查询公司相关的信息
-        commands.put("uninstall", this::unInstall); //卸载服务
-        commands.put("install", this::install); //安装服务
-        commands.put("update", this::update); //更新服务
         commands.put("backup", this::backup); //数据立即备份
         commands.put("restore", this::restore); //数据恢复
         commands.put("setbackup", this::setBackup); //设置备份时间点
@@ -123,24 +120,6 @@ public class Command extends AbsProcessor {
         data.put("externAddrs", addrs);//服务器拥有的外部IP列表
         data.put("mode", ci.mode.name());
         return futureResult(data);
-    }
-    
-    private CompletableFuture<HandleResult> unInstall(RequestInfo req) {
-        String service = req.req.getString("service");
-        String pwd = req.req.getString("pwd");
-        return server.unInstall(service, pwd);
-    }
-    
-    private CompletableFuture<HandleResult> install(RequestInfo req) {
-        String service = req.req.getString("service");
-        String pwd = req.req.getString("pwd");
-        return server.install(service, pwd);
-    }
-    
-    private CompletableFuture<HandleResult> update(RequestInfo req) {
-        String service = req.req.getString("service");
-        String pwd = req.req.getString("pwd");
-        return server.update(service, pwd);
     }
     
     private CompletableFuture<HandleResult> serviceVer(RequestInfo req) {

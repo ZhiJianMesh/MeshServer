@@ -10,10 +10,10 @@ import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.ServiceDNS;
 import cn.net.zhijian.mesh.client.ServiceClient;
+import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsAssets;
 import cn.net.zhijian.mesh.frm.abs.AbsProcessor;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
-import cn.net.zhijian.mesh.frm.abs.AbsTokenChecker;
 import cn.net.zhijian.mesh.frm.config.ApiInfo;
 import cn.net.zhijian.mesh.frm.config.ChannelConfig;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig;
@@ -123,29 +123,12 @@ public abstract class BackendBase extends AbsProcessor {
             server.addApi(am);
         }
 
-        //在实例上安装服务：/backend/api/install
-        AbsTokenChecker MNT = TokenCheckers.Mnt;
-        procName = "install";
-        url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
-        apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_POST, url, null, true);
-        InstallService install = new InstallService(server, si, apiInfo, procName);
-        am =  ApiMethod.generate(install, apiInfo, install.getRequestInfo(), MNT, null);
-        server.addApi(am);
-
-        //在实例上卸载服务：/backend/api/uninstall
-        procName = "uninstall";
-        url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
-        apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_POST, url, null, true);
-        UnInstallService unInstall = new UnInstallService(server, si, apiInfo, procName);
-        am = ApiMethod.generate(unInstall, apiInfo, unInstall.getRequestInfo(), MNT, null);
-        server.addApi(am);
-
         //更新bios服务实例列表：/backend/api/updatebiossrvs
         procName = "updatebiossrvs";
         url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
         apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_POST, url, null, true);
         NotifyBiosSrvs updateBios = new NotifyBiosSrvs(server, si, apiInfo, procName);
-        am = ApiMethod.generate(updateBios, apiInfo, updateBios.getRequestInfo(), MNT, null);
+        am = ApiMethod.generate(updateBios, apiInfo, updateBios.getRequestInfo(), TokenCheckers.Mnt, null);
         server.addApi(am);
 
         //返回节点上当前正在运行的服务列表, /backend/api/services

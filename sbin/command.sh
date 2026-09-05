@@ -11,7 +11,10 @@
 
 # JAVA应用程序的名称
 APP_NAME="mesh_command"
-HOME=$(cd `dirname $0`/..; pwd)
+# 切换到本脚本(sbin)的上层目录，保证从任意目录运行、java 的 user.dir 都是项目根目录
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)
+HOME=$(cd "${SCRIPT_DIR}/.." && pwd)
+cd "${HOME}" || exit 1
 # PID 代表是PID文件
 PID_FILE="${HOME}/.pid"
 LOGS="${HOME}/logs"

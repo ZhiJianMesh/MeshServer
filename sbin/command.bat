@@ -3,7 +3,8 @@ setlocal enabledelayedexpansion
 rem 将字符集换成GBK
 chcp 936 >nul 2>nul
 
-cd /d %~dp0\..
+rem 切换到本脚本(sbin)的上层目录，保证从任意目录运行、java 的 user.dir 都是项目根目录
+cd /d "%~dp0\.."
 set HOME=%cd%
 set LIBPATH=%HOME%\libs
 set CP=%HOME%\bin\main

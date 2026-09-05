@@ -25,24 +25,16 @@ import cn.net.zhijian.platform.cmd.DB;
 import cn.net.zhijian.platform.cmd.Download;
 import cn.net.zhijian.platform.cmd.EccKey;
 import cn.net.zhijian.platform.cmd.FileOperation;
-import cn.net.zhijian.platform.cmd.Hash;
 import cn.net.zhijian.platform.cmd.IPToAddr;
 import cn.net.zhijian.platform.cmd.IdleTags;
 import cn.net.zhijian.platform.cmd.Json;
-import cn.net.zhijian.platform.cmd.KeyID;
-import cn.net.zhijian.platform.cmd.Md5;
 import cn.net.zhijian.platform.cmd.MergeWords;
-import cn.net.zhijian.platform.cmd.Password;
-import cn.net.zhijian.platform.cmd.Pbkdf2;
 import cn.net.zhijian.platform.cmd.PortMapping;
 import cn.net.zhijian.platform.cmd.Queue;
 import cn.net.zhijian.platform.cmd.Release;
 import cn.net.zhijian.platform.cmd.RootKey;
-import cn.net.zhijian.platform.cmd.Service;
-import cn.net.zhijian.platform.cmd.Sha1;
-import cn.net.zhijian.platform.cmd.Sha256;
+import cn.net.zhijian.platform.cmd.Algorithm;
 import cn.net.zhijian.platform.cmd.Source;
-import cn.net.zhijian.platform.cmd.UUID;
 import cn.net.zhijian.platform.cmd.Utc;
 import cn.net.zhijian.platform.util.SrvKeystoreHelper;
 //import cn.net.zhijian.platform.util.SrvKeystoreHelper;
@@ -67,10 +59,7 @@ public final class ToolMain {
         addCmd(new Company("company"));
         addCmd(new EccKey("ecckey"));
         addCmd(new Utc("utc"));
-        addCmd(new Hash("hash"));
-        addCmd(new KeyID("keyid"));
         addCmd(new Json("json"));
-        addCmd(new UUID("uuid"));
         addCmd(new Codebook("codebook"));
         addCmd(new RootKey("rootkey"));
         addCmd(new Release("release"));
@@ -80,14 +69,9 @@ public final class ToolMain {
         addCmd(new CZConverter("czconvert"));
         addCmd(new IPToAddr("iptoaddr"));
         addCmd(new MergeWords("mergewords"));
-        addCmd(new Md5("md5"));
-        addCmd(new Sha1("sha1"));
-        addCmd(new Sha256("sha256"));
-        addCmd(new Password("password"));
+        addCmd(new Algorithm("algorithm"));
         addCmd(new Cert("cert")); //自签名证书管理
         addCmd(new ApiTest("apitest")); //接口测试
-        addCmd(new Pbkdf2("pbkdf2")); //密码加密
-        addCmd(new Service("service")); //服务管理
         addCmd(new FileOperation("file")); //文件操作，删除、计算摘要、转base64
         addCmd(new Queue("queue")); //查看queue读取状态
         addCmd(new Download("download")); //下载文件

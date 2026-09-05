@@ -6,7 +6,6 @@ import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.abs.AbsServerResponse;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
-import cn.net.zhijian.mesh.frm.intf.IConst;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 
 /**
@@ -48,12 +47,5 @@ public class NullServerRequest extends AbsServerRequest {
     @Override
     public String remoteAddr() {
         return requestAddr();
-    }
-    
-    /**
-     * @param params 请求参数
-     */
-    public static NullServerRequest create(Map<String, Object> params) {
-        return new NullServerRequest(IConst.METHOD_POST, "url", null, params, null, null);
     }
 }

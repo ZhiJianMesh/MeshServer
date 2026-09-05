@@ -99,7 +99,7 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
         }
         return serviceLookup(req).thenComposeAsync((node)-> {
             if(node == null) {
-                return HandleResult.future(RetCode.SERVICE_NOT_FOUND);
+                return HandleResult.future(RetCode.SERVICE_NOT_FOUND, "service " + req.callee + " not found");
             }
             return servicePost(node, req).exceptionally(e -> {
                 LOG.error("retry servicePost {}", req, e);
@@ -125,7 +125,7 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
     public static CompletableFuture<HandleResult> servicePut(ServiceReqBuilder req) {
         return serviceLookup(req).thenComposeAsync((node)-> {
             if(node == null) {
-                return HandleResult.future(RetCode.SERVICE_NOT_FOUND);
+                return HandleResult.future(RetCode.SERVICE_NOT_FOUND, "service " + req.callee + " not found");
             }
             return servicePut(node, req).exceptionally(e -> {
                 LOG.error("retry servicePut {}", req, e);
@@ -154,7 +154,7 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
         }
         return serviceLookup(req).thenComposeAsync((node)-> {
             if(node == null) {
-                return HandleResult.future(RetCode.SERVICE_NOT_FOUND);
+                return HandleResult.future(RetCode.SERVICE_NOT_FOUND, "service " + req.callee + " not found");
             }
             String fullUrl = serviceApiUrl(SCHEME, req.callee, req.url, node.addr);
             return getFrom(node, fullUrl, req.headers, req.traceId).exceptionally(e -> {
@@ -211,7 +211,7 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
         }
         return serviceLookup(req).thenComposeAsync((node)-> {
             if(node == null) {
-                return HandleResult.future(RetCode.SERVICE_NOT_FOUND);
+                return HandleResult.future(RetCode.SERVICE_NOT_FOUND, "service " + req.callee + " not found");
             }
             String fullUrl = serviceApiUrl(SCHEME, req.callee, req.url, node.addr);
             return delFrom(node, fullUrl, req.headers, req.traceId).exceptionally(e -> {
@@ -381,7 +381,7 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
         return cloudLookup(req).thenComposeAsync((node)-> {
             if(node == null) {//找不到，则直接失败
                 LOG.error("Can't find {}'s node when cloudDelete {}", req.callee, req.url);
-                return HandleResult.future(RetCode.SERVICE_NOT_FOUND);
+                return HandleResult.future(RetCode.SERVICE_NOT_FOUND, "service " + req.callee + " not found in cloud");
             }
             String fullUrl = serviceApiUrl(CLOUD_SCHEME, req.callee, req.url, node.addr);
             return delFrom(node, fullUrl, req.headers, req.traceId).exceptionally(e -> {
@@ -408,7 +408,7 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
         return cloudLookup(req).thenComposeAsync((node)-> {
             if(node == null) {//找不到，则直接失败
                 LOG.error("Can't find {}'s node when cloudPost {}", req.callee, req.url);
-                return HandleResult.future(RetCode.SERVICE_NOT_FOUND);
+                return HandleResult.future(RetCode.SERVICE_NOT_FOUND, "service " + req.callee + " not found in cloud");
             }
             String fullUrl = serviceApiUrl(CLOUD_SCHEME, req.callee, req.url, node.addr);
             return postJsonTo(node, fullUrl, req.headers, req.body(), req.traceId).exceptionally(e -> {
@@ -435,7 +435,7 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
         return cloudLookup(req).thenComposeAsync((node)-> {
             if(node == null) {//找不到，则直接失败
                 LOG.error("Can't find {}'s node when cloudPut {}", req.callee, req.url);
-                return HandleResult.future(RetCode.SERVICE_NOT_FOUND);
+                return HandleResult.future(RetCode.SERVICE_NOT_FOUND, "service " + req.callee + " not found in cloud");
             }
             String fullUrl = serviceApiUrl(CLOUD_SCHEME, req.callee, req.url, node.addr);
             return putJsonTo(node, fullUrl, req.headers, req.body(), req.traceId).exceptionally(e -> {

@@ -611,6 +611,34 @@ public final class TreeDBWorker extends AbsDBWorker {
     }
     
     /**
+     * get all items under a dir which matches filter
+     * 
+     * @param dir can not be ended by '/'
+     * @param filter regular filter
+     * @return items
+     */
+    public List<ItemInfo> gets(String dir, String filter) {
+        long fid = keyId(dir);
+        List<ItemInfo> arr = new ArrayList<>();
+        String sql = SQL_GETS_PREFIX + "fid=" + fid ;
+        List<Object[]> lines = rdb.queryArrays(sql);
+        if(lines == null || lines.isEmpty()) {
+            return arr;
+        }
+        
+        Pattern reg = Pattern.compile(filter);
+        for(Object[] l : lines) {
+            String name = ValParser.parseString(l[0]);
+            if(reg.matcher(name).matches()) {
+                arr.add(new ItemInfo(name,
+                        ValParser.parseString(l[1]),
+                        ValParser.parseLong(l[2], 0)));
+            }
+        }
+        return arr;
+    }
+    
+    /**
      * get all items under a dir
      * for example, get all sub dir and their items
      * under dir `/serivce/config/dbs`
@@ -1041,9 +1069,15 @@ public final class TreeDBWorker extends AbsDBWorker {
         
         if(action.equals(ACTION_GETS)) {
             List<ItemInfo> iil;
-            if(opr.containsKey(TREEDB_REQ_VALUE)) { //指定了最小更新时间
-                long from = ValParser.getAsLong(opr, TREEDB_REQ_VALUE);
-                iil = gets(key, from);
+            Object filter = opr.get(TREEDB_REQ_VALUE);
+            if(filter != null) { 
+                long from = ValParser.parseLong(filter, Long.MIN_VALUE);
+                if(from != Long.MIN_VALUE) {
+                    iil = gets(key, from);//identify minimal update time
+                } else {
+                    String reg = ValParser.parseString(filter);
+                    iil = gets(key, reg); //identify regular filter for name
+                }
             } else {
                 iil = gets(key);
             }

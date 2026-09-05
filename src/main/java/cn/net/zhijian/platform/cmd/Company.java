@@ -36,6 +36,8 @@ import cn.net.zhijian.util.ValParser;
  * 不能支持register操作，因为没有验证码，这个命令就成了工具工具
  */
 public class Company extends AbsCommand {
+    private static final int CMD_TOTP_TIMESTEP = 60;
+    
     public Company(String name) {
         super(name);
     }
@@ -92,6 +94,10 @@ public class Company extends AbsCommand {
             return setTotp(args1);
         }
         
+        if(cmd.equals("gettotp")) {
+            return getTotp(args1);
+        }
+        
         if(cmd.equals("enginever")) {
             System.out.println(IConst.ENGINEVERSION);
             return true;
@@ -114,8 +120,9 @@ public class Company extends AbsCommand {
                 "7)accesscode [code|generate]",
                 "8)info",
                 "9)backupAt [backupAt]",
-                "10)setTotp",
-                "11)engineVer"
+                "10)settotp",
+                "11)gettotp [your_secret[ code_len[ time_step]] | generate[ code_len]]",
+                "12)engineVer"
                 };
     }
 
@@ -494,6 +501,61 @@ public class Company extends AbsCommand {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return true;
+    }
+    
+    //使用totp根密钥产生totp密码
+    private boolean getTotp(String[] args) throws Exception {
+        int timeStep = CMD_TOTP_TIMESTEP;
+        if(args.length < 1) {
+            File cfgFile = new File(FileUtil.addPath(configDir, "totp.key"));
+            Totp totp = new Totp(Totp.DEFAULT_CODE_DIGITS, timeStep);
+            long leftTime = timeStep - (System.currentTimeMillis() / 1000 - totp.currentTime() * timeStep);
+            if(cfgFile.exists()) { //本地有文件，则用文件中的密钥计算，否则从bios中获取
+                String pwd = FileUtil.readFile(cfgFile, IConst.DEFAULT_CHARSET);
+                System.out.println(totp.generateCode(pwd) + ",left time:" + leftTime);
+                return true;
+            }
+
+            try {
+                CompanyInfo ci = getLocalCompany();
+                //bios中密码是最准确的
+                ServiceReqBuilder builder = ServiceClient.backendReqBuilder(IConst.SERVICE_BIOS)
+                        .url("/keys/getTotpPwd")
+                        .token(ci.adminToken(IConst.SERVICE_BIOS).generate())
+                        .cid(ci.id)
+                        .nodeId(ci.id);
+                HandleResult hr = BiosClient.get(builder).get(10, TimeUnit.SECONDS);
+                if(hr.code != RetCode.OK) {
+                    System.out.println(hr.brief());
+                    return false;
+                }
+                String pwd = ValParser.getAsStr(hr.data, "key");
+                System.out.println(totp.generateCode(pwd) + ",left time:" + leftTime);
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        
+        int codeLen = Totp.DEFAULT_CODE_DIGITS;
+        if(args.length > 1) {
+            codeLen = ValParser.parseInt(args[1], Totp.DEFAULT_CODE_DIGITS);
+        }
+        
+        if(args[0].equalsIgnoreCase("generate")) {
+            System.out.println(Totp.generateSecret(codeLen));
+        }
+
+        if(args.length > 2) {
+            codeLen = ValParser.parseInt(args[2], Totp.DEFAULT_CODE_DIGITS);
+        }
+
+        Totp totp = new Totp(codeLen, timeStep);
+        long leftTime = timeStep - (System.currentTimeMillis() / 1000 - totp.currentTime() * timeStep);
+        System.out.println(totp.generateCode(args[0]) + ",left time:" + leftTime);
+        
         return true;
     }
 }
