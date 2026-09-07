@@ -405,6 +405,7 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
     
     static class OnSuccess {
         private static final String CFG_CONDITION = "condition";
+        private static final int TYPE_NONE = -1; //not defined
         private static final int TYPE_JS = 0; //java scripts
         private static final int TYPE_RS = 1; //runtime scripts
         private static final int TYPE_JSON = 2;
@@ -423,7 +424,7 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
             ScriptElement[] eles;
             int errorCode = -1;
             String errorInfo = null;
-            int type = -1;
+            int type = TYPE_NONE;
             
             if(o instanceof String) {
                 String s = ((String)o).trim();
@@ -477,7 +478,6 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
                 }
                 return HandleResult.tryParse(s);
             }
-            
             double r = Calculator.calculate(script); //condition
             if(r > 0) {
                 return HandleResult.OK;

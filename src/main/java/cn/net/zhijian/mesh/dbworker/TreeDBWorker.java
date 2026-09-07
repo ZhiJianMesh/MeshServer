@@ -534,10 +534,6 @@ public final class TreeDBWorker extends AbsDBWorker {
             return new ItemInfo(name, line);
         }
         
-        if(LOG.isDebugEnabled()) {
-            LOG.debug("Item {} not exists, dir:{}, name:{}, fid:{}", item, dir, name, fid);
-        }
-        
         return null;
     }
     
@@ -813,7 +809,7 @@ public final class TreeDBWorker extends AbsDBWorker {
         }
         id = keyId(fullDir);
         if (dirExists(id)) {
-            LOG.debug("Dir {} already exists", dir);
+            //LOG.debug("Dir {} already exists", dir);
             return DBResultCode.OK; // don't care, just return OK
         }
         String sql = SQL_INSERTDIR_PREFIX
@@ -1060,6 +1056,7 @@ public final class TreeDBWorker extends AbsDBWorker {
                 if(defaultVal == null) {
                     return DBResultCode.NOT_EXISTS;
                 }
+
                 resp.put(as, defaultVal);
                 return DBResultCode.OK;
             }
@@ -1104,9 +1101,15 @@ public final class TreeDBWorker extends AbsDBWorker {
         
         if(action.equals(ACTION_GETS_MAP)) { //return value as a map
             List<ItemInfo> iil;
-            if(opr.containsKey(TREEDB_REQ_VALUE)) { //minimum time identified
-                long from = ValParser.getAsLong(opr, TREEDB_REQ_VALUE);
-                iil = gets(key, from);
+            Object filter = opr.get(TREEDB_REQ_VALUE);
+            if(filter != null) {
+                long from = ValParser.parseLong(opr, Long.MIN_VALUE);  //minimum time identified
+                if(from != Long.MIN_VALUE) {
+                    iil = gets(key, from);//identify minimal update time
+                } else {
+                    String reg = ValParser.parseString(filter);
+                    iil = gets(key, reg); //identify regular filter for name
+                }
             } else {
                 iil = gets(key);
             }
