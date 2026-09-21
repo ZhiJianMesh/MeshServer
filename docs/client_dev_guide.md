@@ -50,8 +50,8 @@
     └── authorizes.js   # 帐号按服务授权
 ```
 
+端侧ui在安装、升级时，下载此zip文件，并且解压到本地目录，然后加载其中的index.html文件，显示服务的UI。所以，如果服务需要在客户端显示内容，则，ui目录下必须有一个index.html文件。在index.html文件中，完成vue、quasar的初始化加载，如果要用报表，还需要加载echarts。
 每次打开客户端，都会向公司服务端查询客户端版本号，如果有新版本，会自动更新。
-
 
 ### 服务中的网络请求
 
@@ -194,6 +194,27 @@ template:`
 }
 ```
 
+### 多模块应用的端侧结构
+一个服务包含多个业务模块时（如"项目管理+财务+人事"），`ui/index.html`，每个模块一个 js 文件，模块js通常与后端提供相关接口的cfg文件对应。参考结构：
+
+```
+ui/
+├── index.html      # 应用外壳：菜单/路由/容器
+├── language.js     # 中英等多语言标签
+├── brief.js        # 首页汇总（对应 dashboard.cfg 等）
+├── projects.js     # 项目列表页（对应 project.cfg）
+├── project.js      # 项目详情页（对应 prj_task.cfg 等）
+├── finance.js      # 财务页（对应 finance.cfg）
+└── hr.js           # 人事页（对应 hr.cfg）
+```
+
+注意：
+
+1. **URL前缀必须与cfg 文件名完全一致**（大小写不敏感），模块前缀可以不写（如`/api/customer/create`、`/customer/create`都可以），写错了则会返回接口不存在错误；
+2. **端侧读到的是 `response` 处理后的 `data`**：默认（`"check":true`），response 定义了哪些字段，端侧 `resp.data` 里才有对应字段；新增字段时必须同步修改后端接口的response，否则端侧取到 `undefined`。若接口response用了`"check":false`，数据原样透传，调用方可读到全部字段（response 仅用于生成文档）；也可以不定义response，返回所有处理的响应，不做任何有效性检查或格式转换；
+3. GET/DELETE 请求参数通过url的`?`传递（参考上面opts表），POST/PUT通过`data` 对象传参数；
+4. `request(url, "服务名")` 的第二个参数始终是服务名（即服务目录名）。
+
 ## 2. 多语言标签
 UI开发中如果将文字部分直接写在组件中，以后要支持其他语言时，必须研发逐字逐句的修改，而研发并不善于翻译工作，而善于翻译工作的人不善于编程。所以需要将多语言标签独立出来。
 
@@ -258,6 +279,15 @@ template: `
 ### request
 
 request函数中不可以传入完整的url，只需传入服务名、接口名，request内部根据组网情况，选择合适的服务器，自动拼接出完整的请求url。
+
+url 的拼接规则如下（**这是端侧联调最常出错的地方**）：
+
+| 接口定义位置 | url 写法 | 示例 |
+| --- | --- | --- |
+| 非root.cfg文件中的接口 | `/服务名/api/{cfg文件名}/{接口名}` | `customer.cfg` 的 `create` → `/服务名/api/customer/create` |
+| root.cfg文件中的接口 | `/服务名/api/{接口名}`（省略文件名） | `/服务名/api/getRoute` |
+| 静态json文件接口 | `/服务名/api/{接口名，也就是json对象中的字段名}` | `pub.json` 中的 `roles` → `/服务名/api/roles` |
+
 ```JavaScript
 request({method:"POST", url:"/api/customer/create", data:dta}, "crm").then(resp => {
     if(resp.code != RetCode.OK) {

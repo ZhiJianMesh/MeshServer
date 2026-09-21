@@ -26,13 +26,36 @@
 | Region | 区域，通常可理解为一个城市，如果用于异地容灾，建议距离大于500公里（取自唐山、汶川地震最远破坏距离） |
 | 分区 | Partition，分区是逻辑上的，一个分区一定在一个AZ中；同一个分区中的服务实例是共享的；除了公共分区（分区号0-1023），不同分区之间不可互访 |
 
-![terms](imgs/server/terms.png)
+
+```                                    
+┌──────────────────────────────────┐         ┌───────────┐     ┌───────────┐
+│          Region1                 │         │  Region2  │     │  Region2  │
+│  ┌─────────┐         ┌─────────┐ │         │           │     │           │
+│  │   AZ1   │         │   AZ2   │ │         │           │     │           │
+│  │ ┌────┐  │         │ ┌────┐  │ │         │           │     │           │
+│  │ │ P1 │  │   数据  │ │ P2 │  │ │         │           │     │           │
+│  │ └────┘  │<───────>│ └────┘  │ │         │           │     │           │
+│  │         │   同步  │         │ │         │           │     │           │
+│  │  ┌──────┴─────────┴──────┐  │ │         │           │     │           │
+│  │  │      Partition3       │  │ │         │           │     │           │
+│  │  │Bios OAuth WebDB SeqID │  │ │         │           │     │           │
+│  │  │User Member Tally iCrm │  │ │         │            │     │           │
+│  │  │iFinance iBusiness ... │  │ │  数据    │           │     │           │
+│  │  └──────┬─────────┬──────┘  │ │<───────>│           │     │           │
+│  └─────────┘         └─────────┘ │  备份    │           │     │           │
+│ Partition分区可以跨AZ             │         │           │     │           │
+│ 服务不可以跨分区调用               │         │           │     │           │
+│ 公共分区中的服务可以在其他分区调用  │         │           │     │           │
+└──────────────────────────────────┘         └───────────┘     └───────────┘
+```
 ---
 
 # 版本号定义
 服务版本号定义采用Semantic原则，由三组数字组成，各组之间用“.”分隔，分别代表主版本号、次版本号、修订号，比如1.2.3。
 
-![terms](imgs/server/version.png)
+```
+主版本号 -> 次版本号 -> 修订版本号
+```
 
 具体到至简网格，分成两种版本号，一种是至简网格平台的版本，一种是运行于至简网格中服务的版本。
 
@@ -66,7 +89,34 @@
 
 以下是至简网格“端&云”结合的总体部署框架：
 
-![networking](imgs/server/networking.png)
+```
+~~公网环境~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~                                ┌─应用市场──────┐    ~
+~                                │ ┌──┐┌──┐┌──┐ │    ~
+~                                │ │S1││S2││S3│ │    ~
+~                                │ └──┘└──┘└──┘ │    ~
+~   ┌─────────┐  ┌────────────┐  └──┰────────┰──┘    ~
+~   │安卓客户端│  │Windows客户端│     ┃ 根环境  ┃       ~
+~   └────┬────┘  └───┬────────┘     ┗━━━━━▲━━━┛       ~
+~        │           │                    │          ~
+~~~~~~~~~│~~~~~~~~~~~│~~~~~~~~~~~~~~~~~~~~│~~~~~~~~~~~
+         └────────┬──┘                    │定期备份数据，私钥加密存储
+┌─公司内网环境─────┼───────────────────────┼──────────┐
+│                 │公网IP映射或内网穿透     │         │
+│  ┌──────────────▼──────────────────┐    │         │
+│  │        至简网格服务器            │    │          │
+│  │ Linux/Windows/Termux(Android)   │    │         │
+│  │   ┌──┐  ┌──┐  ┌──┐              ├────┘         │
+│  │   │S1│  │S2│  │S3│              │              │
+│  │   └──┘  └──┘  └──┘              │              │
+│  └───▲────────────▲─────────────▲──┘              │
+│      │Http        │Http         │Tcp长连接         │
+│ ┌────┴────┐ ┌─────┴──────┐ ┌────┴────┐            │
+│ │安卓客户端│ │Windows客户端│ │工业机器人│            │
+│ └─────────┘ └────────────┘ └─────────┘            │
+└───────────────────────────────────────────────────┘
+
+```
 
 ---
 # 为什么要造轮子
@@ -174,9 +224,9 @@ account/
         "version":"0.1.0",
         "type":"rdb",
         "versions":[{
-            "minVer":"0.0.0", //最小可升级的版本
-            "toVer":"0.1.0", //升级后的版本
-            "maxVer":"0.0.9", //最大可升级的版本，不配置时，与minVer相同
+            "minVer":"0.0.0", //最小可升级的版本，不配置时，与当前版本号相同
+            "toVer":"0.1.0", //升级后的版本号
+            "maxVer":"0.0.9", //最大可升级的版本，不配置时，与当前版本号相同
             "sqls":[
                 "create table if not exists items (
                     id int not null primary key, -- seq_id
@@ -259,10 +309,33 @@ request({method:"POST", url:"/api/item/list?num=10"}, "account").then(resp => {
 
 ## 6. 启动并验证
 
-把服务目录放入服务端工作目录的services子目录中，然后后启动。启动成功后：
+服务开发完成后，用以下任一方式部署到服务器（**推荐第一种**，安装脚本会自动探测服务器根目录、备份旧版本并在安装后自动重启）：
 
-- 用 `/account/api/apis` 可列出本服务全部接口，用于核对接口是否定义正确（详见[开发自检清单](#开发自检清单)）；
-- 客户端先用公司ID、公司接入码登录公司后，在"应用管理-公司服务"中安装服务后即可在端侧访问。
+```BASH
+# 方式一：用安装脚本安装本地服务目录（目录名即服务名，已存在则先备份再覆盖）
+./meshhelper.sh install ./account
+
+# 方式二：交付zip包时安装（包名即服务名，要求 service.cfg 在包根目录）
+./meshhelper.sh install ./account.zip
+
+# 方式三：手工拷贝到 services 目录，然后重启服务器
+cp -r account <服务器根目录>/services/account
+<服务器根目录>/sbin/mesh.sh restart
+
+# Windows 版
+.\meshhelper.ps1 install .\account
+```
+
+部署后按以下顺序验证：
+
+1. 执行`sbin/mesh.sh status`，健康检查返回`code=0`，说明进程正常、服务已加载；
+2. 访问`/account/api/apis`列出本服务全部接口，核对接口是否定义正确（该接口是公共接口，无需登录即可访问，详见[开发自检清单](#开发自检清单)）：
+
+```BASH
+curl "http://localhost:8523/account/api/apis"
+```
+
+3. 客户端先用公司ID、公司接入码登录公司，在"应用管理-公司服务"中安装该服务后即可在端侧访问。
 
 
 ## 开发要点速查（动手前必读）
@@ -277,6 +350,60 @@ request({method:"POST", url:"/api/item/list?num=10"}, "account").then(resp => {
 7. **ID 精度**：JS 中long型有精度损失，涉及跨端传递的ID时，建议在response中以string类型输出（参照 ifinance 等官方示例）；
 8. **`@[!xxx]` 只在本process内有效**：同一rdb process内的多个SQL之间，用`@[!xxx]`引用**之前已执行SQL的输出**（结果按执行顺序累积）；注意只有`toResp:true`（默认true）的SQL输出才可引用，写操作的行数 `name_result` 默认不传，需显式 `"toResp":true`；不同process之间用 `@{!xxx}` 引用上一步的响应字段；不同库的操作不能放在同一个process中，所以跨库引用必须用 `@{!xxx}`。
 
+## 官方示例服务导航<a id="examples_nav"></a>
+
+技能目录下的`examples`是本产品的**官方服务源码库**，包含服务器自带服务与"业财一体"系列服务的完整源码（`service.cfg`、`api/*.cfg`、`ui/*`）。
+它们不仅可以作为十来，也可以作为实际运用的服务，在中小微企业中使用。
+开发新服务时，**优先找一个形态相近的示例作为模板**，比从零开始效率高很多。
+
+| 示例目录 | 服务名（displayName） | 用途与可参考点 |
+| --- | --- | --- |
+| `bios` | 注册发现系统 | 集群必备的注册发现服务，理解服务注册、节点发现机制的最佳入口 |
+| `user` | 企业用户服务 | 包括公司用户帐号管理、授权管理；维护用户、组织、角色与数据权限数据，几乎所有业务服务都会依赖它 |
+| `config` | 配置服务 | 全局配置的读取与下发 |
+| `webdb` | 分布式数据库 | 数据分片与分布式存储 |
+| `keystore` | 密钥库 | 密钥/证书的存取 |
+| `verifycode` | 验证码 | 短信/图形验证码 |
+| `oauth2` | OAuth2 授权 | 第三方授权登录 |
+| `systemom` | 系统维护 | 服务器自带的系统维护服务（日志、备份、数据库管理等） |
+| `dmxcenter` | 设备消息交换中心 | 长连接、设备消息中转，接受端侧定时请求，在请求的响应中下发命令，完成对设备的远程管理 |
+| `classhour` | 课时统计 | 学员信息记录、课时信息记录、积分管理等，课时记录可以一键导出为word文档；轻量业务服务，结构简单，**适合作为第一个模板** |
+| `member` | 极简会员 | 会员信息记录、消费信息记录、积分管理等，会员可以选择使用密码，消费记录可以一键导出为word文档 |
+| `tally` | 快易记账 | 记账与报表，实现分散的团队管理，组织者给队员分发任务，组织者提成、队员分成计算、收支报表等，端侧+服务端功能很完整 |
+| `inventory` | 进销存系统 | 实现采购、销售两个主要功能，商品、分类、客户、供应商管理等辅助功能；目录内含 README，可参考服务说明与文档写法 |
+| `workflow` | 极简工作流 | 审批流与状态流转 |
+| `ibfbase` | 业财一体基础服务 | 业财一体系列的公共基础能力；业财一体包括ibfbase基础服务、ibusiness差旅、ifinance财务、iproject项目管理、ihr人事管理、iresource资源管理，icrm客户关系管理；<br>ibusiness、iproject、ihr、iresource、icrm都围绕ifinance的资产负债表展开，支出与收入都记入ifinance服务，ifinance定时输出财务报表；<br>icrm负责客户信息管理、销售机会管理等，关联的销售项目、差旅、采购、发货、回款等调用iproject、ibusiness、iresource、ifinance完成 |
+| `icrm` | 极简CRM（业财一体） | 客户、商机 |
+| `ifinance` | 财务管理（业财一体） | 收入、支出、凭证 |
+| `ihr` | 人事管理（业财一体） | 员工、考勤、薪资 |
+| `ibusiness` | 差旅服务（业财一体） | 差旅申请与报销 |
+| `iproject` | 项目管理（业财一体） | 项目、任务 |
+| `iresource` | 资产管理（业财一体） | 固定资产 |
+| `keydoc` | 密件管理 | 加密文档 |
+
+表中的服务名即客户端"应用管理"中显示的名称；各服务版本号随发布更新，请以目录内`service.cfg`为准。
+
+以示例为模板新建服务的推荐步骤：
+
+```BASH
+# 1. 复制一个形态相近的示例到工作目录（不要直接修改 examples 里的文件）
+cp -r <技能目录>/examples/classhour ./account
+
+# 2. 改 service.cfg：不要写 name（服务名取目录名），按需调整 displayName、version、author
+# 3. 改 api/*.cfg 与 ui/*.js，并用 sbin/command.sh json verify 校验语法
+
+# 4. 安装到本机服务器并验证
+./meshhelper.sh install ./account
+curl "http://localhost:8523/account/api/apis"
+```
+
+注意事项：
+
+- `examples`是**只读参考库**：请复制到自己的工作目录后再改，不要把定制内容直接写回`examples`（技能升级时会被覆盖）；
+- 示例服务的`service.cfg`中**不含 name 字段**（与后文"service.cfg"章节的说明一致：服务名就是工程的目录名），复制后改名即成为你自己的服务；
+- 示例数量较多，智能体应**按需读取**：先列出目录结构，再读与服务形态最接近的示例的具体文件，不要一次性全量加载；
+- 该目录下的`assets`是各示例共用的静态资源。
+
 ---
 # 服务开发概览
 
@@ -284,7 +411,7 @@ request({method:"POST", url:"/api/item/list?num=10"}, "account").then(resp => {
 
 ## 服务目录结构
 
-服务的根目录下有api、file两个子目录，以及service.cfg与database.cfg两个文件。
+服务的根目录下有api、ui两个子目录，以及service.cfg与database.cfg两个文件；两个子目录至少要有一个（无接口可没有api目录，无界面可没有ui目录）。
 
 ```
 ├── service.cfg         # 服务描述
@@ -309,11 +436,11 @@ request({method:"POST", url:"/api/item/list?num=10"}, "account").then(resp => {
 	- B) root.cfg是特殊的，访问其中的接口不必携带/root，直接传/xxxx即可；
 	- C) json扩展名的文件存放一个Map结构，Map的每一项都是一个静态接口，其中的内容直接返回，比如roles:{...}，访问时直接调用/roles即可得到大括号中的内容；
 	- D) def扩展名的文件是宏定义文件，也是Map结构，每一项都是一个process，在接口定义文件的process部分可以引用宏定义。
-2. ui子目录存放所有的交互页面，属于[端侧开发](client_dev_guide.md)， 使用vue+quasar实现，起始页固定为index.html，在index.html中import所需的组件；
+2. ui子目录存放所有的交互页面，属于[端侧UI开发](#端侧ui开发)， 使用vue+quasar实现，起始页固定为index.html，在index.html中import所需的组件；
 	- A) 端侧在安装应用时，下载的就是ui子目录的压缩包；
 	- B) 建议一个组件对应一个js文件，比如home.js、customer.js等;
 	- C) 如果无交互界面，可以没有此目录，如果希望服务有一个个性化logo，建议增加ui目录，并存放适合的favicon.png文件。
-3. service.cfg中定义了服务的名称、依赖的服务等信息；
+3. service.cfg中定义了服务的版本、显示名(displayName)、类型、依赖的服务等信息（**不含 name 字段**，服务名就是工程的目录名，见下文）；
 4. database.cfg中定义了服务的数据库表结构，treedb、searchdb无需建表，但是也需要在里面申明，如果只在本实例使用的数据库，定义在database.loc.cfg文件中，定义方法与database.cfg完全相同。
 
 ## service.cfg
@@ -386,22 +513,28 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 ```JSON
 [
-    {"name":"prj","version":"0.1.0","type":"rdb",
-     "versions":[
-	    {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists project (...)", "create table if not exists task (...)"]}
-	]},
+    {
+      "name":"prj","version":"0.1.0","type":"rdb",
+      "versions":[
+        {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists project (...)", "create table if not exists task (...)"]}
+      ]
+    },
     {"name":"prj","type":"sdb"},
 
-    {"name":"fin","version":"0.1.0","type":"rdb",
-     "versions":[
-	    {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists income (...)", "create table if not exists expense (...)"]}
-	]},
+    {
+      "name":"fin","version":"0.1.0","type":"rdb",
+      "versions":[
+        {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists income (...)", "create table if not exists expense (...)"]}
+      ]
+    },
     {"name":"fin","type":"sdb"},
 
-    {"name":"hr","version":"0.1.0","type":"rdb",
-     "versions":[
-	     {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists employee (...)"]}
-	]},
+    {
+      "name":"hr","version":"0.1.0","type":"rdb",
+      "versions":[
+        {"minVer":"0.0.0","maxVer":"0.0.0","toVer":"0.1.0","sqls":["create table if not exists employee (...)"]}
+      ]
+    },
     {"name":"hr","type":"sdb"}
 ]
 ```
@@ -504,7 +637,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
     "comment":"描述，用于生成接口描述，可不提供",
 
     "vars":[
-        [变量列表，可以有多个](#vars)，每一个都是json对象
+        [变量列表，可以有多个](#para_vars)，每一个都是json对象
     ],
 
     "request":[
@@ -581,7 +714,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | | | | **UUID特有配置** |
 | base64 | 是否为base64格式 | Bool | 如果为true，则按base64输出，否则按hex输出 |
 
-### 变量
+### 变量<a id="para_vars"></a>
 
 组合一个或多个参数，经过复杂计算后，得到一个新的变量，得到的结果可以在脚本中像普通请求参数一样引用，多次引用并不会导致多次计算。
 
@@ -825,9 +958,8 @@ TreeDB是记录树状关系数据的数据库，比如：
     │   ├── key
     │   ├── configs
     │   └── dbs
-    │       └── crm
-    │           ├── type
-    │           └── tabledef
+    │       ├── icrm.type
+    │       └── icrm.ver
     └── user
         ├── key
 ...
@@ -839,17 +971,19 @@ TreeDB是记录树状关系数据的数据库，比如：
     "type" : "biosmeta",
     "actions" : [
         {"action":"crtDir", "key":"/service/crm/dbs"},
-        {"action":"crtDir", "key":"/service/crm/dbs/crm"},
-        {"action":"put", "key":"/service/@{service}/dbs/crm/tabledef", "value":""},
-        {"action":"put", "key":"/service/@{service}/dbs/crm/type", "value":"@{type}"},
-        {"action":"get", "key":"/service/@{service}/dbs/crm/type"}
+        {"action":"put", "key":"/service/@{service}/dbs/updatetime", "value":"@{#reqAt}"},
+        {"action":"put", "key":"/service/@{service}/dbs/crm.type", "value":"@{type}"},
+        {"action":"put", "key":"/service/@{service}/dbs/crm.ver", "value":"@{ver}"},
+        {"action":"get", "key":"/service/@{service}/dbs/key", "as":"serviceKey", "ignores":["NOT_EXISTS"]}
     ]
 }
 ```
 1. action是区分大小写的；
 2. 所有的action都有key选项，key唯一指定一个记录；
-3. value用于存储key对应的值，如果是一个dir，不必指定value；
-4. 一个dir下可以有多条K-V键值对。
+3. value用于存储key对应的值（如果是一个crtDir，不必指定value）；
+4. 一个dir下可以有多条K-V键值对；
+5. 每个action发生了错误时，直接返回错误，后面的action都不执行；如果错误码在ignores中指定了，则当作OK，继续执行后面的action；
+6. 查询类action(get、gets、getSubs、list等)，可以用as指定返回值的名称，不指定则默认为key参数的最后一个分段。
 
 | action | 作用 | 备注 |
 | --- | --- | --- |
@@ -858,17 +992,17 @@ TreeDB是记录树状关系数据的数据库，比如：
 | put | 新增或更新键值对 | 必须保证父dir都存在 |
 | putIfAbsent | 不存在则添加 | 如果键值对不存在则创建，否则放弃操作，返回2000错误码 |
 | putList | 插入数组 | 把value当作一个数组，在其中添加元素；  如果key不存在，则创建它，如果存在，且value不在数组中，则添加 |
-| putMap | 插入对象 | 把value当作一个Map；  如果key不存在，则创建它，并将value转为json存入；  如果存在，覆盖它;  传入的value是一个Map |
+| putMap | 插入对象 | 把value当作一个Map；如果key不存在，则创建它，并将value转为json存入；  如果存在，覆盖它;  传入的value是一个Map |
 | puts | 在目录插入多对K-V | 在有key指定的目录下插入多对K-V，value参数是一个Map对象，指定多对K-V |
-| get | 获得键值对 | 获得有key指定的value，value以字符串形式返回；返回值的名称可以有as指定，不指定则默认为key参数的最后一段 |
-| gets | 获得一个目录下的所有键值对 | 键值对以Map数组返回，每个元素中有key、val、ut；返回值的名称可以有as指定，不指定则默认为key参数的最后一段 |
-| getSubs | 列举所有子目录 | 返回由key指定目录下的所有子目录，不包括K-V；返回值的名称可以由as指定，不指定则默认为key参数的最后一段 |
-| getSubsAndItems | 列举所有子目录及其拥有的键值对 | 返回由key指定目录下的所有子目录，及它们下面的K-V；每行包括name,key,val三个字段；返回值的名称可以有as指定，不指定则默认为key参数的最后一段。  比如/service/config/dbs下的所有子目录，及各子目录下的所有K-V项 |
-| names | 列举目录下所有key | 返回目录所有key的列表；返回值的名称可以有as指定，不指定则默认为key参数的最后一段 |
-| getMap | 从Map中取一个字段 | 从Map形式返回，如果未用value指定字段名，则返回整个Map，指定了则只返回字段名指定的值；返回值的名称可以有as指定，不指定则默认为key参数的最后一段 |
-| getsMap | 返回目录下所有K-V-UT | 返回由key指定目录下的所有K-V，以及UT更新时间；返回值的名称可以有as指定，不指定则默认为key参数的最后一段 |
+| get | 获得键值对 | 获得有key指定的value，value以字符串形式返回；当查询不到key时，如果指定了default，则返回default值，否则返回NOT_EXISTS错误码，比如：<br>{"action":"get", "key":"/service/@{service}/updatetime", "as":"updTime", "default":"0"} |
+| gets | 获得一个目录下的所有键值对 | 键值对以Map数组返回，每个元素中有key、val、ut；<br>可以用value指定最老的更新时间戳，也可以指定key的正则过滤条件，比如：<br>{"action":"gets", "key":"/service/@{service}/dbs", "val":".+\\\\.type"}<br>{"action":"gets", "key":"/service/@{service}/dbs", "val":1788518295630}|
+| getSubs | 列举所有子目录 | 返回由key指定目录下的所有子目录，不包括K-V |
+| getSubsAndItems | 列举所有子目录及其拥有的键值对 | 返回由key指定目录下的所有子目录，及它们下面的K-V；每行包括name,key,val三个字段；比如/service/config/dbs下的所有子目录，及各子目录下的所有K-V项 |
+| names | 列举目录下所有key | 返回目录所有key的列表 |
+| getMap | 从Map中取一个字段 | 未用value指定字段名时，返回整个Map；指定了，则只返回Map中字段名指定的字段值，在没指定as的情况下，返回字段名称就是value指定的字段名 |
+| getsMap | 返回目录下K-V | 与gets类似，可以指定过滤条件，返回内容为一组“key名称->转为Map的value” |
 | getId | 获得目录id | 返回目录id |
-| list | 列举所有子目录 | 返回由key指定目录下的所有子目录，返回内容包括id、name、ut；返回值的名称可以有as指定，不指定则默认为key参数的最后一段 |
+| list | 列举所有子目录 | 返回由key指定目录下的所有子目录，返回内容包括id、name、ut |
 | rmv | 删除key |  |
 | rmvFromMap | 删除value中的一个key | 把value当作map，删除Map中由value参数指定的key |
 | rmvFromList | 删除value中一个元素 | 把value当作list，删除List中由value参数指定的元素 |
@@ -1177,7 +1311,7 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
         {
             "service":"bios",
             "method":"GET",
-            "url":"/db/serviceDbsDetail",
+            "url":"/db/detail",
             "tokenSign":"OM",
             "parameters":"service=@{service}"
         },
@@ -1274,9 +1408,9 @@ insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 }
 ```
 
-### 9. var
+### 9. var<a id="process_var"></a>
 
-定义一个或多个参数，与请求中的[vars](#vars)定义相同，在下一步可以当作普通参数使用，比如@{varName}。
+定义一个或多个参数，与请求中的[vars](#para_vars)定义相同，在下一步可以当作普通参数使用，比如@{varName}。
 toResp为true时，变量会作为响应字段直接写入 data 返回给调用方。
 
 ```JSON
@@ -1476,7 +1610,7 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
            }
        }
     ```
-    
+
     merge为true时：
     ```JSON
        "response":[
@@ -1495,6 +1629,7 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
     ```
 	 
 4. **response过滤只对返回OK的请求生效**：process 链中某一步返回非 OK（如查询无结果的 NOT_EXISTS）时，直接返回错误码，不存在响应data，不会继续处理字段过滤。
+
 ### 返回码
 
 响应体中的code为返回码，如果无错误则为OK(0)，返回码在js脚本、errorCode中可以用RetCode.xx直接引用，code定义如下：
@@ -2006,7 +2141,22 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 其中的account是请求参数，或者接口中定义的变量；#tokenCaller是token中的字段；!custId是前面的响应结果；^agent是请求头中的字段。参数定义请参照[占位符](#placeholder)的介绍。
 数据库分片的实现原理，如下图所示：
 
-![sharding](imgs/server/sharding.png)
+```
+┌─────────┐   查询sharding在不同webdb上的分布                ┌───────┐在调用端，
+│  bios   │◄───────────────────────────────────────────────│ 调用方 │根据请求参数计算sharding
+└────▲────┘                                                └───┬───┘
+     │                                                         │
+所有webdb实例定期上报                                      获得分片号及分片分布信息后
+它负责的sharding范围                                      到对应webdb中操作数据
+     │                                                        │
+     │        ┌─────────────┐    ┌─────────────┐    ┌─────────▼───┐
+     └────────│   webdb     │    │   webdb     │    │   webdb     │
+              │ sharding A-B│    │ sharding C-D│    │ sharding E-F│
+              └──────┬──────┘    └──────┬──────┘    └──────┬──────┘
+                ┌────┴────┐        ┌────┴────┐        ┌────┴────┐
+                │   db    │        │   db    │        │   db    │
+                └─────────┘        └─────────┘        └─────────┘
+```
 
 每个webdb实例负责一个连续的分片范围，在它启动后会定期向bios服务上报自己的分片范围，调用方发起请求时需要先从bios中获得分片分布情况，然后再根据接口定义中sharding计算结果，找到合适的webdb实例。
 
@@ -2114,7 +2264,7 @@ assets不是通常意义的服务，不运行于服务侧，只用于给每个�
 
 ## 序列ID服务Seq
 
-实现一个持续增长（不保证连续）的ID服务，通过SEQUENCE占位符获得。 此占位符可以用在sql、js脚本中，也可以用在 [vars的val](#vars)中， 或者[var处理](#var)中。
+实现一个持续增长（不保证连续）的ID服务，通过SEQUENCE占位符获得。 此占位符可以用在sql、js脚本中，也可以用在 [vars的val](#para_vars)中， 或者[var处理](#process_var)中。
 
 ## 定时任务Schedule
 

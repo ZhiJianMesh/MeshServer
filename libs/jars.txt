@@ -1,5 +1,5 @@
 ===server network
-netty-all-4.1.112.Final.jar
+netty-all-4.2.18.Final.jar
 
 ===security(BouncyCastle)
 bcprov-jdk18on-176.jar
@@ -29,5 +29,8 @@ okio-1.17.2.jar
 
 ===sqlite
 sqlite-jdbc-3.53.1.0.jar（支持termux原生库）
-HikariCP-7.0.2.jar（JDBC连接池实现，用于支持大型数据库）
+HikariCP-7.0.2.jar（JDBC连接池实现，用于支持大型数据库，sqlite不使用）
+
+===cache
+caffeine-3.2.4.jar
 
