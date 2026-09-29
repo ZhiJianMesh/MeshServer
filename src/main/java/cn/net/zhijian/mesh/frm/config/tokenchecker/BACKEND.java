@@ -1,8 +1,12 @@
 package cn.net.zhijian.mesh.frm.config.tokenchecker;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
@@ -18,7 +22,6 @@ import cn.net.zhijian.mesh.frm.intf.IOAuth;
 import cn.net.zhijian.mesh.frm.intf.ITokenWorker;
 import cn.net.zhijian.mesh.frm.tokenworker.PwdTokenWorker;
 import cn.net.zhijian.util.LogUtil;
-import cn.net.zhijian.util.LruCache;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
 
@@ -32,7 +35,9 @@ public class BACKEND extends COMPANY {
     private static final Logger LOG = LogUtil.getInstance();
     private static final int MAX_VALID_TIME = 300 * 1000; //ms
 
-    private static final LruCache<Integer, CompanyAccess> Accesses = new LruCache<>(MAX_VALID_TIME);
+    private static final Cache<Integer, CompanyAccess> Accesses = Caffeine.newBuilder()
+            .expireAfterWrite(MAX_VALID_TIME, TimeUnit.MILLISECONDS)
+            .build();
 
     BACKEND() {
         super(BACKEND_TOKEN_CHECKER);
@@ -51,15 +56,17 @@ public class BACKEND extends COMPANY {
 
         //远程接入码签名，远程接入码在闲置5分钟后，会失效
         int cid = req.cid();
-        CompanyAccess c = Accesses.get(req.cid());
-        if(c == null) {
+        CompanyAccess c = Accesses.get(cid, k -> {
             CompanyInfo ci = CompanyInfo.instance();
             if(ci.id != cid) {
-                LOG.error("Invalid company id {}, not local company({})", cid, ci.id);
-                return CompletableFuture.completedFuture(null);
+                return null;
             }
-            c = new CompanyAccess(ci);
-            Accesses.put(cid, c);
+            return new CompanyAccess(ci);
+        });
+
+        if(c == null) {
+            LOG.error("Invalid company id {}, not local company({})", cid, CompanyInfo.instance().id);
+            return CompletableFuture.completedFuture(null);
         }
         return c.check(token);
     }
@@ -74,12 +81,12 @@ public class BACKEND extends COMPANY {
             LOG.error("setToken,invalid token");
             return CompletableFuture.completedFuture(new HandleResult(RetCode.WRONG_PARAMETER, "invalid token"));
         }
-        CompanyAccess c = Accesses.computeIfAbsent(ci.id, k -> new CompanyAccess(ci));
+        CompanyAccess c = Accesses.get(ci.id, k -> new CompanyAccess(ci));
         return c.setTokenPwd(v);
     }
     
     public ITokenWorker getTokenWorker(int cid) {
-        CompanyAccess c = Accesses.get(cid);
+        CompanyAccess c = Accesses.getIfPresent(cid);
         return c == null || c.expiresAt < System.currentTimeMillis() ? null : c.tokenWorker;
     }
 

@@ -65,7 +65,7 @@ eclipse {
 }
 
 group = "cn.net.zhijian.mesh.server"
-version = '1.4.2'
+version = '1.5.0'
 
 ext { //额外属性定义
    prjectName="cn.net.zhijian.mesh.server"

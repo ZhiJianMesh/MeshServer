@@ -1,5 +1,6 @@
 package cn.net.zhijian.mesh.builtin.user;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -13,6 +14,7 @@ import cn.net.zhijian.mesh.frm.config.ApiInfo;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.util.LogUtil;
+import cn.net.zhijian.util.MapBuilder;
 import cn.net.zhijian.util.SecureUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
@@ -24,6 +26,9 @@ import cn.net.zhijian.util.ValParser;
  *
  */
 public final class Login extends UserBase {
+    private static final long MIN_RELOGIN_TIME = 3600 * 1000; //S
+    private static final int MAX_CONTINUOUS_FAIL_TIMES = 3;
+    private static final String SEG_FAILED_LOGIN = "failed_login";
     private static final Logger LOG = LogUtil.getInstance();
 
     public Login(ServiceInfo serviceInfo, ApiInfo apiInfo, String processName) {
@@ -47,8 +52,25 @@ public final class Login extends UserBase {
             Map<String, Object> params = req.params();
             String pwd = ValParser.getAsStr(params, "password");
             if(!SecureUtil.pbkdf2Check(pwd, savedPwd)) { //判断密码是否正确
-                LOG.error("Fail to check {}'s password", req.getString("account"));
-                return futureResult(RetCode.NOT_EXISTS, "user not found");
+                LOG.warn("Fail to check {}'s password", req.getString("account"));
+                String failedLogin = ValParser.getAsStr(hr.data, SEG_FAILED_LOGIN);
+                long cur = System.currentTimeMillis();
+                if(!StringUtil.isEmpty(failedLogin)) {
+                    List<String> ss = StringUtil.split(failedLogin, ',', true);
+                    int n = ss.size();
+                    long last = Long.parseLong(ss.get(n - 1));
+                    if(n >= MAX_CONTINUOUS_FAIL_TIMES) { //连续失败3次，则需要验证时间
+                        if(cur - last < MIN_RELOGIN_TIME) {
+                            return futureResult(RetCode.FORBIDDEN, "too frequent");
+                        }
+                        failedLogin = ss.get(n - 2) + ',' + last;
+                    }
+                    failedLogin += "," + cur;
+                } else {
+                    failedLogin = "" + cur;
+                }
+                //在可重试次数之内，只记录失败时间
+                return futureResult(MapBuilder.of(SEG_FAILED_LOGIN, failedLogin));
             }
 
             /* 

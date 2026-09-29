@@ -37,7 +37,7 @@ public class VarProcessor extends AbsProcessor {
     protected CompletableFuture<HandleResult> handle(AbsServerRequest req, Map<String, Object> resp) {
         for(RequestInfo.Var v : vars) {
             v.run(req, resp);
-         }
+        }
         return futureResult();
     }
 

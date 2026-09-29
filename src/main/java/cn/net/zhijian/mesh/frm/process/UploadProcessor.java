@@ -8,6 +8,12 @@ import java.io.RandomAccessFile;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.frm.RetCode;
@@ -19,15 +25,12 @@ import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.config.placeholder.ScriptElement;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.util.ByteUtil;
-import cn.net.zhijian.util.FifoCache;
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.MapBuilder;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.UrlPathInfo;
 import cn.net.zhijian.util.ValParser;
-
-import org.slf4j.Logger;
 
 /**
  * 文件上传处理器
@@ -57,7 +60,10 @@ public class UploadProcessor extends AbsProcessor {
      * 超过MAX_FILE_NUM个，最老的会在第MAX_FILE_NUM+1个上传开始时失效，
      * 文件会被关闭，缓存信息会被清除
      */
-    private static final FifoCache<String, FileWriter> Files = new FifoCache<>(MAX_CACHE_TIME, MAX_FILE_NUM);
+    private static final Cache<String, FileWriter> Files = Caffeine.newBuilder()
+            .maximumSize(MAX_FILE_NUM)
+            .expireAfterWrite(MAX_CACHE_TIME, TimeUnit.MILLISECONDS)
+            .build();
     
     private ScriptElement[] path; //存放文件的目录，只能存在服务自己的根目录下
     
@@ -70,7 +76,7 @@ public class UploadProcessor extends AbsProcessor {
         Map<String, Object> params = req.params();
         String fileNo = ValParser.getAsStr(params, R_FILENO);
         if(!StringUtil.isEmpty(fileNo)) { //没有文件号，表示是第一个请求
-            FileWriter fw = Files.get(fileNo);
+            FileWriter fw = Files.getIfPresent(fileNo);
             if(fw == null) {
                 return HandleResult.future(RetCode.NOT_EXISTS, "not exists");
             }
@@ -91,7 +97,7 @@ public class UploadProcessor extends AbsProcessor {
                         res.put(HandleResult.CODE, RetCode.DATA_WRONG);
                         res.put(HandleResult.INFO, "fail to check digest");
                     }
-                    Files.remove(fileNo);
+                    Files.invalidate(fileNo);
                 } else {
                     res.put(HandleResult.CODE, RetCode.OK);
                     res.put(HandleResult.INFO, RetCode.INFO_SUCCESS);

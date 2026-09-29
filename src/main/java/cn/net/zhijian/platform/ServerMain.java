@@ -89,7 +89,7 @@ public final class ServerMain implements IThreadPool {
         File channelCfgFile = ChannelConfig.configFile(confPath);
         ChannelConfig channelCfg = ChannelConfig.parse(channelCfgFile); //不可能为空
         String localAddr = channelCfg.localHttpAddr();
-        LOG.debug("ChannelConfig:{}, local addr:{}", channelCfg, localAddr);
+        LOG.debug("ChannelConfig:{}, local addr:{},gateway:{}", channelCfg, localAddr, channelCfg.isGateway);
         
         ServiceInfo.setWorkDir(workDir);
         BackendBase.createService(workDir);

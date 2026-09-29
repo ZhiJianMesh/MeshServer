@@ -51,7 +51,7 @@ public class COMPANY extends AbsTokenChecker {
         int cid = req.cid();
         long cacheId = StringUtil.longHashCode(cid, AccessToken.getStakeholder(token));
         //long cacheId = AccessToken.hashCode(token);
-        AccessToken cacheToken = CachedTokens.get(cacheId);
+        AccessToken cacheToken = CachedTokens.getIfPresent(cacheId);
         if(cacheToken != null && !cacheToken.expired()) {
             if(!cacheToken.needUpdate()) {
                 if(token.equals(cacheToken.generate())) {

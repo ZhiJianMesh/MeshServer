@@ -6,8 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.Transcoder;
@@ -23,7 +27,6 @@ import cn.net.zhijian.mesh.frm.process.*;
 import cn.net.zhijian.mesh.js.JsEngine;
 import cn.net.zhijian.util.ByteUtil;
 import cn.net.zhijian.util.Calculator;
-import cn.net.zhijian.util.FifoCache;
 import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
@@ -80,9 +83,10 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
     protected abstract CompletableFuture<HandleResult> handle(AbsServerRequest req, Map<String, Object> respData);
 
     //processor响应的缓存
-    protected static final FifoCache<String, CompletableFuture<HandleResult>> CachedResults = new FifoCache<>(
-            10 * 60, //10分钟
-            20000);
+    protected static final Cache<String, CompletableFuture<HandleResult>> CachedResults = Caffeine.newBuilder()
+            .maximumSize(20000)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .build();
     
     protected final ServiceInfo serviceInfo;
     protected final String processName;
@@ -213,17 +217,8 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
     
     protected CompletableFuture<HandleResult> readCache(AbsServerRequest req, Map<String, Object> resp) {
         String cacheId = this.baseCacheId + translateElements(this.cache, req, resp);
-        //此处如果使用putIfAbsent(cacheId,handle(req,resp))
-        //会导致cache失效，因为handle每次都会实际执行一次，虽然最终返回的可能是缓存的结果
-        synchronized(CachedResults) {
-            CompletableFuture<HandleResult> hr = CachedResults.get(cacheId);//get要放在同步中
-            if(hr != null) {
-                return hr;
-            }
-            hr = handle(req, resp);
-            CachedResults.put(cacheId, hr);
-            return hr;
-        }
+        //获取，未命中时用函数加载并放入缓存（原子操作）
+        return CachedResults.get(cacheId, k -> handle(req, resp));
     }
 
     protected boolean useCache() {
@@ -380,7 +375,7 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
      * 清除缓存，销毁时需要调用
      */
     public static void clearCache() {
-        CachedResults.clear();
+        CachedResults.cleanUp();
     }
     
     public static CompletableFuture<HandleResult> futureResult(int code, String info) {

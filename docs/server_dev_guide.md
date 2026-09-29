@@ -45,7 +45,7 @@
 │  └─────────┘         └─────────┘ │  备份    │           │     │           │
 │ Partition分区可以跨AZ             │         │           │     │           │
 │ 服务不可以跨分区调用               │         │           │     │           │
-│ 公共分区中的服务可以在其他分区调用  │         │           │     │           │
+│ 公共分区中的服务可以被其他分区调用  │         │           │     │           │
 └──────────────────────────────────┘         └───────────┘     └───────────┘
 ```
 ---
@@ -74,7 +74,7 @@
 
 本文主要用于指导至简网格服务端程序开发，包括数据库定义、接口定义等。
 
-至简网格[服务端](https://gitee.com/zhijian_net/MeshServer)、[服务](https://gitee.com/zhijian_net/enterprise)都已开源。
+至简网格[服务端](https://gitee.com/zhijian_net/MeshServer)、[服务](https://gitee.com/zhijian_net/enterprise) / [GitHub 服务](https://github.com/ZhiJianMesh/enterprise)都已开源。
 如果文档中未写明白的，可以直接参照代码获得更深入的理解。
 
 服务器最小可以安装在一部老旧的安卓手机上，使得管理企业服务与使用普通手机应用一样简单。 只需要简单操作就可以实现企业服务的安装、启停、升级、卸载等维护工作，无需聘请专门的技术人员。
@@ -262,7 +262,7 @@ account/
             "sqls":[
                //sql字符串中可以加换行
                "insert into items(id,name,amount)
-               values(@{SEQUENCE|'itemid',i},@{name},@{amount})"
+               values(@{SEQUENCE|i,'itemid'},@{name},@{amount})"
             ]
         }]
     },

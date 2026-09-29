@@ -127,6 +127,11 @@ public class ApiParaHolder implements IConst {
         return false;
     }
     
+    @Override
+    public String toString() {
+        return name + ",type:" + paraType.name() + ",isMulti:" + isMulti;
+    }
+    
     public static ApiParaHolder parse(String s) {
         char ch = s.charAt(0);
 

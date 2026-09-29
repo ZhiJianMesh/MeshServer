@@ -2,13 +2,16 @@ package cn.net.zhijian.mesh.frm.abs;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.frm.config.ApiInfo;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.frm.intf.IOAuth;
 import cn.net.zhijian.mesh.frm.intf.IThreadPool;
-import cn.net.zhijian.util.FifoCache;
 
 /**
  * tokenchecker是运行在被调用方实例上的
@@ -35,14 +38,16 @@ public abstract class AbsTokenChecker implements IOAuth, IThreadPool {
      * 所以将它们缓存一段时间，再次使用时，直接从缓存中加载。
      * 必须定期清除，因为token会定期变化，如果不清理，会有很多缓存垃圾
      */
-    protected static final FifoCache<Long, AccessToken> CachedTokens = new FifoCache<>(
-            1800,//半小时
-            10000);//单实例保存1万个活跃用户的token，大约需要4M内存
+    protected static final Cache<Long, AccessToken> CachedTokens = Caffeine.newBuilder()
+            .maximumSize(10000)//单实例保存1万个活跃用户的token，大约需要4M内存
+            .expireAfterAccess(1800, TimeUnit.SECONDS)//闲置半小时，则无效
+            .build();
     
     //缓存用户拥有哪些平台类权限
-    protected static final FifoCache<Integer, byte[]> CachedPowers = new FifoCache<>(
-            1800, //半小时
-            10000); //单实例保存1万个活跃用户的权限，所需内存很少
+    protected static final Cache<Integer, byte[]> CachedPowers = Caffeine.newBuilder()
+            .maximumSize(10000)//单实例保存1万个活跃用户的token，大约需要4M内存
+            .expireAfterAccess(1800, TimeUnit.SECONDS)//闲置半小时，则无效
+            .build();
 
     public final String name;
 
@@ -80,7 +85,7 @@ public abstract class AbsTokenChecker implements IOAuth, IThreadPool {
     }
 
     public static void clearCache() {
-        CachedTokens.clear();
-        CachedPowers.clear();
+        CachedTokens.cleanUp();
+        CachedPowers.cleanUp();
     }
 }

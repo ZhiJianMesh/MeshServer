@@ -47,7 +47,7 @@ class USER extends BASEUSER {
             }
 
             int id = StringUtil.concatHashCode(ByteUtil.int2Hex(req.cid(), false), at.caller, at.callee);
-            byte[] powers = CachedPowers.get(id);
+            byte[] powers = CachedPowers.getIfPresent(id);
             if(powers != null) {
                 if(getRight(POWER_EXRERNAL_ACCESS, powers) <= 0) { //无外网访问权限
                     LOG.debug("No POWER_EXRERNAL_ACCESS for {}.{}=>{} in cache", req.cid(), at.caller, at.callee);

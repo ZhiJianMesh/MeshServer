@@ -96,7 +96,9 @@ final class PasswordParameterInfo extends ParameterInfo {
     
             if(this.rule != null) { //密码强度检查
                 if(!this.rule.check(req, val)) {
-                    return Value.failed(name + " invalid password");
+                    return Value.failed(name + " invalid password,minLen:" + this.rule.minLen
+                            +",charTypeNum:"+ this.rule.charTypeNum
+                            +",differentCharNum:"+ this.rule.differentCharNum);
                 }
             }
         }

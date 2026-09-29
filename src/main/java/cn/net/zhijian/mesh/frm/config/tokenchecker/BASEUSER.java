@@ -45,7 +45,7 @@ class BASEUSER extends AbsTokenChecker implements IThreadPool, IOAuth {
         //如果用全部token计算cacheId，在token过期或重新登录时，不能及时从缓存中删除，导致累积
         int cid = req.cid();
         long cacheId = StringUtil.longHashCode(cid, AccessToken.getStakeholder(token));
-        AccessToken cacheToken = CachedTokens.get(cacheId);
+        AccessToken cacheToken = CachedTokens.getIfPresent(cacheId);
         if(cacheToken != null && !cacheToken.expired()) {
             if(!cacheToken.needUpdate()) {
                 if(token.equals(cacheToken.generate())) {

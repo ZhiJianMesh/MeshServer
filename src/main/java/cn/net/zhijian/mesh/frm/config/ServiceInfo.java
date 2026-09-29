@@ -14,10 +14,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.zip.ZipOutputStream;
 
 import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.HandleResult;
@@ -45,7 +49,6 @@ import cn.net.zhijian.mesh.frm.method.ApiMethod;
 import cn.net.zhijian.mesh.frm.tokenworker.EccTokenWorker;
 import cn.net.zhijian.mesh.prot.http.NullServerRequest;
 import cn.net.zhijian.util.Ecc.EccKeyPair;
-import cn.net.zhijian.util.FifoCache;
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.LogUtil;
@@ -67,7 +70,8 @@ public final class ServiceInfo {
     private static final String INTRODUCTION_NAME = "introduction.json";
     private static final Pattern NAME_CHECKER = Pattern.compile("^\\w{1,30}$");
     private static final String VERSION_CHECKER = "^(\\d{1,3}\\.){2}\\d{1,3}$";
-    private static final FifoCache<String, Integer> DbNos = new FifoCache<>(1000);
+    private static final Cache<String, Integer> DbNos = Caffeine.newBuilder()
+            .expireAfterAccess(1000, TimeUnit.SECONDS).build();
     /**
      * 如果服务有自己的java，需要打包到一个jar文件中，放在服务的根目录，
      * 框架在加载api时，如果handler不为空则会首先尝试从classpath中加载类，
@@ -848,7 +852,7 @@ public final class ServiceInfo {
     public CompletableFuture<Integer> getDbNo(int cid) {
         if(PartitionConfig.instance().isPrivate()
           || this.type != ServiceType.COMPANY) { //在公司环境或非公司服务，按服务区分dbNo
-            Integer v = DbNos.get(this.name);
+            Integer v = DbNos.getIfPresent(this.name);
             if(v != null) {
                 return CompletableFuture.completedFuture(v);
             }
@@ -869,7 +873,7 @@ public final class ServiceInfo {
         }
 
         String key = Integer.toString(cid);
-        Integer v = DbNos.get(key);
+        Integer v = DbNos.getIfPresent(key);
         if(v != null) {
             return CompletableFuture.completedFuture(v);
         }
@@ -916,8 +920,16 @@ public final class ServiceInfo {
         return initWebDb(cid, dbDefines);
     }
     
+    public String dbFile() {
+        return FileUtil.addPath(this.homeDir, IConst.DATABASE_CONFIG_FILE);
+    }
+    
+    public String configFile() {
+        return FileUtil.addPath(this.homeDir, IConst.SERVICE_CONFIG_FILE);
+    }
+    
     public List<Object> loadDbDefines() {
-        String dbCfgFileName = FileUtil.addPath(this.homeDir, IConst.DATABASE_CONFIG_FILE);
+        String dbCfgFileName = dbFile();
         File dbCfgFile = new File(dbCfgFileName);
         if(!dbCfgFile.exists()) { //有数据库配置文件时，才需初始化数据库
             return new ArrayList<>();

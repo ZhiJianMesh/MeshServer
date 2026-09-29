@@ -2,8 +2,12 @@ package cn.net.zhijian.mesh.frm.config.tokenchecker;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.client.BiosClient;
@@ -18,7 +22,6 @@ import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.frm.intf.ITokenWorker;
 import cn.net.zhijian.mesh.frm.tokenworker.EccTokenWorker;
 import cn.net.zhijian.util.Ecc.EccKeyPair;
-import cn.net.zhijian.util.FifoCache;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.UrlPathInfo;
@@ -32,8 +35,10 @@ import cn.net.zhijian.util.ValParser;
  */
 class APP extends AbsTokenChecker {
     private static final Logger LOG = LogUtil.getInstance();
-    protected static final FifoCache<String, ITokenWorker> tokenWorkers = new FifoCache<>(
-            3600/*秒，最大缓存时间*/, 5000/*最大缓存数量*/);
+    protected static final Cache<String, ITokenWorker> tokenWorkers = Caffeine.newBuilder()
+            .maximumSize(5000/*最大缓存数量*/)
+            .expireAfterWrite(3600/*秒，最大缓存时间*/, TimeUnit.SECONDS)
+            .build();
     // 所有服务都能调用，都在一套bios管理下的环境中，这样的设置相当于是内部public
     // 但是不能bios管理的环境，则不能调用
     public static final String SERVICE_ANY = "*";
@@ -80,7 +85,7 @@ class APP extends AbsTokenChecker {
     }
      
     protected CompletableFuture<AccessToken> check(AbsServerRequest req, String token, String caller) {
-        ITokenWorker tokenWorker = tokenWorkers.get(caller);
+        ITokenWorker tokenWorker = tokenWorkers.getIfPresent(caller);
         if(tokenWorker != null) {
             return check(req, token, tokenWorker);
         }
@@ -107,7 +112,7 @@ class APP extends AbsTokenChecker {
                 EccKeyPair kp = EccKeyPair.parse(sPubKey);
                 int signType = SERVICE_OM.equals(caller) ? SIGNTYPE_OMKEY : SIGNTYPE_APPKEY;
                 ITokenWorker tw = new EccTokenWorker(kp.ver, null, kp.pub, signType);
-                tokenWorkers.put(caller, tw); //只可用于鉴权，因为只有公钥，没有私钥
+                setTokenWorker(caller, tw); //只可用于鉴权，因为只有公钥，没有私钥
                 return check(req, token, tw);
             } catch (Exception e) {
                 return CompletableFuture.completedFuture(null);
@@ -117,12 +122,14 @@ class APP extends AbsTokenChecker {
 
     //用于junit测试中
     void setTokenWorker(String service, ITokenWorker tw) {
-        tokenWorkers.put(service, tw);
+        if(tw != null) {
+            tokenWorkers.put(service, tw);
+        }
     }
     
     //用于junit测试中
     ITokenWorker getTokenWorker(String service) {
-        return tokenWorkers.get(service);
+        return tokenWorkers.getIfPresent(service);
     }
     
     private CompletableFuture<AccessToken> check(AbsServerRequest req, String token, ITokenWorker tokenWorker) {
@@ -131,7 +138,7 @@ class APP extends AbsTokenChecker {
          * 尽管调用方每次请求都可能更换token，仍然先读缓存，只要它没过期，仍然校验通过。
          * 因为公私钥计算很消耗CPU
          */
-        AccessToken at = CachedTokens.get(cacheId);
+        AccessToken at = CachedTokens.getIfPresent(cacheId);
         if(at != null && !at.expired()) {
             if(token.equals(at.generate())) {
                 return CompletableFuture.completedFuture(at);

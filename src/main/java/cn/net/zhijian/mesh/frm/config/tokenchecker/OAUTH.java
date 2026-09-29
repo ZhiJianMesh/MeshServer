@@ -44,7 +44,7 @@ class OAUTH extends AbsTokenChecker {
     @Override
     public CompletableFuture<AccessToken> check(AbsServerRequest req, String token) {
         long id = AccessToken.hashCode(token);
-        AccessToken cacheToken = CachedTokens.get(id);
+        AccessToken cacheToken = CachedTokens.getIfPresent(id);
         if(cacheToken != null && !cacheToken.expired()) {
             if(!cacheToken.needUpdate()) {
                 if(token.equals(cacheToken.generate())) {

@@ -28,7 +28,8 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
  * http网关服务器
- * 如果服务器作为网关服务器运行，则不能当作tcp或http服务器运行
+ * 因为外网用户访问的httpdns是公共服务，不知道内网的服务分布情况，
+ * 所以只能将请求全部发给网关，由它转发给正确的实例执行
  */
 public class GatewayServer extends ServiceServer implements IThreadPool {
     private static final Logger LOG = LogUtil.getInstance();
@@ -120,6 +121,8 @@ public class GatewayServer extends ServiceServer implements IThreadPool {
     public void apiExecute(AbsServerRequest req) {
         ApiMethod am = getApi(req.uri);
         if(am != null) {
+            //如果有服务分布在gateway中，则不能在其他实例上，否则外部请求只会在gateway终结，不会转发
+            //内部请求不受影响
             super.apiExecute(req);
             return;
         }

@@ -39,7 +39,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -95,8 +96,8 @@ public final class TcpChannel implements ITcpProtocol, IThreadPool {
             HEARTBEAT_INTERVAL,
             new HealthChecker()
         ));
-        NioEventLoopGroup bossGroup = new NioEventLoopGroup(cpuNum > 6 ? 2 : 1, new IThreadPool.NamedThreadFactory("tcp_boss"));
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup(cpuNum, new IThreadPool.NamedThreadFactory("tcp_worker"));
+        MultiThreadIoEventLoopGroup bossGroup = new MultiThreadIoEventLoopGroup(cpuNum > 6 ? 2 : 1, new IThreadPool.NamedThreadFactory("tcp_boss"), NioIoHandler.newFactory());
+        MultiThreadIoEventLoopGroup workerGroup = new MultiThreadIoEventLoopGroup(cpuNum, new IThreadPool.NamedThreadFactory("tcp_worker"), NioIoHandler.newFactory());
         ServerBootstrap bootstrap = new ServerBootstrap(); // bootstrap,group等需要用局部变量，否则停止后，不能重启
         bootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
             .childHandler(new ChannelInitializer<SocketChannel>() {

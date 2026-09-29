@@ -33,8 +33,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -110,8 +111,8 @@ public final class HttpChannel {
         }
         int cpuNum = Runtime.getRuntime().availableProcessors();
         LOG.info("Server state {}, cpuNum:{}", state.state(), cpuNum);
-        NioEventLoopGroup bossGroup = new NioEventLoopGroup(cpuNum > 6 ? 2 : 1, new IThreadPool.NamedThreadFactory("netty_boss")); //处理accept，不必太多线程
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup(cpuNum, new IThreadPool.NamedThreadFactory("netty_worker"));
+        MultiThreadIoEventLoopGroup bossGroup = new MultiThreadIoEventLoopGroup(cpuNum > 6 ? 2 : 1, new IThreadPool.NamedThreadFactory("netty_boss"), NioIoHandler.newFactory()); //处理accept，不必太多线程
+        MultiThreadIoEventLoopGroup workerGroup = new MultiThreadIoEventLoopGroup(cpuNum, new IThreadPool.NamedThreadFactory("netty_worker"), NioIoHandler.newFactory());
         ServerBootstrap bootstrap = new ServerBootstrap(); //bootstrap,group等需要用局部变量，否则停止后，不能重启
         bootstrap.group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel.class)
