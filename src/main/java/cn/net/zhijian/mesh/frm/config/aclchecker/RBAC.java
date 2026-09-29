@@ -3,8 +3,12 @@ package cn.net.zhijian.mesh.frm.config.aclchecker;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.HandleResult;
@@ -13,7 +17,6 @@ import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.config.ApiInfo;
-import cn.net.zhijian.util.FifoCache;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
@@ -38,9 +41,10 @@ class RBAC extends AclChecker {
      * 为了减少缓存占用量，在大用户的情况下，最好按用户id进行分发，
      * 将相同用户的请求发送到同一个实例
      */
-    private static final FifoCache<Long, String> userRoleCache = new FifoCache<>(
-            USER_F_EXPIRES_IN,
-            10000); //单实例保存1万个活跃成员，大约需要1M内存;
+    private static final Cache<Long, String> userRoleCache = Caffeine.newBuilder()
+            .maximumSize(10000) //单实例保存1万个活跃成员，大约需要1M内存;
+            .expireAfterAccess(USER_F_EXPIRES_IN, TimeUnit.SECONDS)
+            .build(); 
 
     RBAC(String name) {
         super(name);
@@ -66,7 +70,7 @@ class RBAC extends AclChecker {
         }
 
         long hc = StringUtil.longHashCode(fromService, userId);
-        String roleInCache = userRoleCache.get(hc);
+        String roleInCache = userRoleCache.getIfPresent(hc);
         CompletableFuture<String> cf;
 
         if (StringUtil.isEmpty(roleInCache)) {
@@ -80,7 +84,9 @@ class RBAC extends AclChecker {
                     return CompletableFuture.completedFuture(null);
                 }
                 String role = ValParser.getAsStr(hr.data, "role");
-                userRoleCache.put(hc, role);
+                if(role != null) {
+                    userRoleCache.put(hc, role);
+                }
                 return CompletableFuture.completedFuture(role);
             }, Pool);
         } else {
@@ -149,7 +155,7 @@ class RBAC extends AclChecker {
     
     @Override
     public void destroy() {
-        userRoleCache.clear();
+        userRoleCache.cleanUp();
         roleRights.clear();
     }
 }

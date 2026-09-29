@@ -59,7 +59,7 @@ final class BiosTokenChecker extends AbsTokenChecker {
     @Override
     public CompletableFuture<AccessToken> check(AbsServerRequest req, String token) {
         long id = AccessToken.hashCode(token);
-        AccessToken cacheToken = CachedTokens.get(id); // 有缓存则用缓存的
+        AccessToken cacheToken = CachedTokens.getIfPresent(id); // 有缓存则用缓存的
         if (cacheToken != null && !cacheToken.needUpdate()) {
             return CompletableFuture.completedFuture(cacheToken);
         }

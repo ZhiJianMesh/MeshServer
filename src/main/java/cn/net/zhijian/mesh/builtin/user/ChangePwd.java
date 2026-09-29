@@ -38,7 +38,7 @@ public final class ChangePwd extends UserBase {
             return futureResult(RetCode.NOT_EXISTS, "user not found");
         }
         long cacheId = getCacheId(req.cid(), req.token().generate());
-        UserTokenCache.remove(cacheId); //删除缓存中的token
+        UserTokenCache.invalidate(cacheId); //删除缓存中的token
         return super.handle(req, resp); //保存密码
     }
 }

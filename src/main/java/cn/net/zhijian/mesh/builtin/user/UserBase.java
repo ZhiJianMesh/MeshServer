@@ -5,8 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
@@ -19,9 +23,8 @@ import cn.net.zhijian.mesh.frm.config.RequestInfo;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.intf.IOAuth;
 import cn.net.zhijian.mesh.frm.intf.ITokenWorker;
-import cn.net.zhijian.mesh.frm.tokenworker.CodebookTokenWorker;
 import cn.net.zhijian.mesh.frm.process.RDBProcessor;
-import cn.net.zhijian.util.FifoCache;
+import cn.net.zhijian.mesh.frm.tokenworker.CodebookTokenWorker;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.UrlPathInfo;
@@ -46,9 +49,10 @@ public abstract class UserBase extends RDBProcessor implements IOAuth {
      * 一个用户需要1k内存，1万活跃用户需要10M内存。
      * 为了减少内存消耗，在调用方将用户分组，同一分组的用户只发到一个实例上
      */
-    protected static final FifoCache<Long, AccessToken> UserTokenCache = new FifoCache<>(
-            300, //300秒过期
-            10000); //单实例保存1万个活跃token
+    protected static final Cache<Long, AccessToken> UserTokenCache = Caffeine.newBuilder()
+            .maximumSize(10000)//单实例保存1万个活跃token
+            .expireAfterAccess(300, TimeUnit.SECONDS)//300秒不使用，则过期
+            .build(); 
     
     public UserBase(ServiceInfo serviceInfo, ApiInfo apiInfo, String processName) {
         super(serviceInfo, apiInfo, processName);
@@ -62,7 +66,7 @@ public abstract class UserBase extends RDBProcessor implements IOAuth {
     @Override
     public void destroy() {
         super.destroy();
-        UserTokenCache.clear();
+        UserTokenCache.cleanUp();
     }
 
     /**

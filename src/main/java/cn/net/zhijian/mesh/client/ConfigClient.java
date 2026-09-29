@@ -1,8 +1,12 @@
 package cn.net.zhijian.mesh.client;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
@@ -10,7 +14,6 @@ import cn.net.zhijian.mesh.frm.intf.IOAuth;
 import cn.net.zhijian.mesh.frm.intf.IThreadPool;
 import cn.net.zhijian.util.ByteUtil;
 import cn.net.zhijian.util.LogUtil;
-import cn.net.zhijian.util.FifoCache;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
 
@@ -22,8 +25,10 @@ import cn.net.zhijian.util.ValParser;
 public class ConfigClient extends ServiceClient implements IOAuth, IThreadPool {
     private static final Logger LOG = LogUtil.getInstance();
 
-    private static final FifoCache<Integer, String> ConfigCache
-        = new FifoCache<>(300, 2000);
+    private static final Cache<Integer, String> ConfigCache = Caffeine.newBuilder()
+            .maximumSize(2000)
+            .expireAfterAccess(300, TimeUnit.SECONDS)
+            .build();
 
     /**
      * 获得配置参数，默认5分钟从config服务刷新一次
@@ -36,7 +41,7 @@ public class ConfigClient extends ServiceClient implements IOAuth, IThreadPool {
     public static CompletableFuture<String> get(int cid, ServiceInfo caller, String key, boolean useCache) {
         int keyId = cacheId(cid, caller, key);
         if(useCache) {
-            String v = ConfigCache.get(keyId);
+            String v = ConfigCache.getIfPresent(keyId);
             if(v != null) {
                 return CompletableFuture.completedFuture(v);
             }
@@ -70,6 +75,9 @@ public class ConfigClient extends ServiceClient implements IOAuth, IThreadPool {
      * @return 保存结果
      */
     public static CompletableFuture<Boolean> put(int cid, ServiceInfo caller, String key, String val) {
+        if(val != null) {
+            return CompletableFuture.completedFuture(false);
+        }
         ServiceReqBuilder req = new ServiceReqBuilder(caller, SERVICE_CONFIG)
                 .cid(cid)
                 .traceId(caller.name + '_' + key)
@@ -110,8 +118,10 @@ public class ConfigClient extends ServiceClient implements IOAuth, IThreadPool {
                 return null;
             }
             String v = ValParser.getAsStr(hr.data, key);
-            int cacheId = cacheId(cid, caller, key);
-            ConfigCache.put(cacheId, v);
+            if(v != null) {
+                int cacheId = cacheId(cid, caller, key);
+                ConfigCache.put(cacheId, v);
+            }
             return v;
         }, IThreadPool.Pool);
     }
@@ -136,7 +146,7 @@ public class ConfigClient extends ServiceClient implements IOAuth, IThreadPool {
                 LOG.error("Fail to call remove `{}`, result:{}", req, hr.brief());
             } else {
                 int cacheId = cacheId(cid, caller, key);
-                ConfigCache.remove(cacheId);
+                ConfigCache.invalidate(cacheId);
             }
         }, Pool);
     }

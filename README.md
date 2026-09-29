@@ -3,7 +3,7 @@ An extremely tiny server written by Java, very easy to develop apis. Built in Re
 More about it, refer to the project [HomePage](http://www.zhijian.net.cn/).
 
 ## Advantages
-1. Support linux/windows/termux/android;
+1. Support linux/windows/termux(android);
 2. Very easy to develop apis to support your business, especially for apis which based on database, builtin data sharding and encoding;
 3. Very very small, it can even run on an old Android phone or a Raspberry Pi;
 4. Also very big. It can run as a cluster in public or private cloud, and backup among different cities;
@@ -16,12 +16,10 @@ More about it, refer to the project [HomePage](http://www.zhijian.net.cn/).
 ## Start/Stop command
 Switch into server directory at fisrt in Linux/Termux/Windows.
 
-| OS           | Start              | Stop              |
-|--------------|--------------------|-------------------|
-| Windows      | sbin/startup.bat   | ctrl + c          |
-| Linux/Termux | sbin/mesh.sh start | sbin/mesh.sh stop |
-| Android      | Hit startup button | Hit stop button   |
-
+| OS           | Start               | Stop              |
+|--------------|---------------------|-------------------|
+| Windows      | sbin/mesh.bat start | sbin/mesh.bat stop|
+| Linux/Termux | sbin/mesh.sh start  | sbin/mesh.sh stop |
 
 ## API definition
 Each api definition is a json object. It looks like:

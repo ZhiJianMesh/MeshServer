@@ -501,6 +501,22 @@ public class ScriptElementTest extends UnitTestBase {
     }
     
     @Test
+    public void testStringPad() {
+        String s = "A:'@{STRPAD|p1,5,`-`}',B:'@{STRPAD|p1,`0`,5}',C:'@{STRPAD|p2,`0`,5}',D:'@{STRPAD|p2,5,`0`}',E:'@{STRPAD|p3,`-`,6}',F:'@{STRPAD|p4,`0`,6}'";
+        Map<String, Object> params = new HashMap<>();
+        Map<String, Object> resp = new HashMap<>();
+        params.put("p1", "ab'c");
+        params.put("p2", "ab'cdefghi");
+        params.put("p3", null);
+        params.put("p4", 123);
+        Set<String> paraKeys = params.keySet();
+
+        ScriptElement[] segs = ScriptElement.parsePlaceHolder(s, paraKeys, "'", "''");
+        String str = segementsToStr(params, resp, segs);
+        assertEquals(str, "A:'ab''c-',B:'0ab''c',C:'efghi',D:'ab''cd',E:'------',F:'000123'");
+    }
+    
+    @Test
     public void testJson() {
         Map<String, Object> resp = new HashMap<>();
         Map<String, Object> sub = new HashMap<>();
@@ -1004,6 +1020,7 @@ public class ScriptElementTest extends UnitTestBase {
 
     @Test
     public void testSequenceHolder() {
+        //只是解析，并没有向sequence服务发起申请
         String s = "@{SEQUENCE|`test`}";
         Map<String, Object> params = new HashMap<>();
         ScriptElement[] segs = ScriptElement.parsePlaceHolder(s, params.keySet(), "'", "''");
@@ -1016,6 +1033,11 @@ public class ScriptElementTest extends UnitTestBase {
         assertTrue(segs[0] instanceof SEQUENCE);
         
         s = "@{SEQUENCE|test}"; //兼容性测试
+        segs = ScriptElement.parsePlaceHolder(s, params.keySet(), "'", "''");
+        assertTrue(segs != null && segs.length == 1);
+        assertTrue(segs[0] instanceof SEQUENCE);
+
+        s = "@{SEQUENCE|i,test,100}"; //批量申请测试
         segs = ScriptElement.parsePlaceHolder(s, params.keySet(), "'", "''");
         assertTrue(segs != null && segs.length == 1);
         assertTrue(segs[0] instanceof SEQUENCE);

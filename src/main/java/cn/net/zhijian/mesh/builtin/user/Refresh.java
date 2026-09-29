@@ -44,7 +44,7 @@ public final class Refresh extends UserBase {
         String reqToken = at.generate();
         long cacheId = getCacheId(req.cid(), reqToken);
         String userId = at.caller.replace("'", "''");//替换掉单引号，防止sql注入
-        AccessToken cacheUserToken = UserTokenCache.get(cacheId);
+        AccessToken cacheUserToken = UserTokenCache.getIfPresent(cacheId);
         CompletableFuture<Long> cf;
         
         if(cacheUserToken != null && !cacheUserToken.expired()) {//缓存未过期，不必从数据库取

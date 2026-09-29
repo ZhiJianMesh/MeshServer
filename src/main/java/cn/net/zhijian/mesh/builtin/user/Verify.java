@@ -48,7 +48,7 @@ public final class Verify extends UserBase {
         }
         int cid = req.cid(); //req.token未初始化，cid只能从header中获取
         long cacheId = getCacheId(cid, token);
-        AccessToken tokenInCache = UserTokenCache.get(cacheId);
+        AccessToken tokenInCache = UserTokenCache.getIfPresent(cacheId);
         if(tokenInCache != null) {
             if(!tokenInCache.expired()) {
                 if(token.equals(tokenInCache.generate())) {
@@ -59,7 +59,7 @@ public final class Verify extends UserBase {
                  * 与缓存中不一致，有可能是重新登录、或refreshtoken后，缓存没有及时刷新导致的，
                  * 所以出现这种情况时，需要从数据库中重新加载一次。
                  */
-                UserTokenCache.remove(cacheId); //删除过期缓存token
+                UserTokenCache.invalidate(cacheId); //删除过期缓存token
             }
         }
         

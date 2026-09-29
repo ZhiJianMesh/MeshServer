@@ -8,8 +8,10 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import cn.net.zhijian.util.FileUtil;
-import cn.net.zhijian.util.LruCache;
 
 /**
  * 大文件读取
@@ -22,7 +24,8 @@ public class BigFileReader implements Closeable {
      * 正在下载种的文件列表，总数MAX_FILE_NUM个
      * 如果超过MAX_FILE_NUM，则会丢弃不常用的，同时会关闭文件
      */
-    private static final LruCache<String, BigFileReader> Files = new LruCache<>(MAX_FILE_NUM);
+    private static final Cache<String, BigFileReader> Files = Caffeine.newBuilder()
+            .maximumSize(MAX_FILE_NUM).build();
 
     public final long size; //最大2G
     public final String digest; //摘要
@@ -100,7 +103,7 @@ public class BigFileReader implements Closeable {
         if(!f.exists()) {
             throw new FileNotFoundException(fileName);
         }
-        BigFileReader bfr = Files.get(key);
+        BigFileReader bfr = Files.getIfPresent(key);
         if(bfr != null) {
             return bfr;
         }
@@ -110,7 +113,7 @@ public class BigFileReader implements Closeable {
     }
     
     public static BigFileReader get(String key) {
-        return Files.get(key);
+        return Files.getIfPresent(key);
     }
     
     

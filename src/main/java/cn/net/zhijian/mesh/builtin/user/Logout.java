@@ -26,10 +26,10 @@ public final class Logout extends UserBase {
         AccessToken at = req.token();
         req.put(RESP_EXPIRESAT, at.expiresAt()); //限制过期时间，避免多端误删
         long cacheId = getCacheId(req.cid(), at.generate());
-        AccessToken cacheToken = UserTokenCache.get(cacheId);
+        AccessToken cacheToken = UserTokenCache.getIfPresent(cacheId);
         if(cacheToken.expiresAt() == at.expiresAt()) {
             //删除缓存中的token，gw需要按tokenCaller分发，否则不能及时删除掉
-            UserTokenCache.remove(cacheId);
+            UserTokenCache.invalidate(cacheId);
         }
         //删除数据库中的token
         return super.handle(req, resp);

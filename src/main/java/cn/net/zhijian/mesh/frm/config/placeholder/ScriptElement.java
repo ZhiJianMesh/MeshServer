@@ -73,6 +73,7 @@ public abstract class ScriptElement {
     private static final String FUN_SPLIT = "SPLIT";
     private static final String FUN_STRPART = "STRPART";
     private static final String FUN_SUBSTR = "SUBSTR";
+    private static final String FUN_STRPAD = "STRPAD";
     private static final String FUN_REPLACE = "REPLACE";
     
     private static final String FUN_COALESCE = "COALESCE";
@@ -343,10 +344,11 @@ public abstract class ScriptElement {
         
         EmbededElements.put(FUN_CONFIG, new Element(Pattern.compile("(?i)^\\w+$"), CONFIG.class));
         EmbededElements.put(FUN_IFVALID, new Element(Pattern.compile("(?i)^.+(,.+)+$", Pattern.DOTALL), IFVALID.class));
-        EmbededElements.put(FUN_SEQUENCE, new Element(Pattern.compile("(?i)^" + intTypes + "?.+(,\\s*\\d+)?(,\\s*[!^]?\\w+)?$"), SEQUENCE.class));
+        EmbededElements.put(FUN_SEQUENCE, new Element(Pattern.compile("(?i)^" + intTypes + "?.+(,.+)?(,\\s*[!^]?\\w+)?$"), SEQUENCE.class));
         EmbededElements.put(FUN_UPPER, new Element(Pattern.compile("(?i)^.+$"), UPPER.class));
         EmbededElements.put(FUN_LOWER, new Element(Pattern.compile("(?i)^.+$"), LOWER.class));
         EmbededElements.put(FUN_SUBSTR, new Element(Pattern.compile("(?i)^[!^]?\\w+,\\s*\\d+(,\\s*\\d+)?$"), SUBSTR.class));
+        EmbededElements.put(FUN_STRPAD, new Element(Pattern.compile("(?i)^[!^]?\\w+,.+,.+$"), STRPAD.class));
         EmbededElements.put(FUN_SPLIT, new Element(Pattern.compile("(?i)^[!|^]?\\w+,(\\s*\\d+|.+),.+$"), SPLIT.class));
         EmbededElements.put(FUN_STRPART, new Element(Pattern.compile("(?i)^[!|^]?\\w+,.+,\\s*-?\\d+$"), STRPART.class));
         EmbededElements.put(FUN_REPLACE, new Element(Pattern.compile("(?is)^[!|^]?\\w+(,.+){2}$"), REPLACE.class));

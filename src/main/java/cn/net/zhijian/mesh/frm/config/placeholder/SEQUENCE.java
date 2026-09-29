@@ -15,7 +15,7 @@ import cn.net.zhijian.util.ValParser;
 
 /**
  * 序列ID
- * `@{SEQUENCE|[i|int|l|long,]idName[,len,[,cidPara]]}`
+ * `@{SEQUENCE|[i|int|l|long,]idName[,num,[,cidPara]]}`
  * @author flyinmind of csdn.net
  *
  */
@@ -23,7 +23,7 @@ final class SEQUENCE extends ScriptElement {
     private final String keyName;
     private final ApiParaHolder cidPara;
     private final int seqType;
-    private final int len;
+    private final ApiParaHolder num; //一次申请多少个连续的序列值，默认1
 
     public SEQUENCE(String paras, ScriptElement.EleType type, String quote, String safeQuote) {
         super(paras, type, quote, safeQuote);
@@ -31,22 +31,22 @@ final class SEQUENCE extends ScriptElement {
         if(ss.length < 1) {
             throw new InvalidParameterException("invalid SEQUENCE config");
         }
-        int len = 0;
-        int seqType = TV.TYPE_INT; //int/long
+        ApiParaHolder num; //默认申请几个id
         ApiParaHolder cidPara = null;
+        int seqType = TV.TYPE_INT; //int/long
         
         String s = ApiParaHolder.takeStr(ss[0]);
         int paraNum = 2; //至少有两个参数
         int tp = TV.parseType(s); //第一个不一定是类型参数
         if(tp == TV.TYPE_LONG) {
             seqType = TV.TYPE_LONG;
-            paraNum = 3;
+            paraNum++;
             if(ss.length < 2) {
                 throw new InvalidParameterException("invalid SEQUENCE config");
             }
             s = ss[1];
         } else if(tp == TV.TYPE_INT) {
-            paraNum = 3;
+            paraNum++;
             if(ss.length < 2) {
                 throw new InvalidParameterException("invalid SEQUENCE config");
             }
@@ -56,16 +56,14 @@ final class SEQUENCE extends ScriptElement {
         this.keyName = ApiParaHolder.takeStr(s);//可以加引号，也可以不加
         if(ss.length >= paraNum) { //[type,]keyName,[len],cidParaName
             s = ss[paraNum - 1];
-            if(s.matches("\\d+")) {
-                len = Integer.parseInt(s);
-                if(ss.length > paraNum) {
-                    cidPara = ApiParaHolder.parse(ss[paraNum]);
-                }
-            } else {
-                cidPara = ApiParaHolder.parse(ss[paraNum - 1]);
+            num = ApiParaHolder.parse(s);
+            if(ss.length > paraNum) {
+                cidPara = ApiParaHolder.parse(ss[paraNum]);
             }
+        } else {
+            num = ApiParaHolder.parse("1");
         }
-        this.len = len;
+        this.num = num;
         this.cidPara = cidPara;        
     }
 
@@ -74,34 +72,16 @@ final class SEQUENCE extends ScriptElement {
         int cid;
         ServiceInfo si = req.serviceInfo();
         if(this.cidPara != null) {
-            cid = ValParser.parseInt(cidPara.get(req, resp), 0);
+            cid = ValParser.parseInt(this.cidPara.get(req, resp), 0);
         } else {
             cid = si.type == ServiceType.COMPANY ? req.cid() : CompanyInfo.instance().id;
         }
 
-        if(this.len <= 0) { //不格式化
-            if(this.seqType == TV.TYPE_LONG) {
-                return SequenceClient.nextId(cid, si, this.keyName, req.traceId);
-            }
-            return SequenceClient.nextIntId(cid, si, this.keyName, req.traceId);
-        }
-        
+        Object o = this.num.get(req, resp);
+        int num = ValParser.parseInt(o, 1);
         if(this.seqType == TV.TYPE_LONG) {
-            long v = SequenceClient.nextId(cid, si, this.keyName, req.traceId);
-            return formatVal(v, this.len);
+            return SequenceClient.nextId(cid, si, this.keyName, num, req.traceId);
         }
-        int v = SequenceClient.nextIntId(cid, si, this.keyName, req.traceId);
-        return formatVal(v, this.len);
-    }
-    
-    private static String formatVal(long v, int len) {
-        String s;
-        char[] cl = new char[len]; //不足len的，前面填0，超过的截断
-        for(int i = len - 1; i >= 0; i--) {
-            cl[i] = (char)('0' + ((int)(v % 10)));
-            v /= 10;
-        }
-        s = new String(cl);
-        return s;
+        return SequenceClient.nextIntId(cid, si, this.keyName, num, req.traceId);
     }
 }
