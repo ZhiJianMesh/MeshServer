@@ -55,7 +55,12 @@
 
 ### 服务中的网络请求
 
-在端侧开发中，对网络的请求不可以使用任何一种ajax框架，比如axios、jquery等，因为为了实现至简网格服务端的灵活部署，内置webview时，禁用了它的网络访问能力。如果需要实现网络请求，必须使用原生的Http函数，request是用来请求至简网格服务端接口的，download是用来下载文件的，getExternal是用来访问非至简网格服务中的内容的。
+了实现至简网格服务端的灵活部署，在osadapter.js中提供了request方法，屏蔽不同环境Http请求实现上的差异。
+在端侧开发中，对网络的请求不可以直接使用任何一种ajax框架，比如axios、jquery等，
+全部用request来请求至简网格服务端接口，用download来下载文件，用getExternal来访问非至简网格服务中的内容的。
+
+客户端有安卓与windows版本，都是用内置webview实现，内部禁用了它的网络访问能力，提供Http原生实现，在osadapter.js中封装为request方法。
+浏览器访问只支持在单例情况下访问，通常用于测试，osadapter.js中用axios实现了request方法。
 
 ### 服务起始页样例
 ```HTML

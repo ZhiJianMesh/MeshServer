@@ -49,11 +49,15 @@ public final class Login extends UserBase {
                 LOG.error("Fail to get user info,result:{}", hr.brief());
                 return futureResult(RetCode.NOT_EXISTS, "user not found");
             }
+            long userId = ValParser.getAsLong(hr.data, "boundTo", -1);
+            if(userId < 0) {
+                userId = ValParser.getAsLong(hr.data, "id", -1);
+            }
             Map<String, Object> params = req.params();
             String pwd = ValParser.getAsStr(params, "password");
             if(!SecureUtil.pbkdf2Check(pwd, savedPwd)) { //判断密码是否正确
-                LOG.warn("Fail to check {}'s password", req.getString("account"));
                 String failedLogin = ValParser.getAsStr(hr.data, SEG_FAILED_LOGIN);
+                LOG.warn("Fail to check {}'s password,fail log:{}", req.getString("account"), failedLogin);
                 long cur = System.currentTimeMillis();
                 if(!StringUtil.isEmpty(failedLogin)) {
                     List<String> ss = StringUtil.split(failedLogin, ',', true);
@@ -61,7 +65,7 @@ public final class Login extends UserBase {
                     long last = Long.parseLong(ss.get(n - 1));
                     if(n >= MAX_CONTINUOUS_FAIL_TIMES) { //连续失败3次，则需要验证时间
                         if(cur - last < MIN_RELOGIN_TIME) {
-                            return futureResult(RetCode.FORBIDDEN, "too frequent");
+                            return futureResult(RetCode.FORBIDDEN, "too frequent,retry after an hour");
                         }
                         failedLogin = ss.get(n - 2) + ',' + last;
                     }
@@ -69,8 +73,8 @@ public final class Login extends UserBase {
                 } else {
                     failedLogin = "" + cur;
                 }
-                //在可重试次数之内，只记录失败时间
-                return futureResult(MapBuilder.of(SEG_FAILED_LOGIN, failedLogin));
+                //在可重试次数之内，只记录失败时间，记录失败时用到用户id
+                return futureResult(MapBuilder.of(SEG_FAILED_LOGIN, failedLogin, "id", userId));
             }
 
             /* 
@@ -78,10 +82,6 @@ public final class Login extends UserBase {
              * 因为所有UniUser实例的密码本是一样的，所以在哪个节点生成token都可以；
              * 但是token存储的数据库实例必须选择正确的分片对应的库。
              */
-            long userId = ValParser.getAsLong(hr.data, "boundTo", -1);
-            if(userId < 0) {
-                userId = ValParser.getAsLong(hr.data, "id", -1);
-            }
             String caller = Long.toString(userId);
             int cid = req.cid();
             return getTokenWorker(cid, req.serviceInfo(), false).thenApplyAsync(tw -> {

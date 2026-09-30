@@ -287,9 +287,9 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
     private HandleResult handlePut(String table, AbsServerRequest req) {
         Map<String, Object> params = req.params();
         String did = ValParser.getAsStr(params, SEARCHDB_REQ_DID);
-        String title = ValParser.getAsStr(params, SEARCHDB_REQ_TITLE);
-        String summary = ValParser.getAsStr(params, SEARCHDB_REQ_SUMMARY);
-        String content = ValParser.getAsStr(params, SEARCHDB_REQ_CONTENT);
+        String title = ValParser.getAsStr(params, SEARCHDB_REQ_TITLE, null);
+        String summary = ValParser.getAsStr(params, SEARCHDB_REQ_SUMMARY, null);
+        String content = ValParser.getAsStr(params, SEARCHDB_REQ_CONTENT, null);
         if(putDocument(table, did, title, summary, content)) {
             return HandleResult.OK;
         }
