@@ -118,7 +118,6 @@ public class ServerTest extends UnitTestBase implements ITcpProtocol {
         }
     }
     
-    
     @Test
     public void testCallPublicApi() {
         String url = "http://" + HTTP_SRV_ADDR + "/user/api/initialize1";

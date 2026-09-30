@@ -1182,7 +1182,8 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
     }
     
     protected CompletableFuture<Void> billingAll() {
-        return new CompletableFuture<Void>();
+        //return new CompletableFuture<Void>(); //它是未完成的future
+        return CompletableFuture.completedFuture(null);
     }
     
     @Override

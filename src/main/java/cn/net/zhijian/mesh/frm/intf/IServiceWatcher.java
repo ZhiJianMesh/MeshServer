@@ -1,5 +1,6 @@
 package cn.net.zhijian.mesh.frm.intf;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -265,6 +266,9 @@ public interface IServiceWatcher extends IConst, IThreadPool {
          * @return 成功则返回true，否则返回false
          */
         private CompletableFuture<HandleResult> init(ServiceInfo si, String pwd) {
+            File f = new File(si.configFile());
+            long updateTime = f.lastModified();
+            
             List<Object> dbDefines = si.loadDbDefines();
             List<Object> dds = new ArrayList<>();
             if(!dbDefines.isEmpty()) { //存在时，才需初始化数据库
@@ -280,9 +284,13 @@ public interface IServiceWatcher extends IConst, IThreadPool {
 
             CompanyInfo ci = CompanyInfo.instance();
             //注册服务，并且添加必须的依赖项
-            return si.register(ci.id, dds, pwd).thenComposeAsync(hr -> {
+            return si.register(ci.id, dds, pwd, updateTime).thenComposeAsync(hr -> {
                 if(hr.code != RetCode.OK) {
-                    LOG.error("Fail to register primary.{} into bios,result:{}", si.name, hr.brief());
+                    if(hr.code == RetCode.EXISTS) {
+                        LOG.info("Service {} has already been registered", si.name);
+                        return HandleResult.future(); //版本已经注册过，不必执行数据库刷新命令
+                    }
+                    LOG.error("Fail to register {} into bios,result:{}", si.name, hr.brief());
                     return CompletableFuture.completedFuture(hr);
                 }
 

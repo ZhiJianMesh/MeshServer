@@ -195,7 +195,7 @@ public final class ServerMain implements IThreadPool {
             //与ServiceServer不能共存
             realServer = new GatewayServer(workDir, pwd);
         } else if(ci.isRoot()){
-            realServer = new RootServer(workDir); //云上服务有计费逻辑
+            realServer = new RootServer(workDir); //云上根服务用到，公司服务不会走到这里
         } else {
             realServer = new ServiceServer(workDir);
         }

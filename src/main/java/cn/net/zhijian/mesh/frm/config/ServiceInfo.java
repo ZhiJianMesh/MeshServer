@@ -1124,10 +1124,12 @@ public final class ServiceInfo {
      * @param cid 公司id
      * @param dbDefines 数据库定义内容
      * @param pwdToken 公司密码或运维totp密码，不经过sha256运算
+     * @param updateTime 配置文件最新更新时间
      * @return 注册结果
      */
-    public CompletableFuture<HandleResult> register(int cid, List<Object> dbDefines, String pwdToken) {
-        LOG.info("Register service:{},cid:{},type:{}", this.name, cid, this.type.name());
+    public CompletableFuture<HandleResult> register(int cid, List<Object> dbDefines, String pwdToken, long updateTime) {
+        LOG.info("Register service:{},cid:{},type:{},lastestUpdate:{}",
+                this.name, cid, this.type.name(), updateTime);
         //注册服务，及添加必须的依赖项
         //si为OM服务，appTokenWorker必不为空
         String key = this.tokenWorker.key().toString();
@@ -1143,6 +1145,7 @@ public final class ServiceInfo {
             .put("dbDefines", dbDefines)
             .put("key", key)
             .put("type", this.type.name())
+            .put("lastestUpdate", updateTime)
             .put("dispName", this.displayName)
             .put("ver", this.version())
             .put("common", this.type != ServiceType.COMPANY)

@@ -26,25 +26,22 @@ final class PBKDF extends ScriptElement {
             throw new InvalidParameterException("invalid PBKDF config");
         }
         
-        if(ss.length >= 2) { //两个以上参数的情况，第一个为迭代次数
+        if(ss.length >= 2) { //两个以上参数的情况，第一个可能为迭代次数
             int count = ValParser.parseInt(ss[0], 0);
             int start = 0;
             //第一个参数如果不是数字，则当普通参数处理
             if(count <= 0) {
-                count = 2;
+                count = 6;
             } else { //否则当做迭代次数处理
                 start = 1;
-                if(count > 32) {
-                    count = 16;
-                }
             }
             this.paras = new ApiParaHolder[ss.length - start];
             for(int i = start; i < ss.length; i++) {
                 this.paras[i - start] = ApiParaHolder.parse(ss[i]);
             }
             this.iterationCount = count;
-        } else { //否则第一个是参数，迭代次数默认是2
-            this.iterationCount = 2;
+        } else { //否则第一个是参数，迭代次数默认是6
+            this.iterationCount = 6;
             this.paras = ApiParaHolder.parseHolders(ss[0]);
         }
     }

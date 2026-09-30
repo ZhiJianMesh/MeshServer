@@ -630,14 +630,14 @@ public class ScriptElementTest extends UnitTestBase {
         segs = ScriptElement.parsePlaceHolder(s, paraKeys, "'", "''");
         assertTrue(segs != null && segs.length > 0);
         str = segementsToStr(params, resp, segs);
-        assertEquals(str.length(), 54);
+        assertEquals(str.length(), 57);
 
-        s = "pbkdf2:@{PBKDF|2,p1,p2}";
+        s = "pbkdf2:@{PBKDF|6,p1,p2}";
         segs = ScriptElement.parsePlaceHolder(s, paraKeys, "'", "''");
         str = segementsToStr(params, resp, segs);
-        assertEquals(str.length(), 54);
+        assertEquals(str.length(), 57);
         
-        s = "@{PBKDF|6,p1}";
+        s = "@{PBKDF|1000,p1}";
         segs = ScriptElement.parsePlaceHolder(s, paraKeys, "'", "''");
         String kdf = segementsToStr(params, resp, segs);
         

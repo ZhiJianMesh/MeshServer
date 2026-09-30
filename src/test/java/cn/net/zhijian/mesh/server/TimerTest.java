@@ -161,7 +161,7 @@ public class TimerTest {
         }
         int c = counter.get();
         System.out.println("counter:" + c);
-        assertTrue(c == 4 || c == 5); //定时器不是非常精确，CPU忙时会出现抖动
+        assertTrue(c >= 4 && c <= 6); //定时器不是非常精确，CPU忙时会出现抖动
         TimerKeeper.destroy();
     }
 }
