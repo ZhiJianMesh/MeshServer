@@ -81,6 +81,7 @@ public abstract class BackendBase extends AbsProcessor {
     
     public static void createApis(IServiceServer server) {
         ServiceInfo si = ServiceClient.backendService();
+                
         //查询单例实例的服务状态：/backend/api/servicestate
         String procName = "servicestate";
         UrlPathInfo url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
@@ -89,7 +90,25 @@ public abstract class BackendBase extends AbsProcessor {
         ApiMethod am = new ApiMethod(si, apiInfo, new RequestInfo(), new ResponseInfo(null),
                 new ProcessInfo(serviceState), TokenCheckers.Backend, null);
         server.addApi(am);
-
+        
+        //查询服务器安装在什么目录，只能本地访问：/backend/api/where
+        procName = "where"; 
+        url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
+        apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_GET, url, null, false);
+        AbsProcessor whereAmI = new AbsProcessor(si, apiInfo, procName) {
+            private final Map<String, Object> data = Map.of("at", server.homeDir());
+            @Override
+            protected CompletableFuture<HandleResult> handle(AbsServerRequest req, Map<String, Object> resp) {
+                if(req.remoteAddr().equals(ChannelConfig.instance().localIp)) {
+                    return futureResult(RetCode.NO_RIGHT, "must be called from local");
+                }
+                return futureResult(data);
+            }
+        };
+        am = new ApiMethod(si, apiInfo, new RequestInfo(), new ResponseInfo(null),
+                 new ProcessInfo(whereAmI), null, null);
+        server.addApi(am);
+        
         //查询单例实例的日志文件列表：/backend/api/listlogs
         procName = "listlogs";
         url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
@@ -131,7 +150,7 @@ public abstract class BackendBase extends AbsProcessor {
         am = ApiMethod.generate(updateBios, apiInfo, updateBios.getRequestInfo(), TokenCheckers.Mnt, null);
         server.addApi(am);
 
-        //返回节点上当前正在运行的服务列表, /backend/api/services
+        //返回节点上当前正在运行的服务列表, /backend/api/services，只可以在本地节点访问
         procName = API_SERVICE_LIST;
         url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
         apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_GET, url, null, false);

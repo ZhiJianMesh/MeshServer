@@ -24,7 +24,6 @@ import cn.net.zhijian.mesh.frm.service.backend.BackendBase;
 import cn.net.zhijian.mesh.server.GatewayServer;
 import cn.net.zhijian.mesh.server.Launcher;
 import cn.net.zhijian.mesh.server.ServiceServer;
-import cn.net.zhijian.mesh.server.RootServer;
 import cn.net.zhijian.platform.util.AssetsWrapper;
 import cn.net.zhijian.platform.util.SrvKeystoreHelper;
 import cn.net.zhijian.platform.util.SrvPlatformUtil;
@@ -194,8 +193,6 @@ public final class ServerMain implements IThreadPool {
             //作为服务网关使用，从ServiceServer继承，当本地不能处理时，转发接口调用
             //与ServiceServer不能共存
             realServer = new GatewayServer(workDir, pwd);
-        } else if(ci.isRoot()){
-            realServer = new RootServer(workDir); //云上根服务用到，公司服务不会走到这里
         } else {
             realServer = new ServiceServer(workDir);
         }

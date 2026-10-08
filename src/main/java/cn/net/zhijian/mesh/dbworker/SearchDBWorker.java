@@ -41,7 +41,7 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
          * (cls,did,title,summary,content,update_time,tokenize=porter)
          */
         String sql = "create virtual table if not exists "
-           + SEARCH_DOCS + " using fts4("
+           + SEARCH_DOCS + " using fts5("
            + SEG_TABLE + ','
            + SEG_DID + ','
            + SEARCH_SEG_TITLE + ','
