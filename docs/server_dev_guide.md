@@ -348,7 +348,13 @@ curl "http://localhost:8523/account/api/apis"
 5. **response 的三种模式**：默认（`"check":true`）会运行时过滤并校验——只返回 response 中定义的字段，且字段默认 `must:true`，data中如果缺失字段会报 `DATA_WRONG`(3003)；设置 `"check":false` 时response中定义仅用于生成文档，数据原样透传、不过滤不校验；不定义response则返回每个process的全部处理结果；
 6. **`update_time` 是系统自动添加的列**：webdb 会为每个表自动加 `update_time`，建表语句中不要手动定义；
 7. **ID 精度**：JS 中long型有精度损失，涉及跨端传递的ID时，建议在response中以string类型输出（参照 ifinance 等官方示例）；
-8. **`@[!xxx]` 只在本process内有效**：同一rdb process内的多个SQL之间，用`@[!xxx]`引用**之前已执行SQL的输出**（结果按执行顺序累积）；注意只有`toResp:true`（默认true）的SQL输出才可引用，写操作的行数 `name_result` 默认不传，需显式 `"toResp":true`；不同process之间用 `@{!xxx}` 引用上一步的响应字段；不同库的操作不能放在同一个process中，所以跨库引用必须用 `@{!xxx}`。
+8. **`@[!xxx]` 只在本process内有效**：同一rdb process内的多个SQL之间，用`@[!xxx]`引用**之前已执行SQL的输出**（结果按执行顺序累积）；注意`toResp:false`（默认true）的SQL输出不可引用，写操作的行数 `name_result` 默认不传，需显式 `"toResp":true`；不同process之间用 `@{!xxx}` 引用上一步的响应字段；不同库的操作不能放在同一个process中，所以跨库引用必须用 `@{!xxx}`；
+9. **SQL要求**：充分考虑SQL兼容性，建议都使用SQL-92标准，最好是sqlite都支持的SQL语法，抛弃只能用于特定数据库的SQL表达式；
+10. **接口定义JSON格式风格**：每个接口中request、vars、response中每个参数占一行，如参数中有props，它的每个字段也占一行，process尽量每个属性一行，每个接口定义的json对象前面不留空格；
+11. **过长的内容建议换行**：处理中的sql、js如果过长，建议换行，比如过长的insert，可以写成insert...换行values(...)，select ... 换行 from... 换行 where ...；
+12. **自增字段**: autoincrement自增字段会导致无法分库，所以本系统不建议使用，需要时请使用@{SEQUENCE}生成一个增长的值，保证持续增长，但是不保证连续递增，可以是8字节或4字节整型值；
+13. **自增字段避免与max(id)冲突**：如果一个字段使用@{SEQUENCE}，则不可以使用"select coalesce(max(id),0)+1"，两个增长的逻辑不同，会导致冲突；
+14. **最终参考**：至简网格的服务端程序是开源的，如果碰到文档中没有描述清晰的内容，可以参照代码理解，代码地址为[码云](https://gitee.com/zhijian_net/MeshServer)或[GitHub](https://github.com/ZhiJianMesh/MeshServer)。
 
 ## 官方示例服务导航<a id="examples_nav"></a>
 
@@ -509,7 +515,11 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 ]
 ```
 
-**一个服务可以申明多个独立库**：`database.cfg` 是一个 JSON 数组，可以并列声明多个 `rdb`（以及各自对应的 `sdb`）。每个 `rdb` 都有独立的库名，业务接口中通过 process 的 `"db":"库名"` 指定操作哪个库。典型场景是"单服务、多业务库分离"（如项目管理/财务/人事各一个库）。示例（节选）：
+**一个服务可以申明多个独立库**：
+
+`database.cfg` 是一个 JSON 数组，可以并列声明多个 `rdb`（以及各自对应的 `sdb`）。
+每个 `rdb` 都有独立的库名，业务接口中通过 process 的 `"db":"库名"` 指定操作哪个库。
+典型场景是"单服务、多业务库分离"（如项目管理/财务/人事各一个库）。示例（节选）：
 
 ```JSON
 [
@@ -611,11 +621,10 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 
 使用宏的注意事项：
 
-1. **宏体是单个处理定义，不 process数组**：宏名对应的值就是那一个处理的完整配置（如上面的 `"type":"dataexists"`），引用后等价于把该配置原样放入process数组；
-2. **宏参数是字符串替换**：引用时以 `#参数名#` 形式传参，如 `{"macro": "check_accounts", "#ACCLIST#":"@{JSON|to,0}"}`，宏体中出现的 `#ACCLIST#` 会被替换成传入的值；如果没有参数，可以不传；
-3. 宏体内可以像普通process一样使用 `@{请求参数}`、`@{#tokenAcc}`、`@[!xxx]` 等占位符；
-4. 校验类宏（如 `dataexists`）在条件不满足时按配置返回 `errorCode`/`errorInfo` 作为接口的错误码与错误信息，因此校验类宏的 `errorCode` 命名应全局唯一、有明确含义；
-5. 一个 def 文件中可以定义多个宏，宏名需要全局唯一。
+1. **宏体是单个process定义**：宏对应的值是一个process的完整配置（如上面的has_right），引用后等价于把该配置原样放入process数组，与process一样，它执行失败，则后面的process不会继续处理；
+2. **宏参数是字符串替换**：以`#参数名#`形式引用，如 `{"macro": "check_accounts", "#ACCLIST#":"@{JSON|to,0}"}`，宏体中出现的 `#ACCLIST#` 会被替换成传入的值；如果没有参数，可以不传；
+3. **宏定义内可以使用占位符**：像普通process一样，能使用`@{请求参数}`、`@{#tokenAcc}`、`@[!xxx]`等所有process可以使用的占位符；
+4. 一个宏定义文件（def）中可以定义多个宏，在同一服务中，宏名称需要在全局唯一。
 
 ---
 # 接口定义<a id="interfacedef"></a>
@@ -633,7 +642,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
     "tokenChecker": "认证方式，property有public时不必设置，[USER,UNIUSER,OAUTH,COMPANY,INIT,MNT,APP,APP-调用方服务名或/*](#serviceauth)",
     "aclChecker": "接入检查，只支持RBAC(Role Based Access Control)或者自定义实现",
     "sameAs":"如果接口的request、vars、process、response与某个其他的接口完全一致，则可以增加此配置，指定为那个接口的路径，比如与stats.cfg中的report接口相同，则可以写成/stats/report，此时request、vars、process、response不必配置",
-    "feature": "特性，与RBAC配合，用于更加细致的控制[角色授权](#鉴权)",
+    "feature": "特性，与RBAC配合，用于更加细致的控制[角色授权](#user_auth)，每个接口只能有一个feature，比如`admin,sale`是无效的，调用时会导致NO_RIGHT错误",
     "comment":"描述，用于生成接口描述，可不提供",
 
     "vars":[
@@ -722,7 +731,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 2. toResp：默认为false，如果设为true，生成的变量会插入到响应的data中。
 ```JSON
 "vars":[
-    {"name":"flowid", "val":"@{SEQUENCE|'flow',i}", "toResp":true, "comment":"流程id"},
+    {"name":"flowid", "val":"@{SEQUENCE|i,'flow'}", "toResp":true, "comment":"流程id"},
     {"name":"curDay", "val":"@{NOW|unit86400000}", "comment":"距UTC第一天的天数"}
 ]
 ```
@@ -845,10 +854,10 @@ SQL操作是最常见的接口操作。增删改比较简单，只有成功失�
 
 | 属性  | 说明 |
 | ---  | ---  |
-|name  |执行结果的名称，多行查询结果放在data.{name}下；在merge为true时，字段直接放在data中，name无意义，只用于日志中打印|
+|name  |执行结果的名称，多行查询结果放在data.{name}下；在merge为true时，字段直接放在data中，name无意义，只用于日志中打印，merge为false时，加上一层name，如data.name值.列名称|
 |multi |返回结果是否为多行，默认true；多行结果放在data.{name}下（如上例中data.vips）|
 |metas |返回结果中每一行是否携带字段名信息<br>each：返回的每行记录中，每个字段都带有列名，如，{mobile:189…}<br>none：  每行记录都是一个数组，如，返回[1,"hello",4]，这样可以减少响应体大小<br>oneCol：如果结果集有多行，且只有一列，可以指定oneCol，返回一个数组， 如，ids:[1,2,3,4...]，这样可以减少响应内容<br>列信息字段名：数据记录按数组返回，但是在最后添加各列的列名，如，配置"metas":"cols"，则响应中有cols:["name","age",...]，解析时可以利用它，既可以减少返回内容的体积，又可以方便标识每一列；如果接口定义中配置了response，则需要增加一个字段{"name":"cols", "type":"string", "list":true}|
-|merge |是否将结果直接存在HandleResult.data中，当multi为false时才有效<br>false：响应形如data.'name'.mobile:189…，其中的name就是sql配置中的列名称<br>true：响应形如data.mobile:189…，省去了中间一层<br>默认值：仅当multi=false且metas=each时默认true，其余情况默认false；multi=false且metas≠each时显式设置merge:true会报WRONG_PARAMETER|
+|merge |是否将结果直接存在HandleResult.data中，当multi为false时才有效<br>false：响应形如data:{'name'：{mobile:189…}}，其中的name就是查询sql中name的配置值<br>true：响应形如data:{mobile:189…}，省去了中间一层sql.name<br>默认值：仅当multi=false且metas=each时默认true，其余情况默认false；multi=false且metas≠each时显式设置merge:true会报WRONG_PARAMETER|
 |toResp|是否把本SQL的执行结果写入响应数据，供同process内后续SQL用@[!xxx]引用<br>查询sql中默认为true，增删改默认为false<br>注意：该配置也**可控制**结果是否返回前端|
 |expected|如果是增删改操作，用expected指定期望的受影响行数，如果真实情况不是如此，就返回指定的返回码及错误信息，比如<br>"expected":{"num":1,"errorCode":"NO_RIGHT","errorInfo":"order is completed"}|
 
@@ -1010,7 +1019,8 @@ TreeDB是记录树状关系数据的数据库，比如：
 
 ### 4. Search
 
-SearchDB是逆向索引的数据库，用于分词查找。action有put、update、get、rmv。 db指定搜索的库名称，table指定虚拟表名（并不存在实体的表），did指定内容对应的数据唯一标识。
+SearchDB是逆向索引的数据库，用于分词查找。action有put、update、get、rmv。 
+db指定搜索的库名称，table指定虚拟表名（并不存在实体的表），did指定内容对应的数据唯一标识。
 
 #### put
 
@@ -1032,11 +1042,36 @@ title、summary、content并无本质区别，只是对照一篇文章的结构�
 
 #### update
 
-更新搜索内容，如果数据不存在，则，功能类似put，如果数据已存在，则可以更新title、summary、content，如果某项未传，则此项不更新
+更新搜索内容，如果数据不存在，则，功能类似put，如果数据已存在，则可以更新title、summary、content，如果某项未传，则此项不更新。
+```JSON
+{
+    "name": "update_search",
+    "type": "search",
+    "db": "crm",
+    "action": "update",
+    "table": "customer",
+    "did": "@{custId}",
+    //未传summary，则summary中的内容不更新
+    "title": "@{name}",
+    "content": "@{CLEAN|comment} @{business} @{taxid}"
+}
+```
+在更新数据时一定记住同时更新搜索内容，否则影响搜索结果。
+上例中，如果表中的comment、business、taxid修改了，但是搜索中 content 没有修改，查询时可能无法搜到这条记录。
 
 #### rmv
 
-删除内容，只需传did参数；
+删除搜索内容，只需传did参数。删除数据时一定记得同时删除搜索索引，否则搜索时会出现不存在的内容。
+```JSON
+{
+    "name": "rmv_search",
+    "type": "search",
+    "db": "crm",
+    "action": "rmv",
+    "table": "customer",
+    "did": "@{id}"
+}
+```
 
 #### get
 
@@ -1046,14 +1081,17 @@ title、summary、content并无本质区别，只是对照一篇文章的结构�
     "name" : "docs",
     "type" : "search",
     "db": "user",
-    "table":"user",
-    "action" : "get @{limit}",
-    "content" : "@{s}"
+    "table": "user",
+    "action": "get @{limit}",
+    "content": "@{s}"
 }
 ```
 
-content即为要查找的内容，查找前会经过分词处理，也可以人为在词之间添加空格，以提升分词的准确率。
-查询结果是匹配数据id数组，在响应体中的名称与处理的name属性一致，比如上例中为docs。
+content即为要查找的内容，查找前会先做分词处理。
+查询结果是所有匹配数据的id数组，在响应体中的名称与处理的name属性一致，比如上例中为docs。
+
+需要注意一个问题，因为分词本身可能会出现差错，再加上content搜索不是严格的全词匹配，所以搜索结果不一定完全准确。
+可以人为在词与词之间添加空格（分词时首先会按空格、标点符号划分一次），加了空格后，可以极大提升分成准确率。
 
 #### 应用举例
 比如，要实现记录客户信息，同时可以模糊搜索到客户信息，就需要先在database.cfg中创建一个全文搜索库：
@@ -1227,7 +1265,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 | isIPv4(v) | 是否为一个合法的IPv4地址 |
 | isIPv6(v) | 是否为一个合法的IPv6地址 |
 | **Secure类** | | |
-| pbkdf2(pwd, iterCount) | 使用pbkdf2算法，将pwd迭代iterCount次 |
+| pbkdf2(pwd, iterCount) | 使用pbkdf2算法，将pwd迭代iterCount次(1-2^31) |
 | pbkdf2Check(pwd, savedPwd) | 检查输入的pwd与savedPwd是否一致，savedPwd由pbkdf2函数生成 |
 | hash(s) | 计算多int型hash值 |
 | longHash(s) | 计算字符串long型hash code |
@@ -1256,7 +1294,7 @@ content即为要查找的内容，查找前会经过分词处理，也可以人�
 
 #### 循环中的占位符
 
-因为占位符是在执行script之前已解析、替换完毕，所以如果在js循环中使用，循环中的占位符并不会被多次执行，比如：
+因为占位符是在执行script之前就已解析、替换完毕，所以如果在js循环中使用，循环中的占位符并不会被多次执行，比如：
 ```Javascript
 //items=[{product:1,subTotal:100},{product:2,subTotal:10}]
 var sql=['insert into sales_items(id,product,subTotal) values'];
@@ -1271,11 +1309,34 @@ DB.sql(sql.join(''));
 最终生成的两行插入记录不会如期望的那样有不同的id，而会是这样的：
 
 ```SQL
+-- 两条记录，id相同，执行时会出现主键冲突
 insert into sales_items(id,product,subTotal) values(1,1,100),(1,2,10)
 ```
 
-@{RANDOM}、@{UUID}、@{UNIQUEID}等占位符有相同问题，不会在循环中被多次执行，因为在执行js之前已被替换成具体内容了。
-与占位符不同，js内置函数Secure.random与String.uuid是可以在循环中被多次执行产生不同内容。
+这种情况可以使用批量申请，获得开始的序列值后，再加上偏移获得序列号：
+```JSON
+{
+    "name":"apply_stock_flowid",
+    "type":"var",
+    "vars":[
+        {"name":"itemNum", "val":"@{SIZE|!items}"},
+        {"name":"flowIdStart", "val":"@{SEQUENCE|i, 'stockflowid', itemNum}"} //一次申请多个
+    ]
+},
+{
+    "name": "stock_in",
+    "type": "rdb",
+    "db": "fin",
+    "sqls": [
+        //加上循环序号就可以获得连续增长的id，如果当前事务被回滚，这批序列号就会被丢弃
+        "rs:@{FOR|!items, `;`, `insert into stock_flow(id,...) values(@{flowIdStart}+`,i,`,...)`}"
+    ]
+}
+```
+
+
+@{RANDOM}、@{UUID}、@{UNIQUEID}、@{SUM}等占位符都有相同问题，不会在循环中被多次执行，因为在执行js之前已被替换成具体内容了。
+与占位符不同，js内置函数Secure.random与String.uuid可以在循环中被多次执行产生不同内容。
 
 ### 7. call
 
@@ -1418,7 +1479,7 @@ toResp为true时，变量会作为响应字段直接写入 data 返回给调用�
     "name":"get_user_id",
     "type" : "var",
     "vars":{
-        {"name":"uid","val":"@{SEQUENCE|'userid',i}","toResp":true}
+        {"name":"uid","val":"@{SEQUENCE|i,'userid'}","toResp":true}
     }
 }
 ```
@@ -1488,7 +1549,7 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
             "name":"get_user_id",
             "type" : "var",
             "toResp" : true,
-            "vars":{"uid":"@{SEQUENCE|'userid',i}"
+            "vars":{"uid":"@{SEQUENCE|i,'userid'}"
         },
     
         {
@@ -1735,7 +1796,9 @@ xml.join('');
 
 ## 初始化接口
 
-初始化接口与普通接口没有本质区别，用在首次启动时做一些初始化工作。接口定义所存放的文件名不受限制，定义方式与普通接口完全相同，但是接口名称前面要加上“__”。这类接口只能在启动时被系统以INIT权限自动调用。
+初始化接口与普通接口没有本质区别，用在首次启动时做一些初始化工作。
+接口定义所存放的文件名不受限制，定义方式与普通接口完全相同，但是接口名称前面要加上“__”。
+这类接口没有放在业务接口列表中，只能在启动时被系统以INIT权限自动调用，强行HTTP访问会返回API_NOTFOUND(110)。
 
 比如，在ifinance中用到seq服务与schedule服务，则需要做初始化：
 ```JSON
@@ -1809,11 +1872,11 @@ xml.join('');
 
 | 格式     | 类型 | 说明 |
 | ---     | --- | --- |
-| @{xxx}  | 请求参数 | 引用参数列表中的字段或vars中定义的变量；如果引用了不存在的请求参数，启动时会失败；名称中可以包含'.'，表示多级引用 |
+| @{xxx}  | 请求参数 | 引用参数列表中的字段或vars中定义的变量；<br>如果引用了不存在的请求参数，启动时会失败；<br>名称中可以包含'.'，表示多级引用。 |
 | @{^xxx} | 请求头参数 | 引用http请求头中的字段 |
 | @{#xxx} | 系统参数 | 1)tokenCaller、tokenCallee、tokenPartId、tokenAcc、tokenCid、tokenExt：token中的信息，在私有接口中才有；<br> 2)reqAt参数：接受到请求时的utc时间戳；<br> 3)shard分片号：从接口配置的sharding字段计算得出；<br> 4)result：上一步的执行结果，与convert结合使用才有意义，因为任何一个处理只要返回值不是OK，则整个处理就终止了，不会走到下一步。 |
-| @{!xxx} | 响应参数 | 前面处理的响应内容；名称中可以包含'.'，表示多级引用 |
-| @[!xxx] | 前面操作的响应内容 | 只用在RDB处理中，当有多个sql时，上一个查询sql处理完毕，下一个sql可以使用上一个sql的结果集，比如@[!UserNum]； 这种参数在请求端不会被编译替换，而是在webdb中执行时才会被替换，这会增加少许webdb的负担，但是减少了网络交互 |
+| @{!xxx} | 响应参数 | 前面处理的响应内容；名称中可以包含'.'，表示多级引用；<br>目前无法判断上一个处理有哪些响应字段，所以使用@{!xxx}时，是无法判断有效性的。|
+| @[!xxx] | 前面操作的响应内容 | 只用在RDB处理中，当一个process中有多个sql时，上一个查询sql处理完毕，下一个sql可以使用前面sql的结果集，比如@[!userNum]；<br>这种参数在请求端不会被编译替换，而是在webdb中执行时才会被替换，这会增加少许webdb的负担，但是能减少了网络交互；<br>目前无法判断上一个操作有哪些响应字段，所以使用@[!xxx]时，是无法判断有效性的。 |
 
 ## 不同处理间的引用占位符
 如果process中有多个不同的处理，后面的处理可以引用前面处理的结果，下面的@{FOR|!items...}是前一个处理get_items的查询结果（名称由sql的name指定，而不是处理的name指定）。比如在一个数据库中查询内容，然后更新到另外一个数据库中。
@@ -1845,10 +1908,11 @@ xml.join('');
 ## 不同操作间的引用占位符
 同一个数据库处理中，有多个数据库操作的情况，后面的操作可以引用前面操作的响应结果，下面的@[FOR|!items...]就是这样的例子，items是上一个查询操作的结果。前面查询操作的结果集直接在webdb中使用，减少了网络交互。
 ```JSON
-"process":[{
+"process":[
+{
     "name": "update_status",
     "type": "rdb",
-    "db": "log", //在同一个库中才可以使用@[!xxx]
+    "db": "log", //在同一个库中，才可以在同一个process，也才可以使用@[!xxx]
     "sqls": [
         {
             "name":"items",
@@ -1861,7 +1925,23 @@ xml.join('');
         "insert or ignore into sales_stats(day,type,productId) values@[FOR|!items, `,`, `(@{day},'SAL',`, e.productId, `)`]",              
         "rs:@[FOR|!items, `;`, `update sales_stats set amount=amount+`, e.subTotal, ` where day=@{day} and type='SAL' and productId=`, e.productId]"
     ]
-}]
+},
+{
+    "name": "update_total",
+    "type": "rdb",
+    "db": "log", //在同一个库中，才可以在同一个process，也才可以使用@[!xxx]
+    "sqls": [
+        {
+            "name":"total",
+            "metas":"each",
+            "multi":false,
+            "merge":true, //在后面引用时，不必以@[!total.total]引用，直接用@[!total]
+            "sql":"select sum(subTotal) total from sales_items where orderId=@{id}"
+        },
+        "update sales_day set amount=amount+@[!total] where day=@{day}"
+    ]
+}
+]
 ```
 
 
@@ -1881,7 +1961,7 @@ xml.join('');
 | MD5 | 计算MD5 | @{MD5\|#tokenxxx, name,1,\`xxx\`}<br>格式类似HASH，可有多个参数，它们之间用“-”连接，输出一个base64编码的字符串。 |
 | SHA256 | 计算SHA256 | @{SH256\|#tokenxxx,name,1,\`xxx\`}<br>类似MD5，只是算法不同 |
 | HMACSHA256 | 计算HMACSHA256 | @{HMACSHA256\| para1, name, 1, \`xxx\`}<br> 类似MD5，只是算法不同；算法中的可以是随机生成的16字节内容，记录在结果的前16字节；在js脚本中可以使用 Secure.hmacSHA256Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串 |
-| PBKDF | 计算PBKDF2 | @{PBKDF\| iter,para} <br>iter为迭代次数，para为被混淆的字符串；在js脚本中可以使用Secure.pbkdf2Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串，也可以用进行校验，返回true或false |
+| PBKDF | 计算PBKDF2 | @{PBKDF\| iter,para} <br>iter为迭代次数(1-2^31)，para为被混淆的字符串；在js脚本中可以使用Secure.pbkdf2Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串，也可以用进行校验，返回true或false |
 | PBKDFCHECK | PBKDF2校验 | @{PBKDFCHECK\| str, savedStr} <br>str为传入参数，savedStr是用来检验的参数，比如从数据库取出 |
 | UTC | 对UTC时间戳进行格式化 | @{UTC\|utcPara,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utcPara,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utcPara,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utcPara,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000）， 这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳所在月度的几号，1号返回0 <br>dayofyear：时间戳所在年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00的UTC时间戳 <br>monthend：返回utc所在月度的下个月第一天00:00:00的UTC时间戳 <br>weekstart：返回utc所在星期的第一天00:00:00的UTC时间戳 <br>weekend：返回utc所在星期的下个星期第一天00:00:00的UTC时间戳<br>daystart：返回utc当日00:00:00的UTC时间戳 <br>dayend：返回utc所在日期下一天00:00:00的UTC时间戳|
 | NOW | 当前时间 | @{NOW\|unit86400000}转换成UTC天数 @{NOW\|yyyy-MM-dd HH:mm:ss,480} 转换成东八区时间字符串 <br> @{NOW\|[fmt[,offset]]}当前UTC时间戳， 与@{#reqAt}是同一个值，在一次请求中，多次引用@{#reqAt}或@{NOW}，结果都相同； 不同点在于@{NOW}可以携带格式化信息，@{#reqAt}不可以;#reqAt可以在其他占位符中使用，但是NOW不行，比如@{MD5\|#reqAt,'test'}； 无fmt的情况，默认返回当前utc时间戳；有fmt时，定义与UTC相同<br>offset是时区偏移，如果不设置，则默认使用服务器的时区设置。 |
@@ -1896,17 +1976,18 @@ xml.join('');
 | LOWER | 将参数转为小写 | @{LOWER\| paraName} |
 | CLEAR | 清除字符串中指定的字符 | @{CLEAN\|str,'char\_list'}<br>char\_list中列出所有需要清除的字符，支持转义，比如'\\t\\0\\n' |
 | SUBSTR | 取子字符串 | @{SUBSTR\|pname, 0, 2}取字符串参数前面两个字符<br>@{SUBSTR\| paraName, start[, len]} start开始位置，len指定子字符串的长度，可以未指定，则表示从start到末尾，如果len超过字符串末尾，则取到末尾为止 |
-| ECKEYPAIR | 使用ECC密钥对进行加解密、签名&验签 | @{ECKEYPAIR\|encode, keypair, content, pwd}，使用ecc密钥对进行操作<br> @{ECKEYPAIR\|cmd, keypair, content[, pwd]} cmd有new、public、encode、decode、sign、verify： <br>1）@{ECKEYPAIR}，不用带任何参数，产生一个不加密的密钥对； <br>2）@{ECKEYPAIR\|new, pwd}，产生一个用指定密码加密的密钥对； <br>3）@{ECKEYPAIR\|public, keypair}，获取密钥对公钥，携带了版本号信息，因为公钥不加密，所以无论keypair是否加密都可以获取； <br>4）@{ECKEYPAIR\|sign, keypair, content[, pwd]}，用密钥对对content进行签名； <br>5）@{ECKEYPAIR\|verify, keypair, content, signature[, pwd]}，用密钥对验证签名，需要多一个signature； <br>6）@{ECKEYPAIR\|encode/decode, keypair, content[, pwd]}，用密钥对加密或解密。 keypair为密钥对，content是待加解密、签名&验签的内容，pwd是密钥对的加密密码，如果没有，可以不提供。 它们都可以用参数名，也可以是直接的字符串内容 |
 | SPLIT | 字符串切割 | @{SPLIT\|para,len\_or\_spliterChar, spliter}<br> 将para参数按固定长度len切割成多段（不足len的不会填充尾部）；或者通过分隔符分成多段；分隔后再使用分隔符spliter连接起来，连接时会加上合适的引号 |
+| STRPAD | 字符串填充或掐头去尾 | @{STRPAD\| paraName, '填充字符', len} 或 @{STRPAD\| paraName, len, '填充字符'}<br>字符串长度不足len时，填充字符在前，则在前面填充，否则在后面填充；<br>超过len时，填充字符在前则去掉前面的，留下len个字符，否则去掉后面的|
 | STRPART | 字符串切割后的一个单元 | @{STRPART\|para,spliter,partNo}<br> 将字符串按spliter分隔成多个子字符串，取出编号为partNo的子字符串，编号从0开始，如果partNo小于0，表示返回最后一个。spliter可以是正则表达式 |
 | REPLACE | 字符串查找替换 | @{REPLACE\|para,regular,replaceWith}<br> 将字符串中所有匹配regular的部分替换成replaceWith。regular可以是正则表达式 |
+| ECKEYPAIR | 使用ECC密钥对进行加解密、签名&验签 | @{ECKEYPAIR\|encode, keypair, content, pwd}，使用ecc密钥对进行操作<br> @{ECKEYPAIR\|cmd, keypair, content[, pwd]} cmd有new、public、encode、decode、sign、verify： <br>1）@{ECKEYPAIR}，不用带任何参数，产生一个不加密的密钥对； <br>2）@{ECKEYPAIR\|new, pwd}，产生一个用指定密码加密的密钥对； <br>3）@{ECKEYPAIR\|public, keypair}，获取密钥对公钥，携带了版本号信息，因为公钥不加密，所以无论keypair是否加密都可以获取； <br>4）@{ECKEYPAIR\|sign, keypair, content[, pwd]}，用密钥对对content进行签名； <br>5）@{ECKEYPAIR\|verify, keypair, content, signature[, pwd]}，用密钥对验证签名，需要多一个signature； <br>6）@{ECKEYPAIR\|encode/decode, keypair, content[, pwd]}，用密钥对加密或解密。 keypair为密钥对，content是待加解密、签名&验签的内容，pwd是密钥对的加密密码，如果没有，可以不提供。 它们都可以用参数名，也可以是直接的字符串内容 |
 | URL | 对URL参数等进行编码或解码 | @{URL\|cmd,para}<br> 对para进行URL编码或界面，cmd可以是encode、decode或append。 如果是append，格式为@{URL\|cmd,urlPara,k1,v2,k2,v2...} |
 | LIST | 将LIST连接为字符串 | @{LIST\|[!]paraName[.segName\|colNo][,quote]} <br>1)对象列表：@{LIST\|uids.uid,\`\`}； <br>2)普通列表：@{LIST\|uids,\`'\`} <br>3)列表的列表：@{LIST\|uids.0,\`\`} <br>4)map：@{LIST\|members.v,\`'\`}<br> 多个元素用逗号“,”分隔。用于解决NORMAL中数组自动加“[]”的问题，加了“[]”，在sql中就无法使用。 如果list中元素是对象(map)，segName指定字段名，处理时取出每个对象的指定字段；list元素也可以是list，此时segName是数字，用以指定列号，列号从0开始。 如果没有segName，则当作普通list处理，直接将list中元素转为字符串列出来。 |
 | ELEMENT | 从对象或数组中取出元素 | @{ELEMENT\|[!]paraName,sn/name/[!]paraName]}<br>1)如果是数组，则第二个参数必须为数字，否则返回null； <br>2)如果是对象，则第二个参数指定字段名称，可以支持用'.'分隔多级 |
 | JSON | 将复杂对象转为JSON串 | @{JSON\|para[,defaultVal[,quote,safeQuote]]}<br> para为任意类型的参数，defaultVal是在para为空时的默认值，一个字符串；同时可以指定引号 |
 | CLEAN | 清除JSON中的字段名称 | @{CLEAN\|json}<br>只可用于JSON类型的参数，将json字段名全部清除，返回一个字符串。通常用在生成全文索引中 |
 | SIZE | 返回参数的长度 | @{SIZE\|[!]para}<br> para可以是list、map或string |
-| SUM | 对列表中元素求和 | @{SUM\|type,[!]paraName[.segName\|colNo]} <br>1)简单列表：@{SUM\|double,scores}； <br>2)对象列表：@{SUM\|d,students.score}； <br>3)列表的列表：@{SUM\|i,students.0}<br> 将所有成员求和，如果指定了字段名，则源数据必须为一个对象列表； 如果是列表的列表，segName可以指定为列号；都不指定，则认为传入的是数值列表。 <br>type支持long、double、int、float等，也可以用简写l、d、i、f，浮点数支持精度控制，比如f.3，与@{CALCULATE}相同 |
+| SUM | 对列表中元素求和 | @{SUM\|type,[!]paraName[.segName\|colNo]} <br>1)简单列表：@{SUM\|double,scores}； <br>2)对象列表：@{SUM\|d,students.score}； <br>3)列表的列表：@{SUM\|i,students.0}<br> 将所有成员求和，如果指定了字段名，则源数据必须为一个对象列表； 如果是列表的列表，segName可以指定为列号；都不指定，则认为传入的是数值列表。 <br>type支持long、double、int、float等，也可以用简写l、d、i、f，浮点数支持精度控制，比如f.3，与@{CALCULATE}相同<br>注意，@{SUM}不同于@{ADD} |
 | MIN | 从列表中找到最小的一项 | @{MIN\|int,list}从列表list中取最小值<br>@{MIN\|int,list.a}列表元素是对象，取每行字段a的最小值<br>@{MIN\|int,list.0}列表元素是列表，取每行第1列的最小值 <br>@{MIN\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最小值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
 | MAX | 从列表中找到最大的一项 | @{MAX\|int,list}从列表list中取最大值<br>@{MAX\|int,list.a}列表元素是对象，取每行字段a的最大值<br>@{MAX\|int,list.0}列表元素是列表，取每行第1列的最大值<br> @{MAX\|type,[!]paraName[.segName/colNo]} 从列表paraName中取最大值，如果是对象列表，可以指定对象中字段的名称；如果是列表的列表，可以指定列表的列号 |
 | FOR | 对变量进行循环处理 | @{FOR\|pl,\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} <br>pl必须是一个list或数组，第二个参数是分隔符；后面都是要拼接的参数或常量，每循环一次，将他们拼接起来，然后加一个分隔符<br>例子中如果pl=[{a:11,b:"x"},{a:12,b:"y"}]，p2="hello",运行后将得到: (0,'hello',11,x,''),(1,'hello',12,y,'')<br>@{FOR\|pl[e.a,'i.>',1 && e.a,'i.<',20],\`,\`,\`(\`, i, \`,'\`, p2, \`',\`, e.a, \`,\`, e.b, \`,\`, \`,'')\`} 运行后将得到: (0,'hello',11,x,'')<br> 对list或数组参数进行循环。<br>每个元素用e代表；如果e是对象，可以用“e.”开头引用成员；<br>i是循环序数，从0开始； <br>所有需要用引号的地方，建议都使用"\`"，而不是单引号。sql本身使用单引号，特别是出现“;”或“)”的地方，不可以使用单引号，否则无法解析。 <br>支持设置过滤条件，在变量名后面加“[]”，在其中加过滤条件，条件判断与@{CONDITION}完全一致 |
@@ -1918,7 +1999,7 @@ xml.join('');
 | CONST | 常数 | @{CONST\|type,name}<br> type支持int(i)、long(l)、float(f)、double(d)、char(c)，name支持min、max、ver、tzOffset，tzOffset的类型只支持int(i) |
 | SRCIP | 请求的源地址 | @{SRCIP\|remote}、@{SRCIP} <br> 设置了remote表示返回地址考虑了nat转换，否则返回链路中上一跳的地址 |
 | CONFIG | 服务级配置项 | @{CONFIG\|configItem}<br>configItem指定配置项名称，实际存储时会在前面增加"para\_"前缀 |
-| SEQUENCE | 在集群多实例的情况下实现持续增长的id，不保证连续 | @{SEQUENCE\|i,\`customer\`} @{SEQUENCE\|customer,[len[,cidParaName]} <br>第一个参数指定类型，有i/int、l/long两个选择，不输入则默认为int； 第二个参数是名称，可以加单引号，也可以不加，在同一个服务内必须唯一； len指定返回顺序数的后面多少个十进制位，0表示全部返回； 如果在公共接口中使用，没有token，系统不知道从属的公司id，所以需要提供cid参数的名称 |
+| SEQUENCE | 在集群多实例的情况下实现持续增长的id，不保证连续 | @{SEQUENCE\|i,\`customer\`} @{SEQUENCE\|customer,[num[,cidParaName]} <br>第一个参数指定类型，有i/int、l/long两个选择，不输入则默认为int；<br>第二个参数是名称，可以加单引号，也可以不加，在同一个服务内必须唯一；<br>num指定一次申请多少个连续的序列号，不提供则默认为1，可以具体数字，也可以是参数名或前一步的返回字段；<br>如果在公共接口中使用，没有token，系统不知道从属的公司id，所以需要提供cid参数的名称<br>无论是否批量申请，返回的总是第一个序列值 |
 | COUNTER | 服务实例级别的计数器，每次重启后从0开始 | @{COUNTER\|4,'head'}、@{COUNTER\|para}<br> 默认输出长度为0（原样输出），不加头部。len大于0，则超出len部分截断，不足部分补0； 同一服务的相同实例上是连续递增的，不同实例之间无法保证连续性，实例重启后又从0开始 |
 | RANDOM | 产生随机数 | @{RANDOM\|l/i/d/f/c/s, min, max]} @{RANDOM\|s,len,base]}<br> l:长整型数，i:整型数，d:双精度浮点数，f:单精度浮点数，c:字符（0-65535）。min、max指定最小、最大值； s:包含base64/base32/hex字符的字符串，len指定字符串长度，base有16、32、64可选，默认为64 |
 | UUID | 产生UUID字符串 | @{UUID\|16}、@{UUID\|64}<br>可以指定输出格式，16表示HEX方式，64表示base64方式 |
@@ -1960,7 +2041,7 @@ OAUTH依赖oAuth2服务，如下图，Service1访问Service2：
 
 oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生成，每个实例都不相同，保证不同私有云服务器之间不能互访，以此来解决多家公司在同一个局域网的问题。
 
-### 鉴权
+### 鉴权<a id="user_auth"></a>
 
 在token中携带了Service1可以访问的features，Service2中通过判断接口的feature来判断Service1是否可以调用该接口。
 
@@ -2015,9 +2096,10 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
     "admin":{
         "name":"企业主",
         "rights":{
-            //sku是接口定义文件的名称(sku.cfg)，* 表示其中的所有特性的接口都可以调用
+            //sku是接口定义文件的名称(此处为sku.cfg，通常一个文件一类接口)，"*"表示其中的所有特性的接口都可以调用
             "sku":"*",
-            //如果接口定义中指定了feature，就可以更加细致的授权
+            //如果接口定义中定义了feature，就可以更加细致的授权
+            //接口定义中只可以定义一个feature，但是此处授权时可以列举多个
             "report":"featureA,featureB...",
             "proxy":"*"
         }
@@ -2034,14 +2116,17 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 ```
 为了实现对角色功能更加细致的限制，在每个接口中都可以定义feature，在角色定义时，限制角色在某个接口定义文件中，只能执行特定的几类接口。
 
-##### 角色授权的实践高频坑
+**角色授权的高频坑**
 
-`roles.rights` 的 **key必须是接口定义文件的文件名（不含扩展名）**，value 是 `"*"`（全部接口）或 feature 列表。开发中最常见的错误是**新增/删除了一个 cfg 文件却忘记同步修改 `pub.json`**，导致角色调用该文件的接口时返回 `NO_RIGHT`。
+`roles.rights` 的 **key必须是接口定义文件的文件名（不含扩展名）**，value 是 `"*"`（全部接口）或 feature 列表。
+开发中最常见的错误是**新增/删除了一个 cfg 文件却忘记同步修改 `pub.json`**，导致角色调用该文件的接口时返回 `NO_RIGHT`。
 
 1. **每新增一个cfg文件，都必须检查所有角色的rights**：即便只有"能访问其中所有接口"这一种需求，也要显式写上 `"模块名" : "*"`，否则该角色调用时无权限；
 2. **未登记的cfg文件不是"全部禁止"**：没有配置feature的接口（未写 `feature` 字段）仍可访问，所以"漏配"的表现往往是"部分接口能调、部分接口 NO_RIGHT"，排查时注意核对；
-3. 建议在开发自检阶段（见[开发自检清单](#开发自检清单)）用 `/服务名/api/apis` 与 `pub.json` 逐文件核对：cfg 文件名集合与 rights 的 key 集合一致；
-4. 当某个角色只需要个别接口时，使用feature做细粒度控制，并保持接口的 `feature` 命名与rights值一致（拼写差异会静默失败，表现为 NO_RIGHT）。feature 的具体配置方法参照 [接口定义](#interfacedef)。
+3. 建议在开发自检阶段（见[开发自检清单](#开发自检清单)）用 `/服务名/api/apis` 与 `pub.json` 逐文件核对 cfg 文件名集合与 rights 的 key 集合一致；
+4. 当某个角色只需要个别接口时，使用feature做细粒度控制，并保持接口的 `feature` 命名与rights值一致（拼写差异会静默失败，表现为 NO_RIGHT）。
+
+feature 的具体配置方法参照 [接口定义](#interfacedef)。
 
 #### ABAC
 
