@@ -65,10 +65,10 @@ eclipse {
 }
 
 group = "cn.net.zhijian.mesh.server"
-version = '1.5.0'
+version = '1.6.0'
 
 ext { //额外属性定义
-   prjectName="cn.net.zhijian.mesh.server"
+   projectName="cn.net.zhijian.mesh.server"
    javaMainClass = "cn.net.zhijian.platform.ServerMain"
 }
 
@@ -96,7 +96,7 @@ dependencies {
 }
 
 jar {
-    archiveFileName = "${prjectName}-${version}.jar"
+    archiveFileName = "${projectName}-${version}.jar"
     from sourceSets.main.output
     manifest {
         attributes(

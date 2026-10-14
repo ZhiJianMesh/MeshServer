@@ -53,6 +53,7 @@ public interface IConst extends IUtil {
     char SERVICE_SEPERATOR_C = '-';
     
     String API_CLIENT_INFO = "client_info"; //端侧信息
+    String API_SERVICE_INFO = "service_info"; //服务信息
     String API_CHECKUP = "checkup"; //健康检查
     String API_SERVICE_APILIST = "apis"; //服务api列表
     String API_SERVICE_FILELIST = "files"; //服务api列表

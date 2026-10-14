@@ -26,6 +26,7 @@ import cn.net.zhijian.mesh.frm.method.StaticFileMethod;
 import cn.net.zhijian.mesh.frm.service.aide.ApiList;
 import cn.net.zhijian.mesh.frm.service.aide.ClientInfo;
 import cn.net.zhijian.mesh.frm.service.aide.DefaultCheckUp;
+import cn.net.zhijian.mesh.frm.service.aide.Description;
 import cn.net.zhijian.mesh.frm.service.aide.FileList;
 import cn.net.zhijian.mesh.frm.service.aide.InitDb;
 import cn.net.zhijian.mesh.frm.service.aide.RemoveDb;
@@ -240,10 +241,20 @@ public final class BuiltinInitializer implements IConst {
         //service/api/apis:返回服务端接口列表，及每个接口的基本信息
         String procName = API_SERVICE_APILIST;
         UrlPathInfo url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
-        ApiInfo apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_GET, url, null, false);
-        ApiList alp = new ApiList(server, si, apiInfo);
+        ApiInfo apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_GET, url, null, true);
+        ApiList alp = new ApiList(si, apiInfo);
         ApiMethod am = new ApiMethod(si, apiInfo, new RequestInfo(), new ResponseInfo(null),
-                new ProcessInfo(alp), null, null);
+                new ProcessInfo(alp), TokenCheckers.getChecker("USER-A,D,I"), null);
+        server.addApi(am);
+        count++;
+        
+        //service/api/service_info:返回服务基本信息
+        procName = API_SERVICE_INFO;
+        url = new UrlPathInfo(si.name).push(SERVICE_URL_API).push(procName);
+        apiInfo = new ApiInfo(SERVICE_URL_ROOT, METHOD_GET, url, null, true);
+        Description serviceDescr = new Description(si, apiInfo);
+        am = new ApiMethod(si, apiInfo, new RequestInfo(), new ResponseInfo(null),
+                new ProcessInfo(serviceDescr), TokenCheckers.getChecker("USER-A,D,I"), null);
         server.addApi(am);
         count++;
         

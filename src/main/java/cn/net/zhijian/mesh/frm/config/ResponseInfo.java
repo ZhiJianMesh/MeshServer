@@ -39,7 +39,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public final class ResponseInfo {
     private static final Logger LOG = LogUtil.getInstance();
 
-    private static final String PROPERTY_RESPONSE = "response";
+    public static final String PROPERTY_RESPONSE = "response";
     private static final String PROPERTY_SEGMENTS = "segments";
     private static final String PROPERTY_CHECK = "check";
     private static final String PROPERTY_TEMPLATE = "template";

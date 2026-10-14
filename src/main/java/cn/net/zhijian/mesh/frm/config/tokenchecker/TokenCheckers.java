@@ -30,9 +30,9 @@ public class TokenCheckers implements IOAuth {
         addChecker(new INIT(App, Om, Backend));
         addChecker(new OAUTH());
         addChecker(new COMPANY());
-        //base-user，不检查外网接入权限
-        addChecker(new BASEUSER(UNIUSER_TOKEN_CHECKER, SERVICE_UNIUSER));
         //uni-user，不检查外网接入权限，因为一定从外网访问
+        addChecker(new BASEUSER(UNIUSER_TOKEN_CHECKER, SERVICE_UNIUSER));
+        //base-user，不检查外网接入权限
         addChecker(new BASEUSER(BASEUSER_TOKEN_CHECKER, SERVICE_USER));
         //user，要检查是否有外网接入权限
         addChecker(new USER());
@@ -49,37 +49,47 @@ public class TokenCheckers implements IOAuth {
      */
     public static AbsTokenChecker getChecker(String name) {
         String upperName = name.replaceAll("\\s+", IConst.EMPTY_STR).toUpperCase();
-        AbsTokenChecker tc = BUILTIN_CHECKERS.get(upperName);
-        if(tc != null) {
-            return tc;
-        }
-
-        int pos = name.indexOf(AbsTokenChecker.TOKEN_NAME_SPLITER); //APP|APPS|NODE-调用方服务名称
         synchronized(BUILTIN_CHECKERS) {
-            if(pos > 0) {
-                String services = name.substring(pos + 1).toLowerCase();//服务名全小写
-                
-                if(!APP.SERVICE_ANY.equals(services)
-                    && !services.matches("[_0-9a-z]{1,30}(,[_0-9a-z]{1,30})*")) {
-                    throw new IllegalArgumentException("services list error:" + services);
-                }
-                
-                String sortedName = sortedName(name.substring(0, pos), services);
-                if(upperName.startsWith(APP_TOKEN_CHECKER)) {
+            AbsTokenChecker tc = BUILTIN_CHECKERS.get(upperName);
+            if(tc != null) {
+                return tc;
+            }
+    
+            int pos = upperName.indexOf(AbsTokenChecker.TOKEN_NAME_SPLITER); //APP|APPS|USER-调用方服务名称
+            if(pos > 0) { //带了横杠的tokenChecker，后面有多余的参数
+                String n = upperName.substring(0, pos);
+                if(APP_TOKEN_CHECKER.equals(n)) {
+                    String services = upperName.substring(pos + 1).toLowerCase();//服务名全小写
+                    
+                    if(!APP.SERVICE_ANY.equals(services)
+                        && !services.matches("[_0-9a-z]{1,30}(,[_0-9a-z]{1,30})*")) {
+                        throw new IllegalArgumentException("services list error:" + services);
+                    }
+                    
+                    String sortedName = sortedName(upperName.substring(0, pos), services);
+                    AbsTokenChecker checker = BUILTIN_CHECKERS.get(sortedName);
+                    if(!(checker instanceof APP)) { //checker为空也可以判断
+                        checker = new APP(services); //指定调用方服务名称
+                        BUILTIN_CHECKERS.put(sortedName, checker); //名称中有服务名
+                    }
+                    return checker;
+                } else if(USER_TOKEN_CHECKER.equals(n)) {
+                    String types = upperName.substring(pos + 1);//用户类型
+                    
+                    if(!types.matches("^[IEDA]([,;][IEDA])*$")) {
+                        throw new IllegalArgumentException("invalid user types:" + types);
+                    }
+                    
+                    String sortedName = sortedName(upperName.substring(0, pos), types);
                     AbsTokenChecker checker = BUILTIN_CHECKERS.get(sortedName);
                     if(!(checker instanceof APP)) {
-                        checker = new APP(services); //指定调用方服务名称
+                        checker = new TYPEUSER(types); //指定调用方服务名称
                         BUILTIN_CHECKERS.put(sortedName, checker); //名称中有服务名
                     }
                     return checker;
                 }
                 LOG.error("Invalid token checker:{}", name);
                 return null;
-            } else {
-                tc = BUILTIN_CHECKERS.get(upperName);
-                if(tc != null) { //双重检查，防止别的线程已初始化
-                    return tc;
-                }
             }
             /*
              * tokenChecker在HttpServer中使用，
@@ -100,11 +110,11 @@ public class TokenCheckers implements IOAuth {
     /**
      * 将APP-...,NODE-...后面的服务列表排序后在拼凑在一起返回
      * @param h 头部
-     * @param services 服务列表
+     * @param limits 服务列表
      * @return 排序后后的服务列表，同时转大写
      */
-    static String sortedName(String h, String services) {
-        String[] ss = services.toUpperCase().split("[,;]");
+    static String sortedName(String h, String limits) {
+        String[] ss = limits.toUpperCase().split("[,;]");
         List<String> list = Arrays.asList(ss);
         list.sort(String::compareTo);
         return (h.toUpperCase() + '-' + String.join(",", list));

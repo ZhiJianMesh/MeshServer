@@ -26,7 +26,7 @@ import cn.net.zhijian.util.ValParser;
  *
  */
 public final class Login extends UserBase {
-    private static final long MIN_RELOGIN_TIME = 3600 * 1000; //S
+    private static final long MIN_RELOGIN_TIME = 3600 * 1000; //ms
     private static final int MAX_CONTINUOUS_FAIL_TIMES = 3;
     private static final String SEG_FAILED_LOGIN = "failed_login";
     private static final Logger LOG = LogUtil.getInstance();

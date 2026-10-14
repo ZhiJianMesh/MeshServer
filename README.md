@@ -84,7 +84,7 @@ Many apis can be written in one config file, for example in customer.cfg:
 },
 {
     "name": "add",
-    "method":"GET",
+    "method":"POST",
     "property" : "private",
     "tokenChecker" : "USER",
     ...

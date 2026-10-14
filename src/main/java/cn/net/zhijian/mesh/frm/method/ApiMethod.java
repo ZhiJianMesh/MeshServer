@@ -44,10 +44,10 @@ public class ApiMethod implements IMethod, IThreadPool {
     private static final Logger LOG = LogUtil.getInstance();
     public static final String CFG_NAME = "name";
     public static final String CFG_SAMEAS = "sameAs"; //与某个method一致
-    private static final String CFG_METHOD = "method";
+    public static final String CFG_METHOD = "method";
     private static final String CFG_FEATURE = "feature";
     //属性，比如public/private、localtion等
-    private static final String CFG_PROPERTY = "property";
+    public static final String CFG_PROPERTY = "property";
     private static final String CFG_TOKENCHECKER = "tokenChecker";
     private static final String CFG_ACLCHECKER = "aclChecker";
     //默认返回内容，当程序内部发生任何异常时，返回onException指定的结果

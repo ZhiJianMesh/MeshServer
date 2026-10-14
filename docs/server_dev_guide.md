@@ -354,7 +354,8 @@ curl "http://localhost:8523/account/api/apis"
 11. **过长的内容建议换行**：处理中的sql、js如果过长，建议换行，比如过长的insert，可以写成insert...换行values(...)，select ... 换行 from... 换行 where ...；
 12. **自增字段**: autoincrement自增字段会导致无法分库，所以本系统不建议使用，需要时请使用@{SEQUENCE}生成一个增长的值，保证持续增长，但是不保证连续递增，可以是8字节或4字节整型值；
 13. **自增字段避免与max(id)冲突**：如果一个字段使用@{SEQUENCE}，则不可以使用"select coalesce(max(id),0)+1"，两个增长的逻辑不同，会导致冲突；
-14. **最终参考**：至简网格的服务端程序是开源的，如果碰到文档中没有描述清晰的内容，可以参照代码理解，代码地址为[码云](https://gitee.com/zhijian_net/MeshServer)或[GitHub](https://github.com/ZhiJianMesh/MeshServer)。
+14. **占位符缺右边括号**：@{FOR}之类展位符，通常很长，容易忘记写右边的括号，比如"@{FOR|sheets, `;`, `insert into stock_flow(...) values(...)"；
+15. **最终参考**：至简网格的服务端程序是开源的，如果碰到文档中没有描述清晰的内容，可以参照代码理解，代码地址为[码云](https://gitee.com/zhijian_net/MeshServer)或[GitHub](https://github.com/ZhiJianMesh/MeshServer)。
 
 ## 官方示例服务导航<a id="examples_nav"></a>
 
@@ -2276,7 +2277,7 @@ DDL语句执行完毕，会将本地数据库版本号改为toVer，然后再继
 3. 放弃兼容性，只提供java版本，这是最不希望看到的。
 
 ---
-# 九、基础服务
+# 基础服务
 
 给其他服务调用的基本能力，如果没有这些基础服务，所有业务都无法正常运行起来。
 以下基础服务都已上传至[码云](https://gitee.com/zhijian_net/enterprise/tree/master)、[Github](https://github.com/ZhiJianMesh/endterprise)。
@@ -2432,3 +2433,5 @@ showWorkflow(flow,did) { //显示某条记录对应的工作流
 /workflow/api/root.cfg中定义启动、删除、确认、查询任务的接口，这类接口在业务中调用。
 
 ![customerworkflow](imgs/server/customer_workflow.png)
+
+

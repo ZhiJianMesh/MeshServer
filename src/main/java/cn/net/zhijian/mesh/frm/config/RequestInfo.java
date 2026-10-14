@@ -29,7 +29,7 @@ import cn.net.zhijian.util.ValParser;
 public final class RequestInfo {
     private static final Logger LOG = LogUtil.getInstance();
 
-    private static final String PROPERTY_REQUEST = "request";
+    public static final String PROPERTY_REQUEST = "request";
     private static final String PROPERTY_VARS = "vars";
     
     private final ParameterInfo[] parameters;

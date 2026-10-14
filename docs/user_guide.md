@@ -590,7 +590,7 @@ WantedBy=multi-user.target
 ### AI智能体安装服务器程序的流程
 
 本节固化智能体在目标机上安装至简网格服务器程序的完整步骤与成功判据。
-单例部署时目标机就是本机；集群部署时目标机通过[集群管理](#cluster_mng)建立的MCP连接远程操作。
+单例部署时目标机就是本机；集群部署时目标机通过[集群管理](#cluster_mng)建立的MCP连接，远程操作。
 
 #### 1. 确认运行环境
 
@@ -642,7 +642,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 #### 5. 注册公司并登录（单例/集群都必须）
 
 - 按下面[公司注册](#comany_register)小节完成注册，然后用`sbin/command.sh company login 公司ID 公司密码`登录；
-- 第一个注册的公司自动成为第一个实例；集群的其他实例登录同一公司后，通过bios服务互相发现。
+- 第一个注册公司的实例自动成为第一个实例，集群中的其他实例登录同一公司后，通过bios服务互相发现。
 
 #### 失败处置速查表
 
@@ -888,7 +888,120 @@ sudo systemctl status ssh
 
 在配置发生变更后，会出现“保存”按钮，只有保存后，配置才会生效。
 
-# 三、Mesh编译&运行环境安装
+# 三、与智能体对接
+
+以飞书与openclaw为例介绍对接方法。
+
+为了在智能体中调用至简网格的服务，需要智能体知道怎样访问至简网格服务器。
+至简网格的插件会告诉openclaw怎样将飞书用户发来的请求正确翻译成服务的接口调用。
+
+
+## 工作过程
+
+飞书等客户端可以创建智能体与openclaw的agent连接，在飞书智能体中输入信息时，
+信息会传递到openclaw的agent中，除了用户的输入，还有用户在飞书的openid。
+
+```
+飞书客户端
+  │
+  │①长连接，输入用户请求
+  │     ┌┄┄┄┄┄┄┄千问、DeepSeek、Hy、Kimi等
+  │     ┊
+  │     ┊②https请求大模型接口
+━━┿━━━━━┊━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  │     ┊   
+  │     ┊   ┌─ Crm Agent ──────┐ ④https请求服务接口   
+ OpenClaw───├─ Finance Agent───┤┉┉┉┉┉┉┉┉┉至简网格服务器  
+  ┊         └─ Project Agent───┘         ┊
+  └┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┘
+     ③插件加载服务&接口描述
+```
+
+1. 用户在飞书智能体中输入请求内容；
+2. 用户认证；
+    - openclaw收到请求，发现openid没有对应user服务token，则告知用户需要输入用户名密码进行认证；
+    - openclaw使用输入的用户名密码，调用/user/api/login获得user服务的access_token、refresh_token与过期时间expires_at，并用openid为key缓存下来，只要没过期则使用它，避免每次请求都反复登录；
+    - 等到access_token将要过期时，调用/user/api/refresh刷新用户token，并记录新的access_token、refresh_token与过期时间expires_at；
+    - user服务的token只能访问user服务，访问其他服务，要用user服务的token调用/user/api/serviceToken换取服务token；
+3. openclaw agent根据用户输入，解析出需要调用哪个服务、哪个接口；
+4. 有对应服务的token的情况下，在请求头中加access_token头携带此token值，同时要加上cid头，直接调用服务接口；
+5. 得到服务的响应后，将响应转给用户；
+    - 如果接口的response定义为列表，则是响应字段定义；
+    - 如果接口的response定义为对象，如有type，且为docx\xlsx\text时，返回的是文件，请以附件方式转给用户；
+    - 其他情况为json数据，按markdown方式输出，list属性为true的字段转为表格输出，如果meta定义列名称以独立字段返回，此数据为数组的列表，comment中会描述每个列对应的名称；
+    - 如果响应中有UTC时间字段，请按以下表格中的方法格式化输出；
+
+**UTC时间字段格式化输出方法：**
+
+| 说明中的关键词        |换算（毫秒）| 输出格式|
+| ---                 | ---      | ---  |
+|UTC时间、UTC毫秒、UTC   | ×1       | yyyy-MM-dd HH:mm:ss |
+|UTC分钟（含简写 UTC分）| ×60000	| yyyy-MM-dd HH:mm |
+|UTC小时               | ×3600000	| yyyy-MM-dd HH:00 |
+|UTC天	              | ×86400000| yyyy-MM-dd |
+|UTC月度、UTC月、UTC月份 | -        | (值整除12)-(值除余12)|
+
+如果字段定义是时间字段，但是值小于或等于0，则统一输出为“-”
+
+## 添加Agent
+
+每个飞书智能体对应一个openclaw的agent，agent有两个重要的文件AGENTS.md与SOUL.md。
+AGENTS.md告诉智能体怎么工作，SOUL.md告诉智能体的定位。
+
+至简网格在发布版本中提供了两个文件的范本，使用时可以根据需要做调整。
+
+## 使用插件
+
+插件在openclaw启动时从至简网格获取所有服务的描述信息，以及服务接口定义的描述信息，
+这样在收到用户的请求时就可以将它翻译成至简网格可以理解的接口调用。
+
+使用插件前，需要在至简网格中添加智能体用户，与普通用户一样，只是类型为“AI智能体”(内部记录为'A')。
+在插件的配置中添加智能体用户的用户&名密码。
+
+### 插件原理
+
+1. 智能体在插件中首先用这对用户名&密码取得用户token，然后用此token换取bios服务的token；
+2. 用bios服务token访问/bios/api/service/listAll获得所有服务的列表。
+3. 用用户token逐个换取服务token，再用服务token调用`/服务/api/service_info` 与 `/服务/api/apis`获取服务、接口描述，并缓存下来；
+4. 用这些描述信息将用户从飞书发来的请求翻译成对应的接口调用；
+5. 将接口的响应以md格式或附件的方式发给用户，如果是列表，根据响应定义以表格方式组织。
+
+
+### 安装
+
+```BASH
+openclaw plugins install path_to_plugin --link   # 开发调试用 --link，正式安装去掉
+openclaw plugins inspect zhijian-mesh --runtime  # 确认工具已注册
+```
+
+### 配置
+
+配置内存写在 `~/.openclaw/openclaw.json` 的 `plugins.entries["zhijian-mesh"].config`，也可以用命令行：
+
+```BASH
+openclaw config set plugins.entries.zhijian-mesh.config.baseUrl   "https://192.168.1.5:8523"
+openclaw config set plugins.entries.zhijian-mesh.config.companyId 40                # conf/company.cfg 中的 id
+openclaw config set plugins.entries.zhijian-mesh.config.account   "aiagent"         # 智能体用户帐号，可以是其他账号，但是类型必须是AI智能体
+openclaw config set plugins.entries.zhijian-mesh.config.password  "******"          # 用户密码，当前用明文存储
+openclaw config set plugins.entries.zhijian-mesh.config.caCertPath "D:\\zhijian\\ca.pem"  # 自签证书时指定根证书，如果是http方式调用，不必设置
+```
+### 插件工具
+
+插件对外提供4个工具，智能体自行按"查服务 → 查接口 → 调用"的顺序使用：
+
+| 工具 | 用途 |
+| --- | --- |
+| mesh_services | 列出所有服务（名称、显示名、版本、接口数） |
+| mesh_apis | 查接口定义：url 精确取接口、service 列服务接口、keyword 跨服务检索（含入参与响应字段说明） |
+| mesh_call | 调用接口，把响应渲染成 Markdown（列表按响应定义转表格）后返回 |
+| mesh_refresh | 重新登录并重新拉取服务/接口元数据（新装服务或换帐号后使用） |
+
+插件内部流程：`/user/api/login` 取用户token → `/user/api/serviceToken?service=bios` 换 bios token →
+`/bios/api/service/listAll` 取服务名 → 逐个服务换 token 后读 `/服务/api/service_info` 与 `/服务/api/apis`，
+结果缓存到插件目录的 `data/mesh-metadata.json`，供后续翻译请求时检索。
+各服务需要给该智能体用户授权，否则调用会返回`NO_RIGHT`(111)。
+
+# 四、Mesh编译&运行环境安装
 Mesh开发、运行环境安装方法，以及所需原生库跨平台编译方法。
 
 

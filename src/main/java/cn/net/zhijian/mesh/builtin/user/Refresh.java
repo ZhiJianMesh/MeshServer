@@ -26,7 +26,6 @@ public final class Refresh extends UserBase {
     
     public Refresh(ServiceInfo serviceInfo, ApiInfo apiInfo, String processName) {
         super(serviceInfo, apiInfo, processName);
-        apiInfo.addExtPara(PARA_UID);
     }
 
     @Override
@@ -53,7 +52,6 @@ public final class Refresh extends UserBase {
             }
             cf = CompletableFuture.completedFuture(cacheUserToken.expiresAt());
         } else {
-            req.put(PARA_UID, userId);
             //refresh token不支持company token
             cf = super.handle(req, resp).thenApplyAsync(hr -> {
                 if(hr.code != RetCode.OK || hr.data == null) {
@@ -89,6 +87,9 @@ public final class Refresh extends UserBase {
                 resp.put(SEG_EXPIRES_AT, newToken.expiresAt());//token对超时时间做了调整，与输入值不一定相同
                 resp.put(SEG_TOKEN_TYPE, "session");
                 resp.put("id", userId);
+                
+                long tokenHash = StringUtil.longHashCode(tokenStr);
+                resp.put(PARA_TOKENHASH, tokenHash); //用在下一步存储token中
 
                 //更新缓存中的token，gw需要按tokenCaller分发，否则不能及时更新
                 UserTokenCache.put(cacheId, newToken);

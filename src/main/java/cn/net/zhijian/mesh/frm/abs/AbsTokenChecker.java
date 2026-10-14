@@ -45,7 +45,7 @@ public abstract class AbsTokenChecker implements IOAuth, IThreadPool {
     
     //缓存用户拥有哪些平台类权限
     protected static final Cache<Integer, byte[]> CachedPowers = Caffeine.newBuilder()
-            .maximumSize(10000)//单实例保存1万个活跃用户的token，大约需要4M内存
+            .maximumSize(10000)//单实例保存1万个活跃用户的授权记录，大约需要1M内存
             .expireAfterAccess(1800, TimeUnit.SECONDS)//闲置半小时，则无效
             .build();
 
