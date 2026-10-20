@@ -2,6 +2,8 @@ package cn.net.zhijian.mesh.frm.config.para;
 
 import static cn.net.zhijian.UnitTestBase.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -91,6 +93,70 @@ public class NumericParameterTest {
         v = p.valueOf(req, params, params);
         assertTrue(v != null && !v.ok);
         params.put("v", -1);
+        v = p.valueOf(req, params, params);
+        assertTrue(v != null && !v.ok);
+    }
+    
+    @Test
+    public void testBiggerOrSmallerThanInObj() {
+        Map<String, Object> params = MapBuilder.of("v1", 0, "v2", 1000,
+                    "v3", MapBuilder.of("a", 100, "b", 2, "c", 800),
+                    "v", MapBuilder.of("a", 1, "b", 2, "c", 200, "d", 800));
+
+        AbsServerRequest req = HttpServerRequest4Test.create(null, params);
+        Map<String, Object> strCfg = JsonUtil.jsonToMap(
+                "{\"name\":\"v\",\"type\":\"object\",\"props\":["
+                + "{\"name\":\"a\",\"type\":\"int\",\"must\":true},"
+                + "{\"name\":\"b\",\"type\":\"int\",\"biggerThan\":\"a\"}"
+                + "{\"name\":\"c\",\"type\":\"int\",\"biggerThan\":\"v3.a\"}"
+                + "{\"name\":\"d\",\"type\":\"int\",\"smallerThan\":\".v2\"}]}");
+        ParameterInfo p = ParameterInfo.parse(strCfg, false);
+        Value v = p.valueOf(req, params, params);
+        assertTrue(v != null && v.ok);
+        
+        params.put("v", MapBuilder.of("a", 1, "b", -1, "c", 200, "d", 800));
+        v = p.valueOf(req, params, params);
+        assertTrue(v != null && !v.ok);
+        
+        params.put("v", MapBuilder.of("a", 1, "b", 2, "c", 99, "d", 800));
+        v = p.valueOf(req, params, params);
+        assertTrue(v != null && !v.ok);
+
+        params.put("v", MapBuilder.of("a", 1, "b", 2, "c", 200, "d", 1800));
+        v = p.valueOf(req, params, params);
+        assertTrue(v != null && !v.ok);
+    }
+    
+    @Test
+    public void testBiggerOrSmallerThanInList() {
+        List<Object> vv = new ArrayList<>();
+        vv.add(MapBuilder.of("a", 1, "b", 2, "c", 800, "d", 800));
+                
+        Map<String, Object> params = MapBuilder.of("v1", 0, "v2", 1000,
+                "v3", MapBuilder.of("a", 100, "b", 2, "c", 800, "d", 800), "v", vv);
+        AbsServerRequest req = HttpServerRequest4Test.create(null, params);
+        Map<String, Object> strCfg = JsonUtil.jsonToMap(
+                "{\"name\":\"v\",\"type\":\"object\",\"list\":true, \"props\":["
+                + "{\"name\":\"a\",\"type\":\"int\",\"must\":true},"
+                + "{\"name\":\"b\",\"type\":\"int\",\"biggerThan\":\"a\"}"
+                + "{\"name\":\"c\",\"type\":\"int\",\"biggerThan\":\"v3.a\"}"
+                + "{\"name\":\"d\",\"type\":\"int\",\"smallerThan\":\".v2\"}]}");
+        ParameterInfo p = ParameterInfo.parse(strCfg, false);
+        Value v = p.valueOf(req, params, params);
+        assertTrue(v != null && v.ok);
+
+        vv.clear();
+        vv.add(MapBuilder.of("a", 1, "b", -1, "c", 200, "d", 800));
+        v = p.valueOf(req, params, params);
+        assertTrue(v != null && !v.ok);
+
+        vv.clear();
+        vv.add(MapBuilder.of("a", 1, "b", 2, "c", 99, "d", 800));
+        v = p.valueOf(req, params, params);
+        assertTrue(v != null && !v.ok);
+
+        vv.clear();
+        vv.add(MapBuilder.of("a", 1, "b", 2, "c", 200, "d", 1800));
         v = p.valueOf(req, params, params);
         assertTrue(v != null && !v.ok);
     }

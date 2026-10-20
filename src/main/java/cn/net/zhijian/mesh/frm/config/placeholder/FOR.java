@@ -14,7 +14,7 @@ import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
 
 /**
- * `@{FOR|paraName,`separator`,...}`
+ * `@{FOR|paraName[filters...],`separator`,...}`
  * @author flyinmind of csdn.net
  * 对paraName指定的数组进行循环拼接
  * 注意，用到字符串的地方，引号不能使用单引号，统一使用"`"，
@@ -35,7 +35,7 @@ final class FOR extends ScriptElement {
         int firstComma = paras.indexOf(',');
         String s = paras.substring(0, firstComma);
 
-        //因为修改insert sql时会判断")"，添加update_timer，所以用中括号
+        //因为修改insert sql时会判断")"，添加update_time，所以用中括号
         int start = s.indexOf('['); 
         if(start > 0) { //判断是否有过滤条件，循环变量后面加中括号括起的内容
             int level = 1;

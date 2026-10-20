@@ -23,7 +23,7 @@ import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
 
 public interface IServiceServer {
-    String INIT_METHOD_HEAD = "__";
+    public String INIT_METHOD_HEAD = "__";
     
     long startupAt = System.currentTimeMillis(); //启动时间
 

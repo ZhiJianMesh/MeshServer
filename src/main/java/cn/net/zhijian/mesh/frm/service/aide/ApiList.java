@@ -16,6 +16,7 @@ import cn.net.zhijian.mesh.frm.config.ApiInfo;
 import cn.net.zhijian.mesh.frm.config.RequestInfo;
 import cn.net.zhijian.mesh.frm.config.ResponseInfo;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
+import cn.net.zhijian.mesh.frm.intf.IServiceServer;
 import cn.net.zhijian.mesh.frm.method.ApiMethod;
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.JsonUtil;
@@ -48,23 +49,44 @@ public class ApiList extends AbsProcessor {
             if(cfgFiles == null) {
                 return HandleResult.future();
             }
+            Object e;
+            Map<String, Object> desc;
+            Map<String, Object> api;
+            String name;
+            List<Object> defs;
+            String cls;
+            String fileName;
+            String property;
+            String tokenChecker;
+            boolean onlyUser = !ValParser.parseBool(req.get("showall"), false);
+            
             for(File f : cfgFiles) {
-                String fileName = f.getName();
-                String cls = fileName.substring(0, fileName.length() - 4); //去掉.cfg
-                List<Object> defs = JsonUtil.jsonFileToList(f, true);
+                fileName = f.getName();
+                cls = fileName.substring(0, fileName.length() - 4); //去掉.cfg
+                defs = JsonUtil.jsonFileToList(f, true);
                 if(defs == null) {
                     continue;
                 }
                 for(Object o : defs) {
-                    Map<String, Object> api = ValParser.parseObject(o);
+                    api = ValParser.parseObject(o);
                     if(api == null) {
                         continue;
                     }
-                    Map<String, Object> desc = new HashMap<>();
-                    Object e;
+                    property = ValParser.getAsStr(api, ApiMethod.CFG_PROPERTY).toUpperCase();
+                    if(onlyUser && !ApiMethod.PROPERTY_PUBLIC.equals(property)) {
+                        tokenChecker = ValParser.getAsStr(api, ApiMethod.CFG_TOKENCHECKER).trim().toUpperCase();
+                        if(!tokenChecker.startsWith(USER_TOKEN_CHECKER)) {
+                            continue;
+                        }
+                    }
+                    desc = new HashMap<>();
+                    name = ValParser.getAsStr(api, ApiMethod.CFG_NAME);
+                    if(name.startsWith(IServiceServer.INIT_METHOD_HEAD)) {
+                        continue; //初始化接口，不必记录
+                    }
 
                     desc.put(ApiMethod.CFG_METHOD, api.get(ApiMethod.CFG_METHOD));
-                    desc.put(ApiMethod.CFG_PROPERTY, api.get(ApiMethod.CFG_PROPERTY));
+                    desc.put(ApiMethod.CFG_PROPERTY, property);
                     e = api.get("comment");
                     if(e != null) {
                         desc.put("comment", e);

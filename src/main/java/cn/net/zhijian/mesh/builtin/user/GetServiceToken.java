@@ -42,6 +42,11 @@ public final class GetServiceToken extends AbsProcessor {
     private static final Set<String> cloudServices = new HashSet<>();
     private static long refreshAt = 0;
     
+    static {
+        services.add(SERVICE_BIOS); //只要实例能启动，则一定存在
+        services.add(SERVICE_BACKEND);
+    }
+    
     public GetServiceToken(ServiceInfo serviceInfo, ApiInfo apiInfo, String processName) {
         super(serviceInfo, apiInfo, processName);
     }

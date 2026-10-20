@@ -286,9 +286,6 @@ public final class RequestInfo {
                 var = ss;
             }
             req.put(name, var);
-            if(LOG.isDebugEnabled()) {
-                LOG.debug("Var,name:{},val:{}", name, var);
-            }
             
             if(toResp) {
                 resp.put(name, var);

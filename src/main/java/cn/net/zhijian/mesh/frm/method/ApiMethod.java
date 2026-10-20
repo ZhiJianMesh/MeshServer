@@ -48,7 +48,7 @@ public class ApiMethod implements IMethod, IThreadPool {
     private static final String CFG_FEATURE = "feature";
     //属性，比如public/private、localtion等
     public static final String CFG_PROPERTY = "property";
-    private static final String CFG_TOKENCHECKER = "tokenChecker";
+    public static final String CFG_TOKENCHECKER = "tokenChecker";
     private static final String CFG_ACLCHECKER = "aclChecker";
     //默认返回内容，当程序内部发生任何异常时，返回onException指定的结果
     private static final String CFG_ONEXCEPTION = "onException";
@@ -60,8 +60,8 @@ public class ApiMethod implements IMethod, IThreadPool {
     private static final String CFG_HEADPROCESS = "headProcess"; //循环前的处理
     private static final String CFG_TAIL_RUNTYPE = "tailRuntype"; 
     
-    private static final String PROPERTY_PUBLIC = "PUBLIC";
-    private static final String PROPERTY_PRIVATE = "PRIVATE";
+    public static final String PROPERTY_PUBLIC = "PUBLIC";
+    public static final String PROPERTY_PRIVATE = "PRIVATE";
     
     private static final int TAILRUN_ALL = 0;
     private static final int TAILRUN_FAIL = 1;

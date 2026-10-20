@@ -38,7 +38,7 @@ user:{
     serviceExt:"服务扩展信息",
     statusTypes:{N:"正常",L:"锁定",R:"删除"},
     sexTitles:{"M":"男","F":"女","U":"未知"},
-    typeTitles:{"I":"内部员工","O":"外部人员","D":"设备"},
+    typeTitles:{"I":"内部员工","E":"外部人员","D":"设备","A":"AI智能体"},
     sexOpts:[{label:"男",value:"M"},{label:"女",value:"F"}],
     typeOpts:[{label:"内部员工",value:"I"},{label:"外部人员",value:"E"},{label:"设备",value:"D"},{label:"AI智能体",value:"A"}]
 },
