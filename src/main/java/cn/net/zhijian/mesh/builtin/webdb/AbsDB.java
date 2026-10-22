@@ -25,6 +25,9 @@ import cn.net.zhijian.util.ValParser;
 
 abstract class AbsDB implements IDBConst {
     private static final Logger LOG = LogUtil.getInstance();
+    private static final String CFG_SEG_USER = "user"; //数据库帐号
+    private static final String CFG_SEG_PWD = "pwd"; //数据库密码
+    private static final String CFG_SEG_DBURL = "url"; //数据库URL，sqlite无此配置
 
     static final String SEG_STATUS = "status"; //状态
 
@@ -45,7 +48,6 @@ abstract class AbsDB implements IDBConst {
     
     abstract AbsRDBWBuilder getBuilder(ServiceInfo si, int cid, String service, String db);
     abstract DBType type();
-    abstract Map<String, Object> toMap();
     //本身具备同步能力的数据库，固定返回false
     //对于sqlite等文件数据库，有slaves的情况，才需要启动定时备份，并且在主库执行定时备份
     abstract boolean needBackup();
@@ -115,8 +117,8 @@ abstract class AbsDB implements IDBConst {
         }
 
         String dbUrl = ValParser.getAsStr(cfg, CFG_SEG_DBURL, null);
-        String account = ValParser.getAsStr(cfg, "user");
-        String pwd = ValParser.getAsStr(cfg, "pwd");
+        String account = ValParser.getAsStr(cfg, CFG_SEG_USER);
+        String pwd = ValParser.getAsStr(cfg, CFG_SEG_PWD);
         if(sType.equals(DBType.MYSQL.name())) {
             db = new MysqlDB(dbNo, level, shardingStart, shardingEnd, writeConnNum, readConnNum,
                     dbUrl, slaves, mode, account, pwd);
@@ -138,6 +140,22 @@ abstract class AbsDB implements IDBConst {
                    LOCAL_DBNO, MAX_SHARDING_NUM, DEFAULT_MAX_CONN_NUM);
         return new SqliteDB(LOCAL_DBNO, 0, 0, MAX_SHARDING_NUM, DEFAULT_MAX_CONN_NUM, null, DB_MASTER);
     }
+
+    Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put(CFG_SEG_TYPE, type().name());
+        map.put(CFG_SEG_NO, no);
+        map.put(CFG_SEG_LEVEL, level);
+        map.put(CFG_SEG_SHARDSTART, shardStart);
+        map.put(CFG_SEG_SHARDEND, shardEnd);
+        map.put(CFG_SEG_WRITECONN, writeConnNum);
+        map.put(CFG_SEG_READCONN, readConnNum);
+        map.put(CFG_SEG_SLAVES, NodeAddress.join(slaves, ","));
+        //主从实例的状态标识不同
+        map.put(SEG_STATUS, DB_MASTER.equals(this.mode) ? "M" : "S");
+        return map;
+    }
+
     
     static class SqliteDB extends AbsDB {
         private SqliteDB(int dbNo, int level, int shardingStart, int shardingEnd, int readConnNum, NodeAddress[] slaves, String mode) {
@@ -165,22 +183,6 @@ abstract class AbsDB implements IDBConst {
             return DBType.SQLITE;
         }
         
-        @Override
-        Map<String, Object> toMap() {
-            Map<String, Object> map = new HashMap<>();
-            map.put(CFG_SEG_TYPE, type().name());
-            map.put(CFG_SEG_NO, no);
-            map.put(CFG_SEG_LEVEL, level);
-            map.put(CFG_SEG_SHARDSTART, shardStart);
-            map.put(CFG_SEG_SHARDEND, shardEnd);
-            map.put(CFG_SEG_WRITECONN, writeConnNum);
-            map.put(CFG_SEG_READCONN, readConnNum);
-            map.put(CFG_SEG_SLAVES, NodeAddress.join(slaves, ","));
-            //主从实例的状态标识不同
-            map.put(SEG_STATUS, DB_MASTER.equals(this.mode) ? "M" : "S");
-            return map;
-        }
-
         @Override
         public boolean needBackup() {
             return this.slaves != null && this.slaves.length > 0;
@@ -229,17 +231,10 @@ abstract class AbsDB implements IDBConst {
         
         @Override
         Map<String, Object> toMap() {
-            Map<String, Object> map = new HashMap<>();
-            map.put(CFG_SEG_TYPE, type().name());
-            map.put(CFG_SEG_NO, no);
-            map.put(CFG_SEG_LEVEL, level);
-            map.put(CFG_SEG_SHARDSTART, shardStart);
-            map.put(CFG_SEG_SHARDEND, shardEnd);
-            map.put(CFG_SEG_WRITECONN, writeConnNum);
-            map.put(CFG_SEG_READCONN, readConnNum);
+            Map<String, Object> map = super.toMap();
             map.put(CFG_SEG_DBURL, this.dbUrl);
-            map.put(CFG_SEG_SLAVES, NodeAddress.join(slaves, ","));
-            map.put(SEG_STATUS, DB_MASTER.equals(this.mode) ? "M" : "S");
+            map.put(CFG_SEG_USER, this.account);
+            map.put(CFG_SEG_PWD, this.pwd);
             return map;
         }
     }

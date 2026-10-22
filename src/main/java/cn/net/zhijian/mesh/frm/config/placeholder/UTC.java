@@ -34,7 +34,7 @@ final class UTC extends ScriptElement {
     private static final String FMT_WEEKEND = "weekend";
 
     static final int NONE = 0; //原样输出
-    static final int FORMAT = Integer.MIN_VALUE; //格式化字符串
+    static final int FORMAT = Integer.MIN_VALUE; //使用格式化字符串
 
     static final int HEX = -1;
     static final int BASE64 = -2;
@@ -55,7 +55,7 @@ final class UTC extends ScriptElement {
     private final String outputFmt; //日期格式化信息
     private final int outputFmtVal;
     private final int inputUnit; //输入UTC值的单位，默认为1
-
+    
     public UTC(String paras, EleType type, String quote, String safeQuote) {
         super(paras, type, quote, safeQuote);
         String[] ss = StringUtil.split(paras, ApiParaHolder.PARA_SEPARATOR, ApiParaHolder.QUOTATION_MARK, true);
@@ -72,28 +72,24 @@ final class UTC extends ScriptElement {
         
         if(ss.length > 2) {
             String s = ApiParaHolder.takeStr(ss[2]).trim();
-            fmtVal = parseFmt(s);
-            if(ss.length > 3) {
-                boolean valid = true;
-                if(ss[3].matches("\\d+")) {
-                    inputUnit = Integer.parseInt(ss[3]);
-                    valid = inputUnit > 0; 
-                } else if(ss[3].equalsIgnoreCase("month")) {
+            fmtVal = parseFmt(s); //输出格式
+            fmt = fmtVal == FORMAT ? s : null;
+            if(ss.length > 3) { //输入格式
+                s = ss[3].trim().toLowerCase();
+                if(s.matches("^" + FMT_UNIT + "\\s*\\d+$")) {
+                    s = s.substring(FMT_UNIT.length());
+                    inputUnit = Integer.parseInt(s);
+                } else if(s.equals("month")) {
                     inputUnit = UNIT_MONTH;
-                } else if(ss[3].equalsIgnoreCase("ymd")) {
+                } else if(s.equals("ymd")) {
                     inputUnit = UNIT_YMD;
                 } else {
-                    valid = false;
-                }
-                if(!valid) {
-                    throw new InvalidParameterException("invalid unit config");
+                    throw new InvalidParameterException("invalid input format config");
                 }
             }
-            fmt = fmtVal == FORMAT ? s : null;
         } else {
             fmt = "YYYY/MM/dd HH:mm:ss";
         }
-        
         this.outputFmt = fmt;
         this.outputFmtVal = fmtVal;
         this.inputUnit = inputUnit;
@@ -145,7 +141,7 @@ final class UTC extends ScriptElement {
         if(f.startsWith(FMT_UNIT)) {
             String s = f.substring(FMT_UNIT.length()).trim();
             if(!s.matches("\\d+")) {
-                throw new InvalidParameterException("invalid unit fmt config");
+                throw new InvalidParameterException("invalid output format config");
             }
             fmtVal = Integer.parseInt(s);
         } else if(f.equals(FMT_MONTHS)){
@@ -199,79 +195,67 @@ final class UTC extends ScriptElement {
 
         Calendar cal = Calendar.getInstance(tz);
         cal.setTime(new Date(utc));
-        //公元0年1月到现在的月份数
-        //比如1971.2返回1971*12+(2-1)=23653，从0开始
-        if(fmtVal == MONTHS) {
-            return cal.get(Calendar.YEAR) * 12 + cal.get(Calendar.MONTH);
-        }
-
-        if(fmtVal == DAYOFMONTH) { //可以使用"MM"格式输出日期，此处1月返回0
-            return cal.get(Calendar.DAY_OF_MONTH) - 1;
-        }
-
-        if(fmtVal == DAYOFYEAR) { //UTC指定日期在当前年度中第几天，第一天返回0
-            return cal.get(Calendar.DAY_OF_YEAR) - 1;
+        
+        switch(fmtVal) {
+            case MONTHS: //公元0年1月到现在的月份数，比如1971.2返回1971*12+(2-1)=23653，从0开始
+                return cal.get(Calendar.YEAR) * 12 + cal.get(Calendar.MONTH);
+            case DAYOFMONTH:  //可以使用"dd"格式输出日期，此处1号返回0
+                return cal.get(Calendar.DAY_OF_MONTH) - 1;
+            case DAYOFYEAR:  //UTC指定日期在当前年度中第几天，第一天返回0
+                return cal.get(Calendar.DAY_OF_YEAR) - 1;
+            case MONTH:  //月份，1月返回0
+                return cal.get(Calendar.MONTH);
+            case MONTHSTART: { //UTC指定月度的1号00:00:00
+                cal.set(Calendar.DAY_OF_MONTH, 1);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                return cal.getTimeInMillis();
+            }
+            case MONTHEND: { //UTC指定月度的下个月1号00:00:00
+                cal.add(Calendar.MONTH, 1);
+                cal.set(Calendar.DAY_OF_MONTH, 1);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                return cal.getTimeInMillis();
+            }
+            case WEEKSTART: { //UTC指定星期第一天(星期天)00:00:00
+                cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek()); //根据系统设置，选择星期的第一天，而不是固定为SUNDAY
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                return cal.getTimeInMillis();
+            }
+            case WEEKEND: { //UTC指定星期的下个星期第一天00:00:00
+                cal.set(Calendar.DAY_OF_WEEK, Calendar.SATURDAY);
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                cal.add(Calendar.DAY_OF_WEEK, 1);
+                return cal.getTimeInMillis();
+            }
+            case DAYSTART: { //UTC指定日期00:00:00的UTC时间戳
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                return cal.getTimeInMillis();
+            }
+            case DAYEND: { //UTC指定日期下一天00:00:00的UTC时间戳
+                cal.set(Calendar.HOUR_OF_DAY, 0);
+                cal.set(Calendar.MINUTE, 0);
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
+                cal.add(Calendar.DATE, 1);
+                return cal.getTimeInMillis();
+            }
         }
         
-        if(fmtVal == MONTH) { //月份，1月返回0
-            return cal.get(Calendar.MONTH);
-        }
-
-        if(fmtVal == MONTHSTART) { //UTC指定月度的1号00:00:00
-            cal.set(Calendar.DAY_OF_MONTH, 1);
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            return cal.getTimeInMillis();
-        }
-
-        if(fmtVal == MONTHEND) { //UTC指定月度的下个月1号00:00:00
-            cal.add(Calendar.MONTH, 1);
-            cal.set(Calendar.DAY_OF_MONTH, 1);
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            return cal.getTimeInMillis();
-        }
-        
-        if(fmtVal == WEEKSTART) { //UTC指定星期第一天(星期天)00:00:00
-            cal.set(Calendar.DAY_OF_WEEK, cal.getFirstDayOfWeek()); //根据系统设置，选择星期的第一天，而不是固定为SUNDAY
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            return cal.getTimeInMillis();
-        }
-
-        if(fmtVal == WEEKEND) { //UTC指定星期的下个星期第一天00:00:00
-            cal.set(Calendar.DAY_OF_WEEK, Calendar.SATURDAY);
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            cal.add(Calendar.DAY_OF_WEEK, 1);
-            return cal.getTimeInMillis();
-        }
-        
-        if(fmtVal == DAYSTART) { //UTC指定日期00:00:00的UTC时间戳
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            return cal.getTimeInMillis();
-        }
-
-        if(fmtVal == DAYEND) { //UTC指定日期下一天00:00:00的UTC时间戳
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            cal.add(Calendar.DATE, 1);
-            return cal.getTimeInMillis();
-        }
-
         if(fmt != null) {
             return DateUtil.utcToLocale(utc, fmt, tz);
         }

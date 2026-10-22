@@ -109,7 +109,7 @@ public final class Verify extends UserBase {
                     }
                 }
 
-                UserTokenCache.put(cacheId, reqToken);//db中的token，认为是可信的，不再验签
+                UserTokenCache.put(cacheId, reqToken);//reqToken已验签，且与db中的token一致，认为是可信的
                 return HandleResult.OK;
             }, Pool);
         }, Pool);

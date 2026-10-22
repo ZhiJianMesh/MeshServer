@@ -100,7 +100,7 @@
 ~   └────┬────┘  └───┬────────┘     ┗━━━━━▲━━━┛       ~
 ~        │           │                    │          ~
 ~~~~~~~~~│~~~~~~~~~~~│~~~~~~~~~~~~~~~~~~~~│~~~~~~~~~~~
-         └────────┬──┘                    │定期备份数据，私钥加密存储
+         └────────┬──┘                    │每日备份数据，私钥加密存储
 ┌─公司内网环境─────┼───────────────────────┼──────────┐
 │                 │公网IP映射或内网穿透     │         │
 │  ┌──────────────▼──────────────────┐    │         │
@@ -640,7 +640,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
     "name":"api名称",
     "method":"可接受的请求方法，不设置表示不限,POST|GET|PUT|DELETE",
     "property":"属性，private或public",
-    "tokenChecker": "认证方式，property有public时不必设置，[USER,UNIUSER,OAUTH,COMPANY,INIT,MNT,APP,APP-调用方服务名或/*](#serviceauth)",
+    "tokenChecker": "认证方式，property有public时不必设置，[USER,UNIUSER,OAUTH,COMPANY,INIT,MNT,APP,APP-调用方服务名或*](#serviceauth)",
     "aclChecker": "接入检查，只支持RBAC(Role Based Access Control)或者自定义实现",
     "sameAs":"如果接口的request、vars、process、response与某个其他的接口完全一致，则可以增加此配置，指定为那个接口的路径，比如与stats.cfg中的report接口相同，则可以写成/stats/report，此时request、vars、process、response不必配置",
     "feature": "特性，与RBAC配合，用于更加细致的控制[角色授权](#user_auth)，每个接口只能有一个feature，比如`admin,sale`是无效的，调用时会导致NO_RIGHT错误",
@@ -751,6 +751,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | when   |一个逻辑表达式，确定当前process是否执行，如果返回false则直接跳过当前process<br>只能使用请求参数、变量、请求头或上一步的响应参数作为判断条件|
 | convert|将start-end（包括start、end）范围内的错误码全部转换成"to"指定的错误码，info指定错误信息<br>如果“to”为OK，则可以设置data，data必须为一个json字符串，可以使用占位符<br>如果start与end相同，可以简化成code|
 | onSuccess | 如果process处理OK，则执行onSuccess补充逻辑，有两种方式补充方式：<br>1）直接返回一个json对象字符串，json对象中的成员会直接添加到响应体的data中；<br>2）设置condition(一个或多个@{CONDITION})、errorCode、errorInfo，如果condition为真，则当前处理最终返回OK，如果为假则返回errorCode及errorInfo，处理失败，并终止后继的处理，见下面的例子 |
+| nameSpace | 给本处理写入响应 data 的字段名统一加前缀（如 "u."），避免多个处理返回的字段名冲突 |
 
 
 
@@ -1240,40 +1241,45 @@ content即为要查找的内容，查找前会先做分词处理。
 
 #### JS内置函数
 
-除了js基本功能外，系统提供了Mesh、DB、Logger、String、Secure扩展接口，以便于使用js实现更复杂的功能，以Secure类接口最为突出。
-除了用在script中，在RDB的"js:"开头的sql中也可以使用，比如拼接sql时有字符串参数，建议使用clearInjection处理一下再拼接。
+除了js基本功能外，系统通过 QuickJS 把几个 Java 对象挂到脚本全局中，便于在 js处理 或 RDB 的 `js:` SQL 中使用，
+比如拼接sql时有字符串参数，建议使用DB.clearInjection处理一下再拼接。
+
+各对象在脚本里的**全局名**如下（注意字符串类叫 `JStr`，不是 `String`）。
 
 | 函数 | 备注 |
 | --- | --- |
-| **Mesh类中的函数** ||
+| **Mesh（全局名 Mesh）** ||
 | success(jsonData) | 返回成功的HandleResult，jsonData是返回数据，可以为"{}"，表示无数据 |
 | error(errCode, info) | 返回失败的HandleResult，errCode在[RetCode](#返回码)中定义 |
-| **DB类** | |
+| recentNextPeriod(periodType, old, val) | 计算下一周期时间 |
+| timeZone() | 返回时区，单位分钟 |
+| **DB（全局名 DB）** | |
 | sql(sql) | 对sql进行检查或做出改变，正常则返回修改后的sql，否则返回FORBIDDEN错误码 |
 | sqlError(code, info) | 在js中做sql处理时，如果发生错误，调用它返回错误信息 |
 | clearInjection(val) | 在js中拼接sql是危险的操作，使用此函数对字符串参数进行处理，避免sql注入 |
-| **Logger类** | | |
-| debug(s) | 输出debug级别的日志 |
-| info(s) | 输出info级别的日志 |
-| warn(s) | 输出warn级别的日志 |
-| error(s) | 输出error级别的日志 |
-| **String类** | | |
+| **Logger（全局名 Logger）** | |
+| debug(fmt, args...) | 按 fmt 输出 debug 级别日志（printf 风格可变参） |
+| info(fmt, args...) | 按 fmt 输出 info 级别日志 |
+| warn(fmt, args...) | 按 fmt 输出 warn 级别日志 |
+| error(fmt, args...) | 按 fmt 输出 error 级别日志 |
+| **JStr（全局名 JStr，非 String）** | |
 | uuid() | 产生uuid字符串，使用base64编码 |
-| replaceChars(str, ch, replaceWith) | 在str中寻找ch，并替换成replaceWith |
+| hash(s) | 计算字符串 hash 值（原文档误列在 Secure 下） |
+| longHash(s) | 计算字符串 long 型 hash code（原文档误列在 Secure 下） |
+| absHash(s) | 与 longHash 类似，但返回大于 0 的 hash code（原文档误列在 Secure 下） |
+| intHash(s) | 将几个字符串连在一起，计算 int 型 hash code（原文档误列在 Secure 下） |
 | chkCreditCode(s) | 判断是否为合法的统一信用码 |
-| base64CharCode(c) | 返回一个字符的base64编码，c必须是“a-z,A-Z,0-9,\_,-”中的一个 |
+| chkIdNo(s) | 校验身份证号 |
+| base64CharCode(c) | 返回一个字符的 base64 编码，c必须是“a-z,A-Z,0-9,\_,-”中的一个 |
+| base64Char(v) | 与 base64CharCode 反向，由值得到字符（原文档未列） |
 | isLanIP(v) | 判断是否为局域网IP，支持IPv4与IPv6判断 |
 | isIPv4(v) | 是否为一个合法的IPv4地址 |
 | isIPv6(v) | 是否为一个合法的IPv6地址 |
-| **Secure类** | | |
+| **Secure（全局名 Secure）** | |
 | pbkdf2(pwd, iterCount) | 使用pbkdf2算法，将pwd迭代iterCount次(1-2^31) |
 | pbkdf2Check(pwd, savedPwd) | 检查输入的pwd与savedPwd是否一致，savedPwd由pbkdf2函数生成 |
-| hash(s) | 计算多int型hash值 |
-| longHash(s) | 计算字符串long型hash code |
-| absHash(s) | 与longHash类似，但是返回的是大于0的hash code |
-| intHash(s) | 将几个字符串连在一起，计算int型hash code |
 | cbcEncrypt(plain, key) | 使用AES-CBC算法加密，plain为明文，key为密钥，keyLen可以选择16/24/32。IV为随机产生，并记录在密文的前面16字节中。 |
-| cbcDecrypt(cipher, key, kenLen) | 使用AES-CBC算法解密，cipher为密文，其中包括了随机IV |
+| cbcDecrypt(cipher, key, keyLen) | 使用AES-CBC算法解密，cipher为密文，其中包括了随机IV |
 | gcmEncrypt(plain, key) | 使用AES-GCM算法加密，plain为明文，key为密钥，keyLen可以选择16/24/32。IV为随机产生，并记录在密文的前面16字节中。 |
 | gcmDecrypt(cipher, key) | 使用AES-GCM算法解密，cipher为密文，其中包括了随机IV |
 | md5(str) | 使用MD5算法对str进行不可逆运算 |
@@ -1290,8 +1296,14 @@ content即为要查找的内容，查找前会先做分词处理。
 | eccEncrypt(plain, publicKey) | Ecc算法，用公钥publicKey加密plain内容 |
 | eccDecrypt(cipher,privateKey) | Ecc算法，用私钥privateKey解密cipher内容 |
 | keyPairEncrypt(kp,plain) | ecc算法，用密钥对加密plain |
-| keyPairDecrypt(kp,pwd,cipher) | 算法，用pwd解密密钥对，并用该密钥对解密cipher |
+| keyPairDecrypt(kp,pwd,cipher) | ecc算法，用pwd解密密钥对，并用该密钥对解密cipher |
 | changeKeyPairPwd(kp, oldPwd, newPwd) | ecc算法，用原密码oldPwd解密密钥对，然后用新密码加密密钥对后返回 |
+| **Platform（全局名 Platform）** | |
+| isSupported(feature) | 当前恒返回 false |
+| buildVersion() | 构建版本，形如 Jvm_\<BUILDVERSION\> |
+| engineVersion() | 引擎版本，形如 ENGINEVERSION |
+
+> 说明：脚本里用全局名引用，如 `Mesh.success(...)`、`JStr.uuid()`、`Platform.buildVersion()`。
 
 #### 循环中的占位符
 
@@ -1582,6 +1594,70 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
 ```
 
 
+### 11. 其它处理类型
+
+除前面列出的类型外，框架还内置了以下处理类型，用于服务间代理、文件分片传输，以及 HTTP 到 TCP 长连接的桥接。
+
+#### proxy
+服务间权限中转代理。
+
+以**当前服务自身身份**调用 `_service` / `_url` / `_method` 指定的目标服务，目标服务看到的调用方是本服务。用于让本服务代为访问它有权限、但调用方无权直接访问的接口；**不能**用于 public 接口（public 接口无需权限，不必经此处理器）。
+
+必填配置 `allowed`：调用白名单，key 为 `服务名@url`（url 小写，含 query 时取 `?` 前部分），value 为该调用允许的入参（占位符，可为空 `{}`）。**必须配置 allowed**，否则本服务后台有权调用的接口都可被借道调用。
+
+请求参数：`_service`（目标服务名）、`_url`（目标接口路径）、`_method`（GET/POST/PUT/DELETE）。GET/DELETE 的参数由 allowed 中定义的参数拼接进 URL；POST/PUT 的 body 为除 `#`/`_` 开头外的所有请求参数。目标服务响应原样透传。
+
+```JSON
+{
+    "name": "proxyToOther",
+    "type": "proxy",
+    "allowed": {
+        "targetsvc@/targetsvc/api/foo": {"id": "@{id}"}
+    }
+}
+```
+
+#### upload 
+文件分片上传。
+
+基于 JSON 体**分片上传**，类似断点续传。**仅能在单实例上运行**（多实例无法同步上传状态、也无法合并文件）。
+
+必填配置 `path`：文件存放目录，只能位于服务自身根目录下（相对路径会被拒绝）。
+
+流程：首个请求带 `name`(文件名)、`size`(大小)、`digest`(摘要)，返回 `fileNo` 与 `pkgSize`(每片 15KB)；后续请求带 `fileNo`、`start`(偏移)、`content`(base64 分包)；所有分包上传完成且摘要校验通过，返回 `size`、`digest` 与 `OVER`。
+
+注意：文件名不允许相对路径；单文件最大约 2G；同一 `fileNo` 重复上传同一分片会报错。
+
+```JSON
+{ "name": "uploadFile", "type": "upload", "path": "files/upload" }
+```
+
+#### download
+文件分片下载。
+
+基于 JSON 体**分片下载**，类似断点续传。**可在多实例上运行**（各实例上的文件需一致）。文件加载后不关闭，直到系统停止时才关闭。
+
+必填配置 `path`：文件存放目录（位于服务根目录下）。
+
+流程：首个请求带 `name`(文件名，会自动 URL 解码)，返回 `fileNo`(用文件全路径的 md5)、`pkgSize`、`size`、`digest`；后续请求带 `fileNo`、`start` 返回 `content`(base64 分包)，读到末尾返回 `OVER`。
+
+注意：文件名不允许相对路径；文件不存在返回 `NOT_EXISTS`。
+
+```JSON
+{ "name": "downloadFile", "type": "download", "path": "files" }
+```
+
+#### tcpx
+HTTP 到 TCP 长连接的桥接。
+
+把一次 HTTP 请求**转发给连接在 TCP 长连接服务器上的 TCP 客户端**（如边缘设备 / 物联网终端），用于云端对长连接设备的指令下发。需服务器启动 TCP 长连接服务（由 Launcher 启动 tcpServer 后注入；否则返回 `INVALID_STATE`）。
+
+请求参数原样封装后通过长连接通道下发，设备回传的响应再原样透传。与架构概述中的“Tcp长连接”概念配合使用。
+
+```JSON
+{ "name": "sendToDevice", "type": "tcpx" }
+```
+
 ## 响应response
 
 ### 响应字段定义
@@ -1700,7 +1776,9 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
 | --- | --- | --- |
 | OK | 0 | 成功 |
 | DEPRECATED | 1 | 接口即将废弃 |
+| EXECUTING | 2 | 服务执行中（非错误，用于异步 / 长任务） |
 | INTERNAL\_ERROR | 100 | 内部错误 |
+| HTTP\_ERROR | 101 | 内部HTTP请求 错误 |
 | INVALID\_TOKEN | 102 | 无效token |
 | EMPTY\_BODY | 103 | 请求体错误，用在POST请求中 |
 | DB\_ERROR | 104 | 数据库错误 |
@@ -1709,11 +1787,15 @@ var处理中也可以加[onSuccess](#onsuccess)，比如用于判断生成的结
 | TOO\_BUSY | 107 | 系统太忙 |
 | SYSTEM\_TIMEOUT | 108 | 系统超时 |
 | NOT\_SUPPORTED\_FUNCTION | 109 | API存在，但是所需的功能不支持 |
-| API\_NOTFOUND | 110 | API不存在 |
+| API\_NOT\_FOUND | 110 | API不存在 |
 | NO\_RIGHT | 111 | 无权调用 |
 | NO\_NODE | 112 | 找不到可用的节点提供服务 |
 | INVALID\_NODE | 113 | 无效的节点，比如数据库分片的情况下，请求发到错误的webdb实例上 |
 | THIRD\_PARTY\_ERR | 114 | 调用第三方服务失败 |
+| PAST\_DUE | 115 | 欠费 |
+| LOOP\_OVER | 116 | 循环终止，仅用于循环接口 |
+| LOGIC\_FALSE | 117 | 逻辑判断失败 |
+| FORBIDDEN | 118 | 禁止访问 |
 | UNKNOWN\_ERROR | 150 | 未知错误 |
 | EXISTS | 2000 | 已经存在 |
 | NOT\_EXISTS | 2001 | 不存在 |
@@ -1964,7 +2046,7 @@ xml.join('');
 | HMACSHA256 | 计算HMACSHA256 | @{HMACSHA256\| para1, name, 1, \`xxx\`}<br> 类似MD5，只是算法不同；算法中的可以是随机生成的16字节内容，记录在结果的前16字节；在js脚本中可以使用 Secure.hmacSHA256Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串 |
 | PBKDF | 计算PBKDF2 | @{PBKDF\| iter,para} <br>iter为迭代次数(1-2^31)，para为被混淆的字符串；在js脚本中可以使用Secure.pbkdf2Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串，也可以用进行校验，返回true或false |
 | PBKDFCHECK | PBKDF2校验 | @{PBKDFCHECK\| str, savedStr} <br>str为传入参数，savedStr是用来检验的参数，比如从数据库取出 |
-| UTC | 对UTC时间戳进行格式化 | @{UTC\|utcPara,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utcPara,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utcPara,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utcPara,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000）， 这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳所在月度的几号，1号返回0 <br>dayofyear：时间戳所在年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00的UTC时间戳 <br>monthend：返回utc所在月度的下个月第一天00:00:00的UTC时间戳 <br>weekstart：返回utc所在星期的第一天00:00:00的UTC时间戳 <br>weekend：返回utc所在星期的下个星期第一天00:00:00的UTC时间戳<br>daystart：返回utc当日00:00:00的UTC时间戳 <br>dayend：返回utc所在日期下一天00:00:00的UTC时间戳|
+| UTC | 对UTC时间戳进行格式化 | @{UTC\|utcPara,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utcPara,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utcPara,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utcPara,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为unit60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000），这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： <br>yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳所在月度的几号，1号返回0 <br>dayofyear：时间戳所在年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00的UTC时间戳 <br>monthend：返回utc所在月度的下个月第一天00:00:00的UTC时间戳 <br>weekstart：返回utc所在星期的第一天00:00:00的UTC时间戳 <br>weekend：返回utc所在星期的下个星期第一天00:00:00的UTC时间戳<br>daystart：返回utc当日00:00:00的UTC时间戳 <br>dayend：返回utc所在日期下一天00:00:00的UTC时间戳|
 | NOW | 当前时间 | @{NOW\|unit86400000}转换成UTC天数 @{NOW\|yyyy-MM-dd HH:mm:ss,480} 转换成东八区时间字符串 <br> @{NOW\|[fmt[,offset]]}当前UTC时间戳， 与@{#reqAt}是同一个值，在一次请求中，多次引用@{#reqAt}或@{NOW}，结果都相同； 不同点在于@{NOW}可以携带格式化信息，@{#reqAt}不可以;#reqAt可以在其他占位符中使用，但是NOW不行，比如@{MD5\|#reqAt,'test'}； 无fmt的情况，默认返回当前utc时间戳；有fmt时，定义与UTC相同<br>offset是时区偏移，如果不设置，则默认使用服务器的时区设置。 |
 | NEXTPERIOD | UTC时间的下一个周期 | @{NEXTPERIOD\|'D',0}明天的0点 @{NEXTPERIOD\|period,bias}，其中period、bias为请求参数或变量名称 <br> @{NEXTPERIOD\|type(D/M/W/H/C),val}， type、val都可以为参数名称，也可以是具体的值 当type为D/W/M/H时，val为与起点的时间间隔，type为C时，val为周期时长;val的单位为毫秒 |
 | COALESCE | 返回第一个非空值 | @{COALESCE\| para1, para2, \`\`}<br>如果para1为空，则返回para2，如果para2也为空，则返回空字符串 |
@@ -2059,13 +2141,25 @@ oAuth2服务使用的密码本，在安卓服务器中，第一次启动时生�
 
 ## 用户认证&鉴权
 
-| 名称    | 描述 |
-| ---     | --- |
-| USER    | 端侧公司用户调用服务侧接口时使用，端侧必须登录了一个公司帐号才可以通过 |
-| UNIUSER | 端侧个人用户调用服务侧接口时使用，端侧必须登录了个人帐号才可以通过分详细描述 |
-| COMPANY | 只有知道公司密码的情况下才可以调用，用户只能是admin |
+接口定义的property中有private属性，公司服务的tokenChecker为USER，个人服务tokenChecker为UNIUSER。
+这样的接口，需要用户输入账号、密码登录后才可以访问。
 
-接口定义的property中有private属性，公司服务的tokenChecker为USER，个人服务tokenChecker为UNIUSER。 这样的接口，需要用户输入账号、密码登录后才可以访问。
+框架内置的全部tokenChecker类型如下：
+
+| 类型 | 说明 |
+| --- | --- |
+| USER | 端侧公司用户，密码本签名，经 `/user/verify` 校验，并检查外网访问权限 |
+| USER-type | 不检查外网访问权限，只检查用户类型，type有：I内部用户、E外部用户、D设备、A智能体，可以设置多个比如USER-D,A，表示接口只能被设备、智能体访问 |
+| UNIUSER | 端侧个人用户调用服务侧接口时使用，端侧必须登录了个人帐号才可以通过分详细描述 |
+| BASEUSER | 端侧用户，密码本签名，使用 user 服务，**不检查**外网访问权限 |
+| COMPANY | 公司服务，私有云用公司私钥签名；公有云用密码本签名时自动转 user 校验，转user时用admin帐号访问，支持跨公 / 私网 |
+| OAUTH | 服务间调用，向 oAuth2 服务 verify，密码本签名，且调用方必须在被调方 callers 白名单中 |
+| APP | 服务间调用，只允许“自己调自己”，用调用方应用公钥验签 |
+| APP-service | 服务间调用，只允许“service”指定的服务调用，用service指定服务的公钥验签，可以设置多个服务<br>比如APP-icrm,ihr表示运行icrm、ihr与自己调用；如果service为“*”，表示允许所有服务调用 |
+| OM | 服务间调用，使用 OM 私钥（特殊应用私钥）签名的token，本质是只允许使用OM公钥验签的APP鉴权<br>与APP-om稍有差异，OM只能OM服务调用， APP-om除了OM服务可调用，服务自己也可以调用 |
+| INIT | 服务初始化用，按签名类型分发到 APP / OM / BACKEND 三种校验 |
+| MNT | 维护接口鉴权，支持OM私钥签名或 BACKEND（公司私钥 / 临时接入口令）签名两种 |
+| BACKEND | 远程运维，公司私钥签名，或临时接入口令（闲置 5 分钟失效）签名 |
 
 【注意】UNIUSER只能在至简网格服务端提供的个人服务中使用，企业服务中需要进行用户认证USER。
 
@@ -2157,7 +2251,7 @@ ABAC的权限控制更加精细化，与业务紧密相关，无法提供统一�
 1. webdb数据库（在服务根目录的database.cfg文件中定义）
 	- 由webdb服务统一管理，所以可以跨实例访问，支持数据跨实例同步与定期异地备份；
 	- 如果用sqlite，由webdb实现同步与定期备份；
-	- 如果是mysql、sqlserver等大型数据库，需要数据库自身实现同步与备份，webdb实现数据库连接的收敛。
+	- 如果是mysql、sqlserver等大型数据库，建议使用数据库自身能力实现同步与备份，webdb实现数据库连接的收敛。
 
 2. 本地数据库（在database.loc.cfg文件中定义）
 	- 数据只存在于本服务根目录dbs下，比如address服务的数据库，只能用sqlite；
@@ -2296,7 +2390,8 @@ webdb是一个特殊的服务，它实现在数据库实例上执行DDL\DML。�
 	- A）sqlite数据库适合小型系统使用，配合分库逻辑，极限可以做到100亿级数据记录；
 	- B）数据库的分库操作需要bios配合，在调用方实现，webdb不实现分库，但是会拒绝不属于当前实例的分片请求；
 	- C）使用update_time阻止主备库双写混乱，每次增、改，都会更新update_time字段，目的端重放时，只对大于本地update_time的记录进行重放，update_time字段是webdb自动为每个表添加的。
-2. 使用MySQL、Oracle等大型数据库时，建议使用它自身的同步能力。
+2. 使用MySQL、Oracle等大型数据库时，建议使用它自身的同步能力；
+3. webdb实例连接哪些数据库实例，编号多少、接受什么数据分片，在bios中通过/db/setConfig设置，修改后需要重启相关webdb实例。
 
 ## oauth2
 提供服务间调用的认证与鉴权。
@@ -2336,6 +2431,10 @@ assets不是通常意义的服务，不运行于服务侧，只用于给每个�
 系统初始化时，已经创建了超级用户admin，密码默认为“123456”， 建议第一次使用时就更改这个密码，并且记住它。
 
 默认情况，超级用户可以对用户数据进行增删改查，admin可以初始化任何一个用户的密码（解决忘记密码的情况），admin也可以添加其他的超级用户，但是admin不可以删除自己。
+
+### 用户认证
+需要输入用户名密码登录后才可以使用系统。
+帐号每次登录，都会刷新数据库中的token信息，先登录的token来验证时会发现不一致，验证直接失败。所以，user服务不支持多个端侧同时登录同一个帐号。
 
 ### 用户授权
 
@@ -2434,4 +2533,16 @@ showWorkflow(flow,did) { //显示某条记录对应的工作流
 
 ![customerworkflow](imgs/server/customer_workflow.png)
 
+# 不足与使用限制
+
+尽管系统经过仔细的打磨，因为要做成极小的系统，设计上做了一些让步，目前仍然存在一些不足。
+
+1. 同Region内集群跨AZ部署时，当AZ间网络断开，两个AZ中的集群可能会发生脑裂，各自运行；
+2. 如果不同实例与bios之间连接的状态不一致时，选择的主bios可能会不同，导致服务发现出现混乱；
+3. 主bios实例彻底故障后，改变主bios实例时，需要在每个实例上修改partition.cfg配置并重启；
+4. 改变webdb的编号、分片配置、主从配置时，需要重启webdb实例才能生效，这会导致业务暂时中断；
+5. 使用MySQL等大型数据库时，建议使用数据库自身同步、备份能力，而不依赖webdb提供的同步与备份能力；
+6. 表中增加update_time字段，用以阻止极端情况下主备双写混乱，但在多实例时钟漂移超过毫秒级、且单用户访问并发在毫秒级时失效；
+7. update中不支持子查询，需要分解成两个处理或两个sql解决，在后面的update中用占位符引用前面处理或sql的结果；
+8. 受网络延迟限制，跨Region只建议做数据备份，不当作一个集群使用，业务请求在端侧负载均衡到不同Resgion。
 

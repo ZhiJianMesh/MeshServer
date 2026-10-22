@@ -859,7 +859,8 @@ public final class ServiceInfo {
 
             ServiceReqBuilder req = new ServiceReqBuilder(this, IConst.SERVICE_BIOS)
                 .url("/service/dbno")
-               .cid(cid).appToken("*").traceId("get_service_dbno_" + this.name);
+                .cid(cid).appToken("*")
+                .traceId("get_service_dbno_" + this.name);
             return BiosClient.get(req).thenApplyAsync(hr -> {
                 if(hr.code != RetCode.OK) {
                     LOG.debug("Fail to get dbno of service {}, use local dbno as default", this.name);

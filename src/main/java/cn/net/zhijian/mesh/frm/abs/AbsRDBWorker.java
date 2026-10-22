@@ -976,7 +976,8 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
 
     /**
      * 如果是UPDATE，则在where之前增加一个更新update_time的操作，时间以UTC为准，
-     * 不支持from语法，如where前出现from，最终会变成一个错误的update语句
+     * 不支持Update中出现子查询语句，如where前出现from，最终会变成一个错误的update语句。
+     * update子查询可以通过多个处理或分解成两个sql解决，在后面的update中用占位符引用前面处理或sql的结果。
      * @param sql 数据库脚本
      * @param now 可以是@{NOW}，也可以是时间字符串
      * @param sb 存放修改内容的内存

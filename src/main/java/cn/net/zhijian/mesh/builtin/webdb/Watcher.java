@@ -33,6 +33,7 @@ import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.frm.intf.IDBConst;
 import cn.net.zhijian.mesh.frm.intf.IServiceServer;
 import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.UrlPathInfo;
@@ -203,22 +204,23 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
 
     private CompletableFuture<HandleResult> innerBeforeLoad(IServiceServer server, ServiceInfo si, String pwd) {
         return super.beforeLoad(server, si, pwd).thenComposeAsync(hr -> {
-            File cfgFile = RunConfig.configFile(si.homeDir);
-            if(cfgFile.exists()) {
-                if((runCfg = RunConfig.parse(cfgFile)) != null) {
-                    DBHandlerBase.setRunConfig(runCfg);
-                    return HandleResult.future();
-                }
-            }
-            
             //因为数据库需要非常谨慎的处理，所以如果配置发生了变更，则必须重启实例来更新配置
             return getConfig(si).thenApply(rc -> {
-                if(rc != null) {
+                File cfgFile = RunConfig.configFile(si.homeDir);
+                if(rc != null) { //优先使用bios中配置的
                     runCfg = rc;
                     DBHandlerBase.setRunConfig(runCfg);
+                    FileUtil.writeFile(cfgFile, JsonUtil.objToPrettyJson(rc.dbsList()), DEFAULT_CHARSET);
                     return HandleResult.OK;
                 }
-                
+
+                if(cfgFile.exists()) {
+                    if((runCfg = RunConfig.parse(cfgFile)) != null) {
+                        DBHandlerBase.setRunConfig(runCfg);
+                        return HandleResult.OK;
+                    }
+                }
+
                 if(PartitionConfig.instance().mode == DeployMode.SINGLETON) {
                     runCfg =  RunConfig.createDefault();
                     DBHandlerBase.setRunConfig(runCfg);

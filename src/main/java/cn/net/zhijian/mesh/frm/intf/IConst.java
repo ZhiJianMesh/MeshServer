@@ -116,7 +116,6 @@ public interface IConst extends IUtil {
     String CFG_SEG_SHARDSTART = "shardStart"; //分片开始（包括）
     String CFG_SEG_SHARDEND = "shardEnd"; //分片结束（不包括）
     String CFG_SEG_MASTER = "master"; //主实例，最多只能有一个
-    String CFG_SEG_DBURL = "url"; //数据库URL，sqlite无此配置
     //slave或master模式，默认为master
     String CFG_SEG_MODE = "mode";
     String CFG_SEG_SLAVES = "slaves"; //从实例列表

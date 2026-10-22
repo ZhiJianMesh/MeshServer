@@ -437,6 +437,11 @@ public abstract class AbsProcessor implements IProcessor, IOAuth {
                 eles = ScriptElement.parsePlaceHolder(s, availableParas, "'", "'");
             } else { //js执行太慢，可以使用逻辑表达式代替
                 Map<String, Object> cfg = ValParser.parseObject(o);
+                if(cfg == null || cfg.isEmpty()) {
+                    LOG.error("Invalid onSuccess config");
+                    return null;
+                }
+                
                 String s = ValParser.getAsStr(cfg, CFG_CONDITION);
                 if(StringUtil.isEmpty(s)) {
                     LOG.error("There is no {} cfg in onSuccess", CFG_CONDITION);
