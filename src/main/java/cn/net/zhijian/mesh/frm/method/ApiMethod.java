@@ -284,6 +284,11 @@ public class ApiMethod implements IMethod, IThreadPool {
             //parse aclChecker
             String sAclChecker = ValParser.getAsStr(cfg, CFG_ACLCHECKER).trim();
             if(!StringUtil.isEmpty(sAclChecker)) {
+                if(tokenChecker == null || !tokenChecker.isUserToken()) {
+                    LOG.error("Invalid aclChecker({}) used with tokenChecker({}) in {}", sAclChecker, tokenChecker, url);
+                    return null;
+                }
+
                 try {
                     ProcessInfo abacProcess = null;
                     if(cfg.containsKey(CFG_ACLPROCESS)) { //基于属性的权限检查
@@ -295,14 +300,8 @@ public class ApiMethod implements IMethod, IThreadPool {
                     LOG.error("Fail to create {}:{} in {}", CFG_ACLCHECKER, sAclChecker, url, e);
                     return null;
                 }
-    
-                if(aclChecker == null || tokenChecker == null) {
-                    LOG.error("Invalid aclChecker({}) or tokenChecker({}) in {}", aclChecker, tokenChecker, url);
-                    return null;
-                }
-    
-                if(!aclChecker.checkParameter(apiInfo, tokenChecker.isUserToken())) {
-                    LOG.error("Fail to check parameters of {} {} in {}", CFG_ACLCHECKER, sAclChecker, url);
+                if(aclChecker == null) {
+                    LOG.error("Invalid aclChecker({}) in {}", sAclChecker, url);
                     return null;
                 }
             }
@@ -435,8 +434,8 @@ public class ApiMethod implements IMethod, IThreadPool {
         AclChecker aclChecker = null;
         String sAclChecker = ValParser.getAsStr(cfg, CFG_ACLCHECKER).trim();
         if(!StringUtil.isEmpty(sAclChecker)) {
-            if(tokenChecker == null) {
-                LOG.error("Can't set aclChecker when no tokenChecker in {}", url);
+            if(tokenChecker == null || !tokenChecker.isUserToken()) {
+                LOG.error("Can't set aclChecker({}) when tokenChecker is invalid in {}", sAclChecker, url);
                 return null; //如果设置了aclChecker就必须设置tokenChecker
             }
             
@@ -453,13 +452,8 @@ public class ApiMethod implements IMethod, IThreadPool {
             }
 
             if(aclChecker == null) {
-                LOG.error("Invalid aclChecker in {}", url);
+                LOG.error("Invalid aclChecker({}) in {}", sAclChecker, url);
                 return null; //如果设置了aclChecker就必须设置tokenChecker
-            }
-
-            if(!aclChecker.checkParameter(apiInfo, tokenChecker.isUserToken())) {
-                LOG.error("Fail to check parameters of {} {} in {}", CFG_ACLCHECKER, sAclChecker, url);
-                return null;
             }
         }
         

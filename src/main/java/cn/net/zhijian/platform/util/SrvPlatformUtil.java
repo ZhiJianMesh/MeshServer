@@ -2,9 +2,13 @@ package cn.net.zhijian.platform.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,15 +46,34 @@ public final class SrvPlatformUtil extends AbsPlatform {
     /**
      * 获取本机IPv4地址
      * @return 本机IPv4地址，null表示无网络连接
+     * @throws  
      */
     @Override
     public String absMyIp() {
+        // 兜底
         try {
-            InetAddress addr = InetAddress.getLocalHost();
-            return addr.getHostAddress();
-        } catch (UnknownHostException e) {
-            LOG.error("Fail to get local machine address", e);
-            return null;
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface ni = interfaces.nextElement();
+                // 跳过未启用、回环、虚拟网卡
+                if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) {
+                    continue;
+                }
+                Enumeration<InetAddress> addresses = ni.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    // 只要 IPv4 且不是回环/链路本地
+                    if (addr instanceof Inet4Address
+                            && !addr.isLoopbackAddress()
+                            && !addr.isLinkLocalAddress()) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException | SocketException e) {
+            LOG.error("Fail to get local ip, use loop ip as instead", e);
+            return "127.0.0.1";
         }
     }
     

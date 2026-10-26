@@ -51,8 +51,8 @@ public class ObjParameterTest extends UnitTestBase  {
         AbsServerRequest req = HttpServerRequest4Test.create(null, params);
         Map<String, Object> strCfg = JsonUtil.jsonToMap(
                 "{\"name\":\"o\",\"type\":\"object\",\"props\":["
-              + " {\"name\":\"age\",\"type\":\"int\",\"must\":true, \"smallerThan\":\"maxAge\", \"min\":1}"
-              + " {\"name\":\"name\",\"type\":\"string\",\"equalsTo\":\"adminName\"}"
+              + " {\"name\":\"age\",\"type\":\"int\",\"must\":true, \"smallerThan\":\".maxAge\", \"min\":1}"
+              + " {\"name\":\"name\",\"type\":\"string\",\"equalsTo\":\".adminName\"}"
               + "]}");
         ParameterInfo p = ParameterInfo.parse(strCfg, false);
         
@@ -71,10 +71,10 @@ public class ObjParameterTest extends UnitTestBase  {
     public void testObjListSubParameter() {
         Map<String, Object> objCfg = JsonUtil.jsonToMap("{\"name\":\"v\",\"type\":\"object\","
             + "\"checkAll\":true,\"list\":true,\"props\":["
-            + " {\"name\":\"start\",\"type\":\"int\",\"biggerThan\":\"start0\",\"min\":1},"
-            + " {\"name\":\"end\",\"type\":\"int\",\"biggerThan\":\".start\",\"min\":1},"
+            + " {\"name\":\"start\",\"type\":\"int\",\"biggerThan\":\".start0\",\"min\":1},"
+            + " {\"name\":\"end\",\"type\":\"int\",\"biggerThan\":\"start\",\"min\":1},"
             + " {\"name\":\"s1\",\"type\":\"string\",\"min\":1},"
-            + " {\"name\":\"s2\",\"type\":\"password\",\"equalsTo\":\".s1\",\"min\":1}"
+            + " {\"name\":\"s2\",\"type\":\"password\",\"equalsTo\":\"s1\",\"min\":1}"
             + "]}");
         Map<String, Object> o1 = MapBuilder.of("start", 11, "end", 22, "s1", "t1", "s2", "t1");
         Map<String, Object> o2 = MapBuilder.of("start", 31, "end", 30, "s1", "t1", "s2", "t2");

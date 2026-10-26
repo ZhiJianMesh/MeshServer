@@ -165,7 +165,7 @@ public interface IServiceServer {
             }
         }
         
-        protected ServiceInfo loadService(String serviceName, String serviceHome, EccKeyPair ekp) {
+        private ServiceInfo loadService(String serviceName, String serviceHome, EccKeyPair ekp) {
             ServiceInfo si = services.get(serviceName);
             if(si == null) { //内置的服务，即使本地有相应的服务配置，也无需再次加载
                 si = ServiceInfo.parse(serviceHome, serviceName, ekp, true);
@@ -173,9 +173,9 @@ public interface IServiceServer {
                     LOG.error("Fail to parse service {}", serviceName);
                     return null;
                 }
+                services.put(serviceName, si);
             }
 
-            services.put(serviceName, si);
             return si;
         }
         

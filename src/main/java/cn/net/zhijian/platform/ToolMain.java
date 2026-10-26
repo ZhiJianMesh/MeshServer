@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.RootKeystore;
 import cn.net.zhijian.mesh.bean.ServerSecurity;
 import cn.net.zhijian.mesh.client.HttpClient;
@@ -16,6 +15,7 @@ import cn.net.zhijian.mesh.frm.config.PartitionConfig;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.platform.cmd.AbsCommand;
+import cn.net.zhijian.platform.cmd.Algorithm;
 import cn.net.zhijian.platform.cmd.ApiTest;
 import cn.net.zhijian.platform.cmd.CZConverter;
 import cn.net.zhijian.platform.cmd.Cert;
@@ -33,7 +33,6 @@ import cn.net.zhijian.platform.cmd.PortMapping;
 import cn.net.zhijian.platform.cmd.Queue;
 import cn.net.zhijian.platform.cmd.Release;
 import cn.net.zhijian.platform.cmd.RootKey;
-import cn.net.zhijian.platform.cmd.Algorithm;
 import cn.net.zhijian.platform.cmd.Source;
 import cn.net.zhijian.platform.cmd.Utc;
 import cn.net.zhijian.platform.util.SrvKeystoreHelper;
@@ -118,13 +117,6 @@ public final class ToolMain {
                 IConst.SERVICE_BACKEND);
         ServiceClient.setBackendService(backend);
         ServiceClient.setCloudDns(IConst.SERVICE_HTTPDNS, partCfg.cloudHttpdns, -1);
-
-        CompanyInfo.init(CompanyInfo.configFile(confPath));
-        CompanyInfo localCompany = CompanyInfo.instance();
-        if(localCompany == null) {
-            System.out.println("Fail to load company info from perference");
-            System.exit(1);
-        }
 
         String cmd = args.length == 0 ? null : args[0].toLowerCase();
         AbsCommand act;

@@ -272,11 +272,11 @@ public class TreeDBProcessor extends AbsDBProcessor {
 
         public static TreeDBStatement parse(Map<String, Object> actCfg, Set<String> availableParas) {
             if(actCfg == null || actCfg.isEmpty()) {
-                LOG.error("Invalid action, it's empty");
+                LOG.error("Invalid treedb operation, it's empty");
                 return null;
             }
 
-            String act = ValParser.getAsStr(actCfg, TREEDB_CFG_ACTION);
+            String act = ValParser.getAsStr(actCfg, TREEDB_CFG_ACTION).trim().toLowerCase();
             if(!AbsDBWorker.isValidTreeDBAct(act)) {
                 LOG.error("Invalid action {}", act);
                 return null;
@@ -339,12 +339,12 @@ public class TreeDBProcessor extends AbsDBProcessor {
          */
         public static Map<String, Object> parse(Map<String, Object> actCfg) {
             if(actCfg == null || actCfg.isEmpty()) {
-                LOG.error("Invalid action, it's empty");
+                LOG.error("Invalid treedb operation, it's empty");
                 return null;
             }
 
             Map<String, Object> action = new HashMap<>();
-            String act = ValParser.getAsStr(actCfg, TREEDB_CFG_ACTION);
+            String act = ValParser.getAsStr(actCfg, TREEDB_CFG_ACTION).trim().toLowerCase();
             if(!AbsDBWorker.isValidTreeDBAct(act)) {
                 LOG.error("Invalid action {}", act);
                 return null;

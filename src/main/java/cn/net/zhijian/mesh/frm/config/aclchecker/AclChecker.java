@@ -37,21 +37,6 @@ public abstract class AclChecker implements IThreadPool, IOAuth {
     public AclChecker(String name) {
         this.name = name;
     }
-    
-    public boolean checkParameter(ApiInfo ai, boolean isUserToken) {
-        /*
-         * 必须在tokenChecker为USER的接口定义中才可以使用ACL控制。
-         * 此为默认实现，如果需要更改此规则，请重载实现AbstractAclChecker
-         */
-        if(!isUserToken) {
-            LOG.error("tokenChecker must be {},{},{} or {}, when using aclChecker in `{}`",
-                    USER_TOKEN_CHECKER, BASEUSER_TOKEN_CHECKER,
-                    UNIUSER_TOKEN_CHECKER, COMPANY_TOKEN_CHECKER,
-                    ai.url);
-            return false;
-        }
-        return true;
-    }
 
     public static AclChecker getChecker(String name, ProcessInfo abacChecker) {
         String uName = name.toUpperCase();

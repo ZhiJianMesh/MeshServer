@@ -6,15 +6,14 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import cn.net.zhijian.mesh.client.ServiceClient;
-import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
 import cn.net.zhijian.mesh.MeshException;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
+import cn.net.zhijian.mesh.client.BiosClient;
+import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.config.ChannelConfig;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig;
@@ -151,27 +150,17 @@ public class Company extends AbsCommand {
         insideAddr = getInsideAddr(insideAddr) + ":" + ChannelConfig.instance().httpPort;
       
         int cid = Integer.parseInt(args[0]);
-        HandleResult result = CompanyInfo.login(cid, pwd, insideAddr, outsideAddr).thenComposeAsync(hr -> {
-            if(hr.code != RetCode.OK) {
+        HandleResult result = CompanyInfo.login(cid, pwd, insideAddr, outsideAddr).whenCompleteAsync((hr,e) -> {
+            if(e != null) {
                 System.out.println("Fail to login");
-                return CompletableFuture.completedFuture(hr);
-            }
-
-            try {
-                CompanyInfo.init(CompanyInfo.configFile(configDir));
-                CompanyInfo ci = CompanyInfo.instance();
-                if(!ci.isValid()) {
-                    return HandleResult.future(RetCode.INTERNAL_ERROR, "Fail to parse company.cfg");
-                }
-                return CompletableFuture.completedFuture(hr);
-            } catch (MeshException e) {
                 e.printStackTrace();
-                return HandleResult.future(RetCode.INTERNAL_ERROR, "Fail to parse company.cfg");
+                return;
             }
-        }).exceptionally(e -> {
-            System.out.println("Fail to login");
-            e.printStackTrace();
-            return HandleResult.InternalError;
+            if(hr.code != RetCode.OK) {
+                System.out.println("Fail to login, result:" + hr.brief());
+            } else {
+                System.out.println("Success to login");
+            }
         }).get(10, TimeUnit.SECONDS);
         
         if(result.code == RetCode.OK) {
@@ -354,16 +343,7 @@ public class Company extends AbsCommand {
         return true;
     }
     
-    private CompanyInfo getLocalCompany() throws MeshException {
-        CompanyInfo localCompany = CompanyInfo.instance();
-        if(!localCompany.isValid()) {
-            System.out.println("failed,haven't logined,use login command to do it");
-            throw new MeshException("Fail to get local company info");
-        }
 
-        return localCompany;
-    }
-    
     private boolean accessCode(String[] args) throws Exception {
         if(args.length < 1) {
             CompanyInfo localCompany = getLocalCompany();

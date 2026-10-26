@@ -774,11 +774,6 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
                     LOG.error("Fail to parse config in {}, {}", f.getCanonicalPath(), mc);
                     return -1;
                 }
-                if(method.isPrivate()) {
-                    if(method.tokenChecker != null && method.tokenChecker.isUserToken()) {
-                        si.visible = true;
-                    }
-                }
                 addApi(method);
                 count++;
             }

@@ -152,7 +152,7 @@ public class CompanyInfo {
     //每个实例都有自己的company.cfg，其中必须有公司信息
     //在启动时必须加载，数量极少，通常1个，所以不用map存储
     private static volatile CompanyInfo instance;
-    private static File cfgFile;
+    static File cfgFile;
     private static final CompanyInfo NULL_COMPANY = new CompanyInfo(IConst.NULL_COMPANY_ID,
             RunMode.SINGLETON, IConst.EMPTY_STR, IConst.EMPTY_STR,
             IConst.EMPTY_STR, IConst.EMPTY_STR, IConst.EMPTY_STR,
@@ -293,11 +293,11 @@ public class CompanyInfo {
                 || IPUtil.isValidIP(insideAddr, FORMAT.LAN.v + FORMAT.PORT.v) != FORMAT.NONE) {
                  return HandleResult.future(RetCode.WRONG_PARAMETER, "invalid insideAddr");
              }
-            inAddr = insideAddr;
+             inAddr = insideAddr;
              if(!StringUtil.isEmpty(outsideAddr)
                 && IPUtil.isValidIP(outsideAddr, FORMAT.WAN.v + FORMAT.PORT.v) != FORMAT.NONE) {
                  return HandleResult.future(RetCode.WRONG_PARAMETER, "invalid outsideAddr");
-             }            
+             }
         }
 
         RunMode mode = partCfg.mode == PartitionConfig.DeployMode.CLUSTER ? RunMode.CLUSTER : RunMode.SINGLETON;
@@ -347,12 +347,13 @@ public class CompanyInfo {
                     IConst.EMPTY_STR, info, inAddr);
             ci.setOutsideAddr(outsideAddr);
             
-            if(old != null) { //尽量使用以前的，避免影响每个成员
+            if(old != null && old.isValid()) { //尽量使用以前的，避免影响每个成员
                 ci.accessCode = old.accessCode;
             } else { //卸载安装后重新login的情况，company为空，此时端侧都需要更新接入码
                 ci.accessCode = StringUtil.genRandomCode(8);
             }
             ci.setAuthKeyPair(authKey, false);
+
             ServerSecurity.saveServerCA(caBytes);//保存ca，用于安卓服务器创建https
             
             String dataRootKp, envRootKey;
@@ -373,6 +374,7 @@ public class CompanyInfo {
                 }
                 LOG.debug("Success to saveDataRootKey {}.{}.{} in register", name, cid, creditCode);
                 CompanyInfo.instance = ci;
+                CompanyInfo.save(CompanyInfo.configFile(partCfg.confPath));
                 return ci.registerToHttpdns(); //更新入口信息
             }, IThreadPool.Pool);
         }, IThreadPool.Pool);
@@ -417,7 +419,7 @@ public class CompanyInfo {
         CompanyInfo oldOne = CompanyInfo.instance();
         String insideAddr;
         String outsideAddr;
-        if(oldOne != null) { //登录过，重新登录，比如刷新本地的rootkey
+        if(oldOne != null && oldOne.isValid()) { //登录过，重新登录，比如刷新本地的rootkey
             req.put(ITEM_AUTHKEY, oldOne.authKeyPair.toString(pwd));
             outsideAddr = oldOne.outsideAddr;
             insideAddr = oldOne.insideAddr;
@@ -455,7 +457,7 @@ public class CompanyInfo {
                 ServerSecurity.saveServerCA(caBytes);//保存ca，用于安卓服务器创建https
             }
             
-            if(old != null) { //尽量使用原来的
+            if(old != null && old.isValid()) { //尽量使用原来的
                 ci.accessCode = old.accessCode;
             } else { //注册过，卸载后再安装，会出现company为空的现象
                 ci.accessCode = StringUtil.genRandomCode(8);
@@ -501,6 +503,7 @@ public class CompanyInfo {
                         return HandleResult.future(r1);
                     }
                     CompanyInfo.instance = ci;
+                    CompanyInfo.save(CompanyInfo.configFile(partCfg.confPath));
                     return ci.registerToHttpdns(); //更新入口信息
                 }, IThreadPool.Pool);
             }, IThreadPool.Pool);
@@ -615,12 +618,12 @@ public class CompanyInfo {
         if(kp == null) {
             return;
         }
-        authKeyPair = kp;
+        this.authKeyPair = kp;
  
         LOG.debug("Auth public key:{}", kp.publicKey2Str());
-        tokenWorker = new EccTokenWorker(kp, IOAuth.SIGNTYPE_COMPANYKEY);
+        this.tokenWorker = new EccTokenWorker(kp, IOAuth.SIGNTYPE_COMPANYKEY);
         if(saveIt) {
-            save();
+            save(cfgFile);
         }
     }
 
@@ -707,17 +710,17 @@ public class CompanyInfo {
      */
     public void setOutsideAddr(String addr) {
         if(StringUtil.isEmpty(addr)) {
-            outsideAddr = IConst.EMPTY_STR;
+            this.outsideAddr = IConst.EMPTY_STR;
             return;
         }
 
         String ip = IPUtil.takeOffPort(addr);
         if(!IPUtil.isValidIP(ip) || IPUtil.isLanIp(ip)) {
             LOG.warn("Invalid outside address(`{}`) used", addr); //只告警，不打断
-            outsideAddr = IConst.EMPTY_STR;
+            this.outsideAddr = IConst.EMPTY_STR;
             return;
         }
-        outsideAddr = addr;
+        this.outsideAddr = addr;
     }
 
     public CompletableFuture<HandleResult> testOutsideAddr() {
@@ -842,7 +845,7 @@ public class CompanyInfo {
         int fmt = IPUtil.FORMAT.WAN.v | IPUtil.FORMAT.PORT.v;
         return IPUtil.isValidIP(outsideAddr, fmt) == IPUtil.FORMAT.NONE ? outsideAddr : null;
     }
-    
+
     /**
      * 将私网服务器的信息注册到httpdns服务中，
      * 使得端侧输入公司ID、接入码时，可以自动获得内网入口地址与外网入口地址。
@@ -850,18 +853,18 @@ public class CompanyInfo {
      * @return 异步执行结果
      */
     public CompletableFuture<HandleResult> registerToHttpdns() {
-        if(id <= IConst.LOCAL_COMPANY_ID || StringUtil.isEmpty(insideAddr)) {
+        if(id <= IConst.LOCAL_COMPANY_ID || StringUtil.isEmpty(this.insideAddr)) {
             return HandleResult.future(RetCode.INVALID_STATE, "company has not been set ok");
         }
 
         Map<String, Object> reqData = new HashMap<>();
-        reqData.put("insideAddr", insideAddr);
-        if(StringUtil.isEmpty(outsideAddr) || IPUtil.isLanIp(outsideAddr)) {
-            outsideAddr = IConst.EMPTY_STR;
+        reqData.put("insideAddr", this.insideAddr);
+        if(StringUtil.isEmpty(this.outsideAddr) || IPUtil.isLanIp(this.outsideAddr)) {
+            this.outsideAddr = IConst.EMPTY_STR;
         }
-        reqData.put("outsideAddr", outsideAddr);
+        reqData.put("outsideAddr", this.outsideAddr);
         //公有云httpdns不宜存接入码，以免引起猜疑，所以存储SHA256之后的值
-        reqData.put("accessCode", SecureUtil.sha256(accessCode));
+        reqData.put("accessCode", SecureUtil.sha256(this.accessCode));
 
         AccessToken adminTk = adminToken(IConst.SERVICE_HTTPDNS);
         if(adminTk == null) {
@@ -877,13 +880,12 @@ public class CompanyInfo {
         
         return ServiceClient.cloudPost(req).whenCompleteAsync((hr, e) -> {
             if(e != null) {
-                LOG.error("Fail to register", e);
+                LOG.error("Fail to registerToHttpdns,cid:{}", this.id, e);
                 return;
             }
 
             if(hr.code == RetCode.OK) {
                 LOG.debug("Success to registerToHttpdns for comany {}", this.id);
-                save();
             } else {
                 LOG.warn("Fail to registerToHttpdns for comany {},result:{}", this.id, hr.brief());
             }
@@ -926,7 +928,7 @@ public class CompanyInfo {
      */
     public CompletableFuture<HandleResult> saveToHttpdns(
             String insideIp, String outsideIp, String accessCode) {
-        if(StringUtil.isEmpty(insideAddr) || id <= IConst.LOCAL_COMPANY_ID) {
+        if(StringUtil.isEmpty(this.insideAddr) || id <= IConst.LOCAL_COMPANY_ID) {
             return HandleResult.future(RetCode.INVALID_STATE, "company has not been set correctly");
         }
 
@@ -937,7 +939,7 @@ public class CompanyInfo {
         }
 
         if(insideIp != null) { //除了自动获取，仍然可以手动设置
-            data.put("insideAddr", insideAddr);
+            data.put("insideAddr", this.insideAddr);
         }
 
         String outsideAddress;
@@ -960,7 +962,7 @@ public class CompanyInfo {
             }
             data.put("outsideAddr", outsideAddress);
         } else {
-            outsideAddress = outsideAddr;
+            outsideAddress = this.outsideAddr;
         }
         AccessToken adminTk = adminToken(IConst.SERVICE_HTTPDNS);
         if(adminTk == null) {
@@ -987,8 +989,8 @@ public class CompanyInfo {
                 }
                 if(outsideAddress != null) {
                     setOutsideAddr(outsideAddress);
+                    save(CompanyInfo.cfgFile);
                 }
-                save();
             } else {
                 LOG.warn("Fail to call saveToHttpdns,result:{}", hr.brief());
             }
@@ -1261,7 +1263,7 @@ public class CompanyInfo {
                 LOG.error("Fail to setCompanyInfo, result:{}", hr.brief());
                 return hr;
             }
-            save();
+            save(CompanyInfo.cfgFile);
             return hr;
         }, IThreadPool.Pool);
     }
@@ -1311,16 +1313,17 @@ public class CompanyInfo {
         
         return JsonUtil.objToPrettyJson(cfg);
     }
-    
+
     /**
      * 将内存中的公司信息存入preference中
      */
-    public static synchronized void save() {
+    public static synchronized void save(File cfgFile) {
         if(cfgFile == null) {
-            LOG.warn("No config file, can't save it");
+            LOG.error("");
             return;
         }
         FileUtil.writeFile(cfgFile, instance.toString(), IConst.DEFAULT_CHARSET);
+        CompanyInfo.cfgFile = cfgFile;
     }
     
 //    public static String toText() {

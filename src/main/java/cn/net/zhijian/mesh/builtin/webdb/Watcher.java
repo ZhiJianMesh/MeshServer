@@ -351,7 +351,7 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
                 .traceId(si.name + "_get_dbconfig");
         return BiosClient.get(req).thenApplyAsync(hr -> {
             if(hr.code != RetCode.OK) {
-                LOG.error("Fail to download db cfg,result:{}", hr.brief());
+                LOG.info("Fail to download db cfg,result:{},use default", hr.brief());
                 return null;
             }
             String cfg = ValParser.getAsStr(hr.data, "cfg").trim();

@@ -993,7 +993,7 @@ public final class TreeDBWorker extends AbsDBWorker {
      */
     public DBResultCode handleRequest(Map<String, Object> opr, Map<String, Object> resp) {
         long ut = System.currentTimeMillis();
-        String action = ValParser.getAsStr(opr, TREEDB_REQ_ACTION);
+        String action = ValParser.getAsStr(opr, TREEDB_REQ_ACTION).trim().toLowerCase();
         char firstChar = action.charAt(0);
         String key = ValParser.getAsStr(opr, TREEDB_REQ_KEY);
 

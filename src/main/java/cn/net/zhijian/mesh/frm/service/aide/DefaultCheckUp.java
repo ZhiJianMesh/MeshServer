@@ -15,6 +15,8 @@ import cn.net.zhijian.mesh.frm.config.ServiceInfo;
  *
  */
 public class DefaultCheckUp extends AbsProcessor {
+    private static long startupAt = System.currentTimeMillis();
+
     public DefaultCheckUp(ServiceInfo serviceInfo, ApiInfo apiInfo) {
         super(serviceInfo, apiInfo, "check_up");
     }
@@ -23,6 +25,7 @@ public class DefaultCheckUp extends AbsProcessor {
     protected CompletableFuture<HandleResult> handle(AbsServerRequest req, Map<String, Object> resp) {
         resp.put("cpuTime", serviceInfo().cpuTime);
         resp.put("reqTimes", req.getStat().incApis(0));
+        resp.put("startupAt", startupAt);
         return futureResult(resp);
     }
 }

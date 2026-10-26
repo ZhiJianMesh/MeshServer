@@ -87,6 +87,7 @@ public class PartitionConfig {
     public final boolean isInCloud; //公司服务器是否运行在公有云环境
     public final String environment; //工作的环境
     public final int timeZone; //时区偏移，单位为分钟，比如东八区为480
+    public final String confPath;
 
     /**
      * bios服务节点的ip:port，可以有多个，逗号分隔，
@@ -171,6 +172,7 @@ public class PartitionConfig {
             int fileCacheTime, DeployMode mode, String environment,
             int timeZone, List<String> biosDns) throws MeshException {
         this.cfgFile = cfgFile;
+        this.confPath = cfgFile.getParent();
         //公有云运行时，设为true，此时不会判断用户访问是否来自外网
         this.isInCloud = inCloud;
         this.partition = partition;

@@ -93,7 +93,7 @@ public final class WebdbDNS extends AbstractDNS {
                 int byteN = j / Integer.SIZE;
                 int bitN = 1 << (j % Integer.SIZE);
                 if((shardingBits[byteN] & bitN) != 0) {
-                    LOG.error("Sharding {} is overlaped in {}.{}", j, service, db);
+                    LOG.error("Sharding {} is overlaped in {}.{},shardList:{}", j, service, db, shardList);
                     return null;
                 }
                 shardingBits[byteN] |= bitN;

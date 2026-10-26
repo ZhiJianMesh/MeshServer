@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import cn.net.zhijian.mesh.MeshException;
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
@@ -80,14 +81,29 @@ public abstract class AbsCommand {
         }
     }
 
+    protected CompanyInfo getLocalCompany() throws MeshException {
+        CompanyInfo ci = CompanyInfo.instance();
+        if(ci != null && ci.isValid()) {
+            return ci;
+        }
+        CompanyInfo.init(CompanyInfo.configFile(configDir));
+        ci = CompanyInfo.instance();
+        if(ci == null || !ci.isValid()) {
+            throw new MeshException("Fail to load company info from config file");
+        }
+
+        return ci;
+    }
+    
     /**
      * 只可用于私有云，给本机的vCloud中Command处理类发送命令
      * @param cmd 命令
      * @param params 参数
      * @return 异步结果
+     * @throws MeshException 
      */
-    protected CompletableFuture<HandleResult> postCommand(String cmd, Map<String, Object> params) {
-        CompanyInfo local = CompanyInfo.instance();
+    protected CompletableFuture<HandleResult> postCommand(String cmd, Map<String, Object> params) throws MeshException {
+        CompanyInfo local = getLocalCompany();
         if(local == null) {
             System.out.println("Haven't logined");
             return HandleResult.future(RetCode.NO_RIGHT);

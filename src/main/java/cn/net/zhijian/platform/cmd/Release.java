@@ -14,6 +14,7 @@ import java.util.zip.ZipOutputStream;
 //import cn.net.zhijian.mesh.frm.abs.AbsPlatform;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo.ClientType;
+import cn.net.zhijian.mesh.frm.config.ServiceInfo.DependType;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo.Dependency;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo.ServiceType;
 import cn.net.zhijian.mesh.frm.intf.IConst;
@@ -107,6 +108,7 @@ public class Release extends AbsCommand implements IConst {
         if(!dstPath.exists()) {
             dstPath.mkdirs();
         }
+
         List<String> DEFAULT_LIST = ValParser.getAsStrList(cfg, "defaultInclude");
         List<String> DEFAULT_BASEVERS = new ArrayList<>();
         DEFAULT_BASEVERS.add("0");//默认从0版本升级
@@ -200,6 +202,8 @@ public class Release extends AbsCommand implements IConst {
             compressServer(sc, no);
             no++;
         }
+        
+        clearOldVersions(dstPath);
         String s = insertServiceSqls.toString();
         System.out.println("\n-- insertServiceSqls:\n" + s + ";");
         s = updateServiceSqls.toString();
@@ -224,6 +228,25 @@ public class Release extends AbsCommand implements IConst {
         return true;
     }
 
+    private void clearOldVersions(File path) {
+        File[] list = path.listFiles();
+        List<String> ss = new ArrayList<>();
+        for(File l : list) {
+            ss.add(l.getName());
+        }
+        ss.sort((a, b) -> b.compareTo(a)); //倒序
+
+        String head = StringUtil.uuid();
+        int idx;
+        for(String s : ss) {
+            idx = s.indexOf('-');
+            if(s.startsWith(head)) {
+                FileUtil.removeFile(FileUtil.addPath(path, s));
+            } else {
+                head = s.substring(0, idx);
+            }
+        }
+    }
     /**
      * 压缩服务端安装包，包括UI与接口定义
      * @param no 计数
@@ -329,12 +352,12 @@ public class Release extends AbsCommand implements IConst {
         }
         
         if(si.hasDb) {
-            dps.add(new Dependency(WEBDB.si.name, WEBDB.si.version(), "*", false));
+            dps.add(new Dependency(WEBDB.si.name, WEBDB.si.version(), "*", DependType.STRONGAPI));
         }
         
         if(si.hasApi && !si.name.equals(SERVICE_BIOS) && !si.name.equals(SERVICE_OAUTH2)) {
-            dps.add(new Dependency(OAUTH.si.name, OAUTH.si.version(), "*", false));
-            dps.add(new Dependency(BIOS.si.name, BIOS.si.version(), "*", false));
+            dps.add(new Dependency(OAUTH.si.name, OAUTH.si.version(), "*", DependType.STRONGAPI));
+            dps.add(new Dependency(BIOS.si.name, BIOS.si.version(), "*", DependType.STRONGAPI));
         }
 
         for(Dependency dp : dps) {
@@ -370,6 +393,9 @@ public class Release extends AbsCommand implements IConst {
     }
     
     private boolean updated(File f, long lastest) {
+        if(!f.isDirectory() && f.lastModified() > lastest) {
+            return true;
+        }
         File[] list = f.listFiles();
         if(list == null || list.length == 0) {
             return false;

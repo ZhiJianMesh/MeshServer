@@ -44,8 +44,12 @@ final class PasswordParameterInfo extends ParameterInfo {
         if(!this.list()) {
             String s = ValParser.getAsStr(cfg, PROPERTY_EQUALSTO, "").trim();
             if(!StringUtil.isEmpty(s)) {
-                this.equalsTo = s;
                 this.equalsToPos = s.indexOf('.');
+                if(this.equalsToPos == 0) {
+                    this.equalsTo = s.substring(1);
+                } else {
+                    this.equalsTo = s;
+                }
             }
         }
 
@@ -82,9 +86,9 @@ final class PasswordParameterInfo extends ParameterInfo {
             if(this.equalsTo != null) { //密码的确认密码
                 Object o;
                 if(this.equalsToPos < 0) {
+                    o = objData.get(this.equalsTo);
+                } else if(this.equalsToPos == 0) { //顶层获取
                     o = rootData.get(this.equalsTo);
-                } else if(this.equalsToPos == 0) {
-                    o = objData.get(this.equalsTo.substring(1));
                 } else {
                     o = ValParser.getObject(rootData, this.equalsTo);//多级的
                 }

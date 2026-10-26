@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
-import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
 import cn.net.zhijian.mesh.bean.ProxyResponse;
@@ -551,8 +550,8 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
      * @param nodeId 建议的节点id
      * @return 异步处理结果，符合要求的节点
      */
-    private static CompletableFuture<NodeAddress> cloudLookup(String caller, String callee, String traceId, int nodeId) {
-        ServiceDNS serviceDns = (ServiceDNS) CloudDNS.get(callee);
+    private static CompletableFuture<NodeAddress> cloudLookup(ServiceReqBuilder req) {
+        ServiceDNS serviceDns = (ServiceDNS) CloudDNS.get(req.callee);
         if (serviceDns != null) {
             /*
              * 只要不为空，则使用它，哪怕超期一点点，继续等待其他线程更新。
@@ -560,55 +559,46 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
              * 此种方法解决不了第一次启动时的浪涌问题。
              */
             if(!serviceDns.needUpdate()) {
-                return CompletableFuture.completedFuture(serviceDns.lookup(nodeId));
+                return CompletableFuture.completedFuture(serviceDns.lookup(req.nodeId()));
             }
         }
 
         //过期后，刷新一次，默认每隔300秒刷新，
         if(LOG.isDebugEnabled()) {
-            LOG.debug("cloudlookup(caller:{}, callee:{})", caller, callee);
+            LOG.debug("cloudlookup(caller:{}, callee:{})", req.caller.name, req.callee);
         }
 
         Map<String, String> headers = new HashMap<>();
-        if(!StringUtil.isEmpty(traceId)) {
-            headers.put(IConst.HEAD_TRACE_ID, traceId);
+        if(!StringUtil.isEmpty(req.traceId)) {
+            headers.put(IConst.HEAD_TRACE_ID, req.traceId);
         }
-        //即使多个公司共用服务器，用任何一个公司都可以获取，因为它们的dns是一样的
-        CompanyInfo ci = CompanyInfo.instance();
-        String cid = Integer.toString(ci.id);
-        headers.put(IConst.HEAD_CID, cid);
-        headers.put(IConst.HEAD_ACCESS_TOKEN, ci.accessCode());
 
         //httpDns一定存在，因为初始化时已加入
         ServiceDNS httpDns = (ServiceDNS) CloudDNS.get(IConst.SERVICE_HTTPDNS);
-        NodeAddress node = httpDns.lookup(ci.id); //http dns只有一个，并且用的是域名
+        NodeAddress node = httpDns.lookup(req.cid); //http dns只有一个，并且用的是域名
         if(node == null) {
             LOG.error("Fail to get {}'s node", IConst.SERVICE_HTTPDNS);
             return CompletableFuture.completedFuture(null);
         }
         String fullUrl = serviceApiUrl(CLOUD_SCHEME, IConst.SERVICE_HTTPDNS,
-                "/lookup?service=" + callee + "&id=" + cid, node.addr);
+                "/lookup?service=" + req.callee + "&id=" + req.cid, node.addr);
 
-        return getFrom(node, fullUrl, headers, traceId).thenComposeAsync((hr)-> {
+        return getFrom(node, fullUrl, headers, req.traceId).thenComposeAsync((hr)-> {
             List<String> nodes;
             if(hr.code != RetCode.OK || hr.data == null || hr.data.isEmpty()
                || (nodes = ValParser.getAsStrList(hr.data, "addrs")) == null) {
                 LOG.error("Fail to get nodes of {} from {}({}), result:{}",
-                        callee, IConst.SERVICE_HTTPDNS, node.addr, hr.code);
+                        req.callee, IConst.SERVICE_HTTPDNS, node.addr, hr.code);
                 if(serviceDns != null) {
                     serviceDns.resetUpdate(); //获取失败，只能用老的
-                    return CompletableFuture.completedFuture(serviceDns.lookup(nodeId));
+                    return CompletableFuture.completedFuture(serviceDns.lookup(req.nodeId()));
                 }
                 return CompletableFuture.completedFuture(null);
             }
-            ServiceDNS dns = ServiceDNS.create(callee, nodes.toArray(new String[]{}));
-            CloudDNS.put(callee, dns);
-            return CompletableFuture.completedFuture(dns.lookup(nodeId));
+            ServiceDNS dns = ServiceDNS.create(req.callee, nodes.toArray(new String[]{}));
+            CloudDNS.put(req.callee, dns);
+            return CompletableFuture.completedFuture(dns.lookup(req.nodeId()));
         }, Pool);
-    }
-
-    private static CompletableFuture<NodeAddress> cloudLookup(ServiceReqBuilder req) {
-       return cloudLookup(req.caller.name, req.callee, req.traceId, req.nodeId());
     }
 
     public static void setLocalDns(String service, AbstractDNS dns) {

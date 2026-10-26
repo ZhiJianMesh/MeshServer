@@ -43,11 +43,11 @@ public class CompanyInfoTest extends UnitTestBase {
         String outsideAddr = ci.outsideAddr();
         String addr = "1.1.1.1";
         ci.setOutsideAddr(addr);
-        CompanyInfo.save();
+        CompanyInfo.save(CompanyInfo.cfgFile);
         CompanyInfo ci1 = CompanyInfo.instance();
         CompanyInfo.reInit();
         testCompanyInfo(ci1, insideAddr);
         ci.setOutsideAddr(outsideAddr); //restore it
-        CompanyInfo.save();
+        CompanyInfo.save(CompanyInfo.cfgFile);
     }
 }

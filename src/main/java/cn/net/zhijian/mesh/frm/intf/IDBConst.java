@@ -33,28 +33,28 @@ public interface IDBConst extends IConst {
 
     String ACTION_PUT = "put";
     String ACTION_PUTS = "puts"; //写入多个键值对
-    String ACTION_PUT_IFABSENT = "putIfAbsent"; //如果不存在，才put
-    String ACTION_PUTLIST = "putList";
-    String ACTION_PUTMAP = "putMap"; //在原有的map基础上更新
+    String ACTION_PUT_IFABSENT = "putifabsent"; //如果不存在，才put
+    String ACTION_PUTLIST = "putlist";
+    String ACTION_PUTMAP = "putmap"; //在原有的map基础上更新
 
     String ACTION_REMOVE = "rmv";
-    String ACTION_REMOVE_FROMMAP = "rmvFromMap";
-    String ACTION_REMOVE_FROMLIST = "rmvFromList";
+    String ACTION_REMOVE_FROMMAP = "rmvfrommap";
+    String ACTION_REMOVE_FROMLIST = "rmvfromlist";
     String ACTION_REMOVES = "rmvs";
-    String ACTION_REMOVEDIR = "rmvDir";
-    String ACTION_CREATEDIR = "crtDir";
+    String ACTION_REMOVEDIR = "rmvdir";
+    String ACTION_CREATEDIR = "crtdir";
 
     String ACTION_GET = "get";
     String ACTION_UPDATE = "update"; //用于search中，更新部分字段
     String ACTION_GETS = "gets";
-    String ACTION_GETSUBS = "getSubs";
-    String ACTION_GETSUBSANDITEMS = "getSubsAndItems";
-    String ACTION_GET_FROMMAP = "getMap";
-    String ACTION_GETS_MAP = "getsMap";
-    String ACTION_GET_DIRID = "getId";
+    String ACTION_GETSUBS = "getsubs";
+    String ACTION_GETSUBSANDITEMS = "getsubsanditems"; //获得子目录及条目
+    String ACTION_GET_FROMMAP = "getmap";
+    String ACTION_GETS_MAP = "getsmap";
+    String ACTION_GET_DIRID = "getid";
     String ACTION_LIST = "list";
-    String ACTION_ITEMEXISTS = "itemExists";//返回OK或NOT_EXISTS
-    String ACTION_DIREXISTS = "dirExists"; //返回OK或NOT_EXISTS
+    String ACTION_ITEMEXISTS = "itemexists";//返回OK或NOT_EXISTS
+    String ACTION_DIREXISTS = "direxists"; //返回OK或NOT_EXISTS
     String ACTION_NAMES = "names";
     String ACTION_SCRIPT = "script"; //通过复杂的逻辑生成一系列写操作，只在请求端解析
 

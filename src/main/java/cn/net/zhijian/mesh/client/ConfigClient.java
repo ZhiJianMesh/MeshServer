@@ -75,7 +75,7 @@ public class ConfigClient extends ServiceClient implements IOAuth, IThreadPool {
      * @return 保存结果
      */
     public static CompletableFuture<Boolean> put(int cid, ServiceInfo caller, String key, String val) {
-        if(val != null) {
+        if(StringUtil.isEmpty(key) || val == null) { //val可以为长度为0的字符串
             return CompletableFuture.completedFuture(false);
         }
         ServiceReqBuilder req = new ServiceReqBuilder(caller, SERVICE_CONFIG)
