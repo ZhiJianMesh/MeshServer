@@ -36,7 +36,7 @@ public class ClientInfo extends AbsProcessor {
 
             List<Map<String, Object>> dependencies = new ArrayList<>();
             for(ServiceInfo.Dependency dp : serviceInfo.dependencies) {
-                if(!dp.client) {
+                if(!dp.type.isUi()) { //不依赖UI，无需返回
                     continue;
                 }
                 dependencies.add(MapBuilder.of("name", dp.name, "minVer", dp.minVersion));

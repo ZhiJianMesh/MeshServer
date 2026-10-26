@@ -142,7 +142,7 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
      */
     boolean putDocument(String table, String did, String title, String summary, String content) {
         try (AbsConnection conn = rdb.getWriteConn()){
-            String sql = "select docid from " + SEARCH_DOCS + " where "
+            String sql = "select rowid from " + SEARCH_DOCS + " where "
                     + SEARCH_DOCS + " match('" + SEG_DID + ':' + did
                     + ' ' + SEG_TABLE + ':' + table + "')";
             Object[] result = rdb.queryLine(conn, sql);
@@ -152,7 +152,7 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
             }
             return putDocument(conn, table, did, title, summary, content);
         } catch (SQLException | MeshException e) {
-            LOG.error("Fail to save document,did:{}", did, e);
+            LOG.error("Fail to put document,did:{}", did, e);
         }
         return false;
     }
@@ -244,7 +244,7 @@ public final class SearchDBWorker extends AbsSearchDBWorker {
                     + SEG_DID + ':' + did + ' ' + SEG_TABLE + ':' + table + "')");
             return true;
         } catch (MeshException e) {
-            LOG.error("Fail to save document,did:{}", did, e);
+            LOG.error("Fail to remove document,did:{}", did, e);
         }
         return false;
     }

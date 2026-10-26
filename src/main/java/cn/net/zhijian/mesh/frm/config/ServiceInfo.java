@@ -98,7 +98,6 @@ public final class ServiceInfo {
     private static final String CFG_NAME = "name";
     private static final String CFG_MINVER = "minVersion";
     private static final String CFG_FEATURES = "features";
-    private static final String CFG_CLIENT = "client";
     
     //服务初始化类，用在<code>VirtualServer</code>中
     private static final String CFG_WATCHER = "watcher";
@@ -114,7 +113,7 @@ public final class ServiceInfo {
         COMMON,/* 1:数据库名不携带cid，也就是说数据不区分是哪家公司的，比如config、seqid */
         CLOUD, /* 2:服务在公有云中提供公共能力，数据不区分公司，比如HTTPDNS、AI之类，可以使用COMPANY、UNIUSER认证 */
         PERSONAL, /* 3:针对个人的服务，数据在云端，数据按用户ID区分，使用UNIUSER认证 */
-        BUILTIN; //内置，只有backend
+        BUILTIN; //内置，只有backend、httpdns等
         
         public static ServiceType parse(String type) {
             String n = type.toUpperCase();
@@ -136,8 +135,8 @@ public final class ServiceInfo {
 
     public enum ClientType { //端侧类型
         NONE,/*无任何端侧的服务*/
-        COMPONENT,/*提供端侧组件*/
-        CLIENTUI /*有完整的端侧UI*/
+        COMPONENT,/*提供端侧组件，应用列表可见 */
+        CLIENTUI /*有完整的端侧UI，客户端可见 */
     }
     //-------------------------------------------------------------------------
     //本地数据库工人，特别是bios中，有特殊处理，所以不放在webdb中
@@ -201,8 +200,6 @@ public final class ServiceInfo {
      * 每隔一段时间上报给bios服务，维持活跃状态。
      */
     public long cpuTime = 0;
-    //客户端路由中是否可见，有USER类接口，或有界面，则必须可见，如果不可见，客户端得不到它的访问地址
-    public boolean visible;
     
     //初始化相关的接口，不会提供给外部调用，只能在om.service.InitDb中调用
     private List<ApiMethod> initApis = null;
@@ -238,8 +235,6 @@ public final class ServiceInfo {
         this.clientType = clientType;
         this.type = type;
         this.tokenWorker = tokenWorker;
-        this.visible = clientType != ClientType.NONE;
-
         this.classLoader = classLoader;
         this.watcher = watcher != null ? watcher : IServiceWatcher.DefaultWatcher;
         this.hasApi = hasApi;
@@ -341,7 +336,7 @@ public final class ServiceInfo {
         String sType = ValParser.getAsStr(cfg, CFG_TYPE);
         ServiceType type = ServiceType.parse(sType);
 
-        ClientType clientType;
+        ClientType clientType = ClientType.NONE;
         String uiDir = FileUtil.addPath(homeDir, IConst.SERVICE_UI_DIR);
         if(new File(FileUtil.addPath(uiDir, IConst.INDEX_FILE)).exists()) {
             //有index.html表示在端侧是可以显示的
@@ -349,7 +344,6 @@ public final class ServiceInfo {
         } else {
             File fileDirF = new File(uiDir);
             FilenameFilter ff = (dir, name) -> name.toLowerCase().endsWith(".js");
-            clientType = ClientType.NONE;
             if(fileDirF.exists()) {
                 String[] files = fileDirF.list(ff);
                 if(files != null && files.length > 0) {
@@ -442,6 +436,7 @@ public final class ServiceInfo {
 
     /**
      * 作为请求参数，转成map，防止proguard改变了字段名称，导致参数错误
+     * 用在向bios注册时，向被调服务申请权限
      * @return maps
      */
     public List<Map<String, Object>> getDpdMaps() {
@@ -450,6 +445,9 @@ public final class ServiceInfo {
             return dpds;
         }
         for(Dependency d : dependencies) {
+            if(d.type.isOnlyUi()) {
+                continue; //只依赖UI的，无需在注册表callers中增加调用方
+            }
             Map<String, Object> map = new HashMap<>();
             map.put(CFG_NAME, d.name);
             map.put(CFG_MINVER, d.minVersion);
@@ -468,6 +466,47 @@ public final class ServiceInfo {
         return name;
     }
 
+    public static enum DependType {
+        UI,  //只依赖端侧UI
+        API, //只依赖服务侧API
+        ALL, //都依赖
+        STRONGAPI, //强依赖API，被依赖服务未启动，则当前服务不能启动
+        STRONGALL;
+
+        public boolean isStrong() {
+            return this == STRONGAPI || this == STRONGALL;
+        }
+ 
+        public boolean isApi() {
+            return this == STRONGAPI || this == STRONGALL || this == API || this == ALL;
+        }
+        
+        public boolean isUi() {
+            return this == UI || this == STRONGALL || this == ALL;
+        }
+        
+        public boolean isOnlyUi() {
+            return this == UI;
+        }
+
+        public static DependType parse(String type) {
+            String n = type.toUpperCase();
+            if(n.equals(UI.name())) {
+                return UI;
+            }
+            if(n.equals(ALL.name())) {
+                return ALL;
+            }
+            if(n.equals(STRONGAPI.name())) {
+                return STRONGAPI;
+            }
+            if(n.equals(STRONGALL.name())) {
+                return STRONGALL;
+            }
+            return API; //默认只依赖接口
+        }        
+    }
+
     /**
      * 依赖服务的信息
      * @author flyinmind of csdn.net
@@ -477,18 +516,15 @@ public final class ServiceInfo {
         public final String name;
         public final int minVersion;
         public final String features; //需要使用的features，以逗号分隔
+        public final DependType type;
 
-        // 是否同时依赖端侧，
-        // 如果依赖，则端侧下载时，同时下载依赖服务的端侧代码
-        public final boolean client;
-
-        public Dependency(String name, String minVersion, String features, boolean client) {
+        public Dependency(String name, String minVersion, String features, DependType type) {
             this.name = name;
             this.minVersion = StringUtil.verToInt(minVersion);
             this.features = features;
-            this.client = client;
+            this.type = type;
         }
-
+        
         public static Dependency parse(Map<String, Object> cfg) {
             String name = ValParser.getAsStr(cfg, CFG_NAME);
             if(StringUtil.isEmpty(name) || !NAME_CHECKER.matcher(name).matches()) {
@@ -503,9 +539,9 @@ public final class ServiceInfo {
             }
             
             String features = ValParser.getAsStr(cfg, CFG_FEATURES);
-            boolean client = ValParser.getAsBool(cfg, CFG_CLIENT, false);
+            DependType type = DependType.parse(ValParser.getAsStr(cfg, CFG_TYPE));
 
-            return new Dependency(name, minVersion, features, client);
+            return new Dependency(name, minVersion, features, type);
         }
     }
 
@@ -521,7 +557,7 @@ public final class ServiceInfo {
             sb.append(",\"").append(CFG_DEPENDENCIES).append("\":[");
             int n = 0;
             for(Dependency d : this.dependencies) {
-                if(d.client) {
+                if(d.type.isUi()) { //依赖UI的才返回给客户端，实现依赖安装
                     if(n > 0) {
                         sb.append(',');
                     }
@@ -1129,8 +1165,8 @@ public final class ServiceInfo {
      * @return 注册结果
      */
     public CompletableFuture<HandleResult> register(int cid, List<Object> dbDefines, String pwdToken, long updateTime) {
-        LOG.info("Register service:{},cid:{},type:{},lastestUpdate:{}",
-                this.name, cid, this.type.name(), updateTime);
+        LOG.info("Register service:{},cid:{},type:{},clientType:{},lastestUpdate:{}",
+                this.name, cid, this.type.name(), this.clientType.name(), updateTime);
         //注册服务，及添加必须的依赖项
         //si为OM服务，appTokenWorker必不为空
         String key = this.tokenWorker.key().toString();
@@ -1148,9 +1184,10 @@ public final class ServiceInfo {
             .put("type", this.type.name())
             .put("lastestUpdate", updateTime)
             .put("dispName", this.displayName)
+            .put("author", this.author)
+            .put("level", this.level)
             .put("ver", this.version())
-            .put("common", this.type != ServiceType.COMPANY)
-            .put("visible", this.visible ? 1 : 0) //客户端路由中是否可见
+            .put("visible", this.clientType != ClientType.NONE ? 1 : 0) //客户端路由中是否可见
             .cid(cid);
 
         return BiosClient.post(request);

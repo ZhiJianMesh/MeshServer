@@ -1023,7 +1023,8 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
         }
         
         for(ServiceInfo.Dependency dp : si.dependencies) {
-            if(!startedServices.contains(dp.name)) {
+            //未初始化，且强依赖，则需要进一步检查
+            if(!startedServices.contains(dp.name) && dp.type.isStrong() ) {
                 ServiceInfo dsi = services.get(dp.name);
                 LOG.debug("{} not started,{} depends on it", dp.name, si.name);
                 if(dsi == null) {

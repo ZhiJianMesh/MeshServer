@@ -210,7 +210,8 @@ public abstract class AbsSearchDBWorker extends AbsDBWorker {
         if(count == 0) {
             return true; //没有做任何更新，直接返回
         }
-        sql.append(" where docid=").append(docid);
+        //fts4 与 fts5 内部都是rowid
+        sql.append(" where rowid=").append(docid);
 
         return execute(conn, sql.toString()) >= 0;
     }

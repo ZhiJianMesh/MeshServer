@@ -25,10 +25,10 @@ import cn.net.zhijian.util.UrlPathInfo;
 import cn.net.zhijian.util.ValParser;
 
 /**
- * 全文搜索数据操作，每个doc包括docid、title、summary、content四个字段，
+ * 全文搜索数据操作，每个doc包括rowid、title、summary、content四个字段，
  * 包括get、put、rmv三个操作。
  * get时，search参数形如“a*,bb,cc”，可以包括多个，以逗号分隔。
- * put操作的配置，其中docid必须由参数输入，title、summary、content可以用参数输入，
+ * put操作的配置，其中rowid必须由参数输入，title、summary、content可以用参数输入，
  * 也可以通过配置，将多个参数组合起来，如同RDBProcessor中的sql一样
  * @author flyinmind of csdn.net
  *
@@ -124,7 +124,7 @@ public class SearchDBProcessor extends AbsDBProcessor {
     protected int calculateShard(AbsServerRequest req, Map<String, Object> resp) {
         String sDid = translateElements(this.did, req, resp);
         long lShard = StringUtil.longHashCode(sDid); //对应关系型数据库某行的主键，通常是一个long型整数
-        return (int)(ValParser.absLong(lShard) % MAX_SHARDING_NUM); //只用docid做数据分片
+        return (int)(ValParser.absLong(lShard) % MAX_SHARDING_NUM); //只用rowid做数据分片
     }
     
     /**

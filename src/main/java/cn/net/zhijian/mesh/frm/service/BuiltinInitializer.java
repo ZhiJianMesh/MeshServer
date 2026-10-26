@@ -14,7 +14,6 @@ import cn.net.zhijian.mesh.frm.config.ProcessInfo;
 import cn.net.zhijian.mesh.frm.config.RequestInfo;
 import cn.net.zhijian.mesh.frm.config.ResponseInfo;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
-import cn.net.zhijian.mesh.frm.config.ServiceInfo.Dependency;
 import cn.net.zhijian.mesh.frm.config.para.ParameterInfo;
 import cn.net.zhijian.mesh.frm.config.tokenchecker.TokenCheckers;
 import cn.net.zhijian.mesh.frm.intf.IConst;
@@ -70,16 +69,12 @@ public final class BuiltinInitializer implements IConst {
         server.addService(httpdnsService);
         
         LOG.info("create BUILTIN service {}", SERVICE_COMPANY);
-        Dependency[] dps = new Dependency[] {
-            new Dependency(SERVICE_SEQID, "0.1.0", "*", false),
-            new Dependency(SERVICE_KEYSTORE, "0.1.0", "*", false)
-        };
         ServiceInfo companyService = ServiceInfo.createBuiltIn(
-                ServiceInfo.serviceHome(SERVICE_COMPANY),
-                SERVICE_COMPANY,
-                //loadResOfAllServices会从bios加载密钥对，如果没有会产生新的
-                EccTokenWorker.nullTokenWorker(IOAuth.SIGNTYPE_APPKEY),
-                dps, IServiceWatcher.DefaultWatcher); //虚拟的company服务
+            ServiceInfo.serviceHome(SERVICE_COMPANY),
+            SERVICE_COMPANY,
+            //loadResOfAllServices会从bios加载密钥对，如果没有，会产生新的
+            EccTokenWorker.nullTokenWorker(IOAuth.SIGNTYPE_APPKEY),
+            null, IServiceWatcher.DefaultWatcher); //虚拟的company服务
 
         server.addService(companyService);
     }
@@ -160,7 +155,7 @@ public final class BuiltinInitializer implements IConst {
         // /company/api/service/list，用于在端侧显示私有云开启的所有服务，用于兼容公有云同名接口
         url = new UrlPathInfo(companyService.name).push(SERVICE_URL_API).push("service").push("list");
         apiInfo = new ApiInfo("service", METHOD_GET, url, null, false);
-        AbsProcessor serviceList = new Services(server, companyService, apiInfo);
+        AbsProcessor serviceList = new Services(companyService, apiInfo);
         am = ApiMethod.generate(serviceList, apiInfo, emptyRequestInfo, null, null);
         server.addApi(am);
 
