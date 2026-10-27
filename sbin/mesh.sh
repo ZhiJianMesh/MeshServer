@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# mesh1.sh  --  mesh.sh 的改进版
+# mesh.sh -- Mesh 服务启停与状态管理脚本
 #
 # 作者: flyinmind@csdn.net
 # 日期: 2023/3/31  (改进)
@@ -22,9 +22,9 @@
 #   8. 健康检查解析 JSON 中的 "code":0 字段，比仅判断花括号更可靠；
 #      响应缓存到 CHECK_RESP，status 不再重复请求
 #   9. 增加 java/curl 命令可用性检查、mkdir -p、变量统一加引号等健壮性修复
-#  10. stop 支持多 PID 逐个终止（原 kill $pid 只杀第一个）
-#  11. test_server 移出守护循环主体，java 快速崩溃时不会堆积监控子进程
-#  12. 超时/等待等魔法数字提取为顶部变量，便于调整
+#   10. stop 支持多 PID 逐个终止（原 kill $pid 只杀第一个）
+#   11. test_server 移出守护循环主体，java 快速崩溃时不会堆积监控子进程
+#   12. 超时/等待等魔法数字提取为顶部变量，便于调整
 #
 # 特别注意：
 #   该脚本使用系统 kill 命令来强制终止指定的 java 程序进程。
@@ -49,9 +49,10 @@ OMPWD="$2"
 MAINBIOS="$3"
 
 # 等待/超时参数（秒）
-START_WAIT_SEC=30     # 等待服务启动完成的最长时间
+START_WAIT_SEC=30     # 等待服务启动完成 / 健康检查宽限的最长时间
 STOP_WAIT_SEC=30      # 等待服务停止完成的最长时间
 RESTART_SLEEP_SEC=3   # 重启前等待时间
+HEALTH_TIMEOUT=5      # 单次健康检查的 curl 超时时间
 
 # ---- classpath 构建 ----
 # 使用 glob + 存在性判断，避免裸 ls 在无 jar 时输出错误；
@@ -66,7 +67,7 @@ for dir in "${LIBPATH}" "${APP_HOME}/sbin/dependency"; do
 done
 
 # ---- java 虚拟机启动参数（数组，避免分词问题）----
-JAVA_OPTS=(-Xms512m -Xmx512m -XX:+UseSerialGC -Dfile.encoding=utf-8)
+JAVA_OPTS=(-Xms512m -Xmx512m -XX:+UseSerialGC -Dfile.encoding=utf-8 -Dname=${APP_NAME})
 JAVA_OPTS+=(-XX:MaxMetaspaceSize=1024m -XX:ParallelGCThreads=1)
 JAVA_OPTS+=(-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS}/HeapDump.hprof)
 
@@ -89,11 +90,9 @@ done
 
 # ---- 工具函数 ----
 
-# 查询服务进程 PID 列表（等价 ps -ef | grep -Dname=mesh_server | grep -v grep）
+# 按 "-Dname=mesh_server" 精确匹配 java 进程，不匹配其它含同名字符串的进程
 get_pids() {
-    local match="-Dname=${APP_NAME}"
-    # shellcheck disable=SC2009
-    ps -ef | awk -v m="${match}" '/java/ && index($0, m) > 0 { print $2 }'
+    pgrep -f "java.*-Dname=${APP_NAME}"
 }
 
 # 检查程序是否处于运行状态
@@ -104,25 +103,26 @@ is_exist() {
     [ -n "${pids}" ]
 }
 
-# 健康检查的 JSON 响应（is_started 内部填充，供调用方直接使用，避免重复请求）
+# 健康检查（单次）：0=健康(code:0)，1=不健康/不可达
+# 响应存入 CHECK_RESP，解析到的 code 存入 HEALTH_CODE，供调用方直接使用
 CHECK_RESP=""
-
-# 只有返回 0 时才是成功，1 为未启动，2 为吊死
-is_started() {
-    if ! is_exist; then
-        CHECK_RESP=""
-        return 1
-    fi
-
-    # 正常的情况下，返回一个包含 "code":0 的 json 字符串
-    CHECK_RESP=$(curl -s --max-time 3 "${CHECK_URL}")
-    # 解析 JSON 中的 code 字段（无外部依赖，仅用 grep/sed）
-    local code
-    code=$(printf '%s' "${CHECK_RESP}" \
+HEALTH_CODE=""
+is_healthy() {
+    CHECK_RESP=$(curl -s --max-time "${HEALTH_TIMEOUT}" "${CHECK_URL}")
+    HEALTH_CODE=$(printf '%s' "${CHECK_RESP}" \
         | grep -o '"code"[[:space:]]*:[[:space:]]*[-0-9]*' \
         | head -n1 \
         | grep -o '[-0-9]*$')
-    if [ "${code}" = "0" ]; then
+    [ "${HEALTH_CODE}" = "0" ]
+}
+
+# 综合状态：0=健康运行中，1=未启动，2=进程在但不健康（启动中或疑似夯死）
+is_started() {
+    if ! is_exist; then
+        CHECK_RESP=""; HEALTH_CODE=""
+        return 1
+    fi
+    if is_healthy; then
         return 0
     fi
     return 2
@@ -157,7 +157,6 @@ start() {
 # 循环启动脚本（后台守护）：java 异常退出后自动重启，直到 .pid 文件被删除
 start_loop() {
     mkdir -p "${LOGS}"
-    echo "==============================================="
 
     trap "" HUP # 忽略HUP信号，允许终端关闭后服务程序继续运行
     : > "${PID_FILE}"  # 创建/清空 .pid 文件，守护循环以此判断是否继续
@@ -185,21 +184,21 @@ start_loop() {
     test_server &
 }
 
-# 启动检测：等待服务启动成功并输出结果
+# 启动检测：轮询健康检查，等待服务启动成功并输出结果
 test_server() {
+    echo "==============================================="
     echo "Starting"
     local count=0
     local success=0
     while true; do
-        is_started
-        if [ $? -eq 0 ]; then
+        if is_healthy; then
             success=1
             break
         fi
-        if [ "${count}" -gt "${START_WAIT_SEC}" ]; then
+        if [ "${count}" -ge "${START_WAIT_SEC}" ]; then
             break
         fi
-        if [ ! -f "${PID_FILE}" ]; then
+        if [ ! -f "${PID_FILE}" ]; then # 被 stop 取消，退出探测
             break
         fi
         sleep 1s
@@ -264,19 +263,26 @@ stop() {
 
 # 服务运行状态查看方法
 status() {
-    is_started
-    local st=$?
-    if [ "${st}" -eq 0 ]; then
+    if ! is_exist; then
+        echo "${APP_NAME} is not running!"
+        return 1
+    fi
+    if is_healthy; then
         local pid
         pid=$(get_pids | head -n1)
-        echo "${APP_NAME} is running,pid is ${pid}"
+        echo "${APP_NAME} is running, pid is ${pid}"
         echo "${CHECK_RESP}"
         cpu_mem_usage "${pid}"
-    elif [ "${st}" -eq 1 ]; then
-        echo "${APP_NAME} is not running!"
-    else
-        echo "${APP_NAME} is hung up!"
+        return 0
     fi
+    # 进程在但健康未过：可能是刚启动（START_WAIT_SEC 内）或疑似夯死
+    local pid
+    pid=$(get_pids | head -n1)
+    echo "${APP_NAME} process is up (pid ${pid}) but health check not passed yet (starting or not ready)"
+    cpu_mem_usage "${pid}"
+    echo ""
+    
+    return 2
 }
 
 # 重启服务方法

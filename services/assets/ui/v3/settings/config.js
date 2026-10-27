@@ -13,7 +13,7 @@ function decodeExt(extVal,tmpl) {
     if(extVal !== null && typeof extVal === "object") {
         o = extVal;
     } else {
-        try{o=JSON.parse(extVal);}catch(err){}
+        try{o=JSON.parse(extVal);}catch(err){ o={};}
     }
     for(var k in tmpl) {//字段以模板中为准，{a:{n:xxx,t:s/n/d/b},b:{...}...}
         t=tmpl[k];

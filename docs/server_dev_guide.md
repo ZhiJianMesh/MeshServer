@@ -208,7 +208,7 @@ account/
     "dependencies":[
         //依赖列表：需要调用某服务就必须申明，webdb、bios、oauth等无需申明
         //单例运行时会根据此处定义自动添加服务依赖
-        {"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1"}
+        {"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1", "type":"API"}
     ]
 }
 ```
@@ -389,6 +389,8 @@ curl "http://localhost:8523/account/api/apis"
 | `keydoc` | 密件管理 | 加密文档 |
 
 表中的服务名即客户端"应用管理"中显示的名称；各服务版本号随发布更新，请以目录内`service.cfg`为准。
+其中bios、oauth2、assets、seqid、user、webdb、config、keystore为**基础服务**，如果是单例运行，这些服务必须安装。
+schedule、workflow在部分公司服务中依赖，可以视情况安装。
 
 以示例为模板新建服务的推荐步骤：
 
@@ -464,7 +466,11 @@ service.cfg配置非常简单，格式如下：
         //webdb、bios、oauth等服务无需申明依赖
         //单例运行，会根据此处的定义自动添加服务依赖
         //非单例版本，需要在OM平台上设置依赖关系
-        {"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1"}
+        //type:API只依赖API，客户端获得client_info时不会返回；UI只依赖UI，注册时不会传给bios；ALL两个都依赖； 
+        //     STRONGAPI强依赖API；STRONGALL强依赖API与UI；
+        //     被强依赖的服务未启动，则依赖服务不能启动，通常是因为服务在初始化时要调用它的接口
+        //     不设置type，则默认为API
+        {"name":"user", "minVersion":"0.1.0", "maxVersion":"0.2.1", "type":"API"}
     ]
 }
 ```
@@ -700,7 +706,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | props | 嵌套定义复杂的结构 | List | 每一项是一个基本参数配置，用于指定object中的字段。props里面的字段还可以设为object类型，以此实现复杂的结构嵌套。 {"name":"infos", "type":"object", "must":true, "props":[{"name":"name", "type":"string"}, {"name":"val", "type":"string"}]} |
 | checkAll | 是否检查每个字段 | Bool | 默认为true，检查props中定义的每个字段合法性。 如果是响应内容，checkAll为false时，无论object有什么冗余内容，都会原样放过。 |
 | | | | **数值、日期类型特有的配置项** |
-| biggerThan | 必须大于的参数的名称 | String | 指定必须大于的参数的名称，long、int、float、double、date中有效<br>名称中没有`.`则表示从当前层级的对象中获取；如果名称第一个字符是`.`，则名称去掉`.`后，从顶层对象中获取；`.`在其他位置为多级对象，从顶层对象中逐级获取 |
+| biggerThan | 必须大于的参数的名称 | String | 指定必须大于的参数的名称，long、int、float、double、date中有效<br>名称中没有`.`则表示从当前层级的对象中获取；如果名称第一个字符是`.`，则名称去掉`.`，从顶层对象中获取；`.`在其他位置为多级对象，从顶层对象中逐级获取 |
 | smallerThan | 必须小于的参数的名称 | String | 指定必须小于的参数的名称，long、int、float、double、date中有效<br>对`.`的处理与biggerThan一致 |
 | | | | **String特有的配置项** |
 | len | 字符串长度 | Int | 本质是将min、max设置成相同的值 |
@@ -712,7 +718,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | keyName | 加密密钥名称 | String | keystore中密码的名称，密钥第一次使用时会在keystore服务中自动创建 |
 | | | | **Password特有配置项（继承了所有String参数的配置项）**|
 | rule | 密码强度检查 | String | 以逗号分隔成四个部分，从后向前，可以省略一部分，它们分别为： <br>minLen:最短长度，默认为4 <br>charTypeNum:字符类型数量（大写字母、小写字母、数字、英文标点、其他），默认为3 <br>differentCharNum:不同字符数量，默认为4 <br>accountPara:账号字段名称，用于判断密码是否与账号类似，默认为null，表示不判断 |
-| equalsTo | 需要等于的字段 | String | 用在确认密码中，判断本参数必须要等于另外一个参数 |
+| equalsTo | 需要等于的字段 | String | 用在确认密码中，判断本参数必须要等于另外一个参数，取值的处理方式与biggerThan相同 |
 | | | | **IP特有配置（继承了所有String参数的配置项）** |
 | format | 检查字符串是否为合法的IP地址 | String |V4:是否为IPv4地址 <br>V6:是否为IPv6地址 <br>PORT:是否携带了端口号 <br>LAN:是否为内网地址 <br>WAN:是否为外网地址 <br>LIST:以逗号分隔的多个地址 |
 | | | | **Sequence特有配置** |
@@ -2046,14 +2052,14 @@ xml.join('');
 | HMACSHA256 | 计算HMACSHA256 | @{HMACSHA256\| para1, name, 1, \`xxx\`}<br> 类似MD5，只是算法不同；算法中的可以是随机生成的16字节内容，记录在结果的前16字节；在js脚本中可以使用 Secure.hmacSHA256Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串 |
 | PBKDF | 计算PBKDF2 | @{PBKDF\| iter,para} <br>iter为迭代次数(1-2^31)，para为被混淆的字符串；在js脚本中可以使用Secure.pbkdf2Check(str, savedStr)进行校验，其中savedStr就是此处生成的字符串，也可以用进行校验，返回true或false |
 | PBKDFCHECK | PBKDF2校验 | @{PBKDFCHECK\| str, savedStr} <br>str为传入参数，savedStr是用来检验的参数，比如从数据库取出 |
-| UTC | 对UTC时间戳进行格式化 | @{UTC\|utcPara,offset[,outputFmt[,inputUnit]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utcPara,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utcPara,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utcPara,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为unit60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000），这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： <br>yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳所在月度的几号，1号返回0 <br>dayofyear：时间戳所在年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00的UTC时间戳 <br>monthend：返回utc所在月度的下个月第一天00:00:00的UTC时间戳 <br>weekstart：返回utc所在星期的第一天00:00:00的UTC时间戳 <br>weekend：返回utc所在星期的下个星期第一天00:00:00的UTC时间戳<br>daystart：返回utc当日00:00:00的UTC时间戳 <br>dayend：返回utc所在日期下一天00:00:00的UTC时间戳|
+| UTC | 对UTC时间戳进行格式化 | @{UTC\|utcPara,offset\[,outputFmt\[,inputUnit\]\]} 在offset指定的时区中使用outputFmt格式化输出时间戳。 <br>@{UTC\|utcPara,480,dayofmonth,unit60000} 东八区，输入UTC分钟，输出某月的几号 @{UTC\|utcPara,460,'yyyy-MM-dd HH:mm'} 东七区，输入UTC毫秒，输出完整日期加时间 @{UTC\|utcPara,460,monthstart,month} 东七区，输入UTC月份数，输出此月第一秒的时间戳 <br> offset定义输出时的时区，单位为分钟； <br>inputUnit定义输入utc值的单位，默认为1ms，比如传入的是分钟，应为unit60000。 <br>month、ymd是两个特殊的单位，month表示传入的utc的是从公元元年1月到现在的月份数，ymd表示传入的utc格式为yyyyMMdd的一个整数； <br>outputFmt定义输出格式：其中hex（16进制形式）、base64、unitxxx（unit后面指定毫秒数，比如输出天数为unit86400000），这三个格式只是改变了utc时间戳的表现形式，对时区无要求，填任意值都可以。 <br>以下格式化依赖时区偏移offset设置： <br>yyyy-MM-dd HH:mm:ss 格式化输出utc时间戳 <br>months：从公元元年1月1号到时间戳指定时间的月数 <br>month：时间戳指定时间的月数，1月返回0，'MM'格式化1月返回的是1 <br>dayofmonth：时间戳所在月度的几号，1号返回0 <br>dayofyear：时间戳所在年份的第几天，第一天返回0 <br>monthstart：返回utc所在月度的第一天00:00:00的UTC时间戳 <br>monthend：返回utc所在月度的下个月第一天00:00:00的UTC时间戳 <br>weekstart：返回utc所在星期的第一天00:00:00的UTC时间戳 <br>weekend：返回utc所在星期的下个星期第一天00:00:00的UTC时间戳<br>daystart：返回utc当日00:00:00的UTC时间戳 <br>dayend：返回utc所在日期下一天00:00:00的UTC时间戳|
 | NOW | 当前时间 | @{NOW\|unit86400000}转换成UTC天数 @{NOW\|yyyy-MM-dd HH:mm:ss,480} 转换成东八区时间字符串 <br> @{NOW\|[fmt[,offset]]}当前UTC时间戳， 与@{#reqAt}是同一个值，在一次请求中，多次引用@{#reqAt}或@{NOW}，结果都相同； 不同点在于@{NOW}可以携带格式化信息，@{#reqAt}不可以;#reqAt可以在其他占位符中使用，但是NOW不行，比如@{MD5\|#reqAt,'test'}； 无fmt的情况，默认返回当前utc时间戳；有fmt时，定义与UTC相同<br>offset是时区偏移，如果不设置，则默认使用服务器的时区设置。 |
 | NEXTPERIOD | UTC时间的下一个周期 | @{NEXTPERIOD\|'D',0}明天的0点 @{NEXTPERIOD\|period,bias}，其中period、bias为请求参数或变量名称 <br> @{NEXTPERIOD\|type(D/M/W/H/C),val}， type、val都可以为参数名称，也可以是具体的值 当type为D/W/M/H时，val为与起点的时间间隔，type为C时，val为周期时长;val的单位为毫秒 |
 | COALESCE | 返回第一个非空值 | @{COALESCE\| para1, para2, \`\`}<br>如果para1为空，则返回para2，如果para2也为空，则返回空字符串 |
 | IFVALID | 非空则连接其他参数并返回，否则返回空字符串 | @{IFVALID\| para1, \`xx-\`, para2} <br>如果para1为空返回“”，否则返回“xx-para2”，用于解决sql不能处理java的null问题 |
-| IFNULL | 非空则返回，否则返回第二个参数指定的字符串 | @{IFNULL\|[!]para1,null[,num/number/obj/object]} <br> 如果para1为空返回null字符串，否则返回para1的值；如果指定为num/number/obj/object类型，则返回时不会加引号 |
+| IFNULL | 非空则返回，否则返回第二个参数指定的字符串 | @{IFNULL\|\[!\]para1,null\[,num/number/obj/object\]} <br> 如果para1为空返回null字符串，否则返回para1的值；如果指定为num/number/obj/object类型，则返回时不会加引号 |
 | CONCAT | 连接多个参数 | @{CONCAT\|para1, \`-\`, para2, \`-\`…}|
-| ENCODE | 数据加密 | @{ENCODE\| keyName, paraName [,keyTime]}<br>keyName指定密钥的名称，运行时，如果keystore服务中不存在此密钥，会自动创建；加密时可以加keyTime(最大有效天数，默认为366天，最短1天)，到期后会产生新密钥，但是老密钥仍然可以解密；在一些安全性要求很高的场景中，可以设置较短的有效期。 在js或sql中可以通过@{DECODE\| keyName, paraName}解密。也可以在参数配置中将codeMode设为decode，并且设置keyName |
+| ENCODE | 数据加密 | @{ENCODE\| keyName, paraName \[,keyTime\]}<br>keyName指定密钥的名称，运行时，如果keystore服务中不存在此密钥，会自动创建；加密时可以加keyTime(最大有效天数，默认为366天，最短1天)，到期后会产生新密钥，但是老密钥仍然可以解密；在一些安全性要求很高的场景中，可以设置较短的有效期。 在js或sql中可以通过@{DECODE\| keyName, paraName}解密。也可以在参数配置中将codeMode设为decode，并且设置keyName |
 | DECODE | 数据解密 | @{DECODE\| keyName, paraName}<br>keyName指定密钥名称。无需事先创建，运行时，如果无此密钥则会自动创建它 |
 | UPPER | 将参数转为大写 | @{UPPER\| paraName} |
 | LOWER | 将参数转为小写 | @{LOWER\| paraName} |
@@ -2063,11 +2069,11 @@ xml.join('');
 | STRPAD | 字符串填充或掐头去尾 | @{STRPAD\| paraName, '填充字符', len} 或 @{STRPAD\| paraName, len, '填充字符'}<br>字符串长度不足len时，填充字符在前，则在前面填充，否则在后面填充；<br>超过len时，填充字符在前则去掉前面的，留下len个字符，否则去掉后面的|
 | STRPART | 字符串切割后的一个单元 | @{STRPART\|para,spliter,partNo}<br> 将字符串按spliter分隔成多个子字符串，取出编号为partNo的子字符串，编号从0开始，如果partNo小于0，表示返回最后一个。spliter可以是正则表达式 |
 | REPLACE | 字符串查找替换 | @{REPLACE\|para,regular,replaceWith}<br> 将字符串中所有匹配regular的部分替换成replaceWith。regular可以是正则表达式 |
-| ECKEYPAIR | 使用ECC密钥对进行加解密、签名&验签 | @{ECKEYPAIR\|encode, keypair, content, pwd}，使用ecc密钥对进行操作<br> @{ECKEYPAIR\|cmd, keypair, content[, pwd]} cmd有new、public、encode、decode、sign、verify： <br>1）@{ECKEYPAIR}，不用带任何参数，产生一个不加密的密钥对； <br>2）@{ECKEYPAIR\|new, pwd}，产生一个用指定密码加密的密钥对； <br>3）@{ECKEYPAIR\|public, keypair}，获取密钥对公钥，携带了版本号信息，因为公钥不加密，所以无论keypair是否加密都可以获取； <br>4）@{ECKEYPAIR\|sign, keypair, content[, pwd]}，用密钥对对content进行签名； <br>5）@{ECKEYPAIR\|verify, keypair, content, signature[, pwd]}，用密钥对验证签名，需要多一个signature； <br>6）@{ECKEYPAIR\|encode/decode, keypair, content[, pwd]}，用密钥对加密或解密。 keypair为密钥对，content是待加解密、签名&验签的内容，pwd是密钥对的加密密码，如果没有，可以不提供。 它们都可以用参数名，也可以是直接的字符串内容 |
+| ECKEYPAIR | 使用ECC密钥对进行加解密、签名&验签 | @{ECKEYPAIR\|encode, keypair, content, pwd}，使用ecc密钥对进行操作<br> @{ECKEYPAIR\|cmd, keypair, content\[, pwd\]} cmd有new、public、encode、decode、sign、verify： <br>1）@{ECKEYPAIR}，不用带任何参数，产生一个不加密的密钥对； <br>2）@{ECKEYPAIR\|new, pwd}，产生一个用指定密码加密的密钥对； <br>3）@{ECKEYPAIR\|public, keypair}，获取密钥对公钥，携带了版本号信息，因为公钥不加密，所以无论keypair是否加密都可以获取； <br>4）@{ECKEYPAIR\|sign, keypair, content[, pwd]}，用密钥对对content进行签名； <br>5）@{ECKEYPAIR\|verify, keypair, content, signature\[, pwd\]}，用密钥对验证签名，需要多一个signature； <br>6）@{ECKEYPAIR\|encode/decode, keypair, content[, pwd]}，用密钥对加密或解密。 keypair为密钥对，content是待加解密、签名&验签的内容，pwd是密钥对的加密密码，如果没有，可以不提供。 它们都可以用参数名，也可以是直接的字符串内容 |
 | URL | 对URL参数等进行编码或解码 | @{URL\|cmd,para}<br> 对para进行URL编码或界面，cmd可以是encode、decode或append。 如果是append，格式为@{URL\|cmd,urlPara,k1,v2,k2,v2...} |
-| LIST | 将LIST连接为字符串 | @{LIST\|[!]paraName[.segName\|colNo][,quote]} <br>1)对象列表：@{LIST\|uids.uid,\`\`}； <br>2)普通列表：@{LIST\|uids,\`'\`} <br>3)列表的列表：@{LIST\|uids.0,\`\`} <br>4)map：@{LIST\|members.v,\`'\`}<br> 多个元素用逗号“,”分隔。用于解决NORMAL中数组自动加“[]”的问题，加了“[]”，在sql中就无法使用。 如果list中元素是对象(map)，segName指定字段名，处理时取出每个对象的指定字段；list元素也可以是list，此时segName是数字，用以指定列号，列号从0开始。 如果没有segName，则当作普通list处理，直接将list中元素转为字符串列出来。 |
-| ELEMENT | 从对象或数组中取出元素 | @{ELEMENT\|[!]paraName,sn/name/[!]paraName]}<br>1)如果是数组，则第二个参数必须为数字，否则返回null； <br>2)如果是对象，则第二个参数指定字段名称，可以支持用'.'分隔多级 |
-| JSON | 将复杂对象转为JSON串 | @{JSON\|para[,defaultVal[,quote,safeQuote]]}<br> para为任意类型的参数，defaultVal是在para为空时的默认值，一个字符串；同时可以指定引号 |
+| LIST | 将LIST连接为字符串 | @{LIST\|\[!\]paraName\[.segName\|colNo\]\[,quote\]} <br>1)对象列表：@{LIST\|uids.uid,\`\`}； <br>2)普通列表：@{LIST\|uids,\`'\`} <br>3)列表的列表：@{LIST\|uids.0,\`\`} <br>4)map：@{LIST\|members.v,\`'\`}<br> 多个元素用逗号“,”分隔。用于解决NORMAL中数组自动加“[]”的问题，加了“[]”，在sql中就无法使用。 如果list中元素是对象(map)，segName指定字段名，处理时取出每个对象的指定字段；list元素也可以是list，此时segName是数字，用以指定列号，列号从0开始。 如果没有segName，则当作普通list处理，直接将list中元素转为字符串列出来。 |
+| ELEMENT | 从对象或数组中取出元素 | @{ELEMENT\|\[!\]paraName,sn/name/\[!]paraName\]}<br>1)如果是数组，则第二个参数必须为数字，否则返回null； <br>2)如果是对象，则第二个参数指定字段名称，可以支持用'.'分隔多级 |
+| JSON | 将复杂对象转为JSON串 | @{JSON\|para\[,defaultVal\[,quote,safeQuote\]\]}<br> para为任意类型的参数，defaultVal是在para为空时的默认值，一个字符串；同时可以指定引号 |
 | CLEAN | 清除JSON中的字段名称 | @{CLEAN\|json}<br>只可用于JSON类型的参数，将json字段名全部清除，返回一个字符串。通常用在生成全文索引中 |
 | SIZE | 返回参数的长度 | @{SIZE\|[!]para}<br> para可以是list、map或string |
 | SUM | 对列表中元素求和 | @{SUM\|type,[!]paraName[.segName\|colNo]} <br>1)简单列表：@{SUM\|double,scores}； <br>2)对象列表：@{SUM\|d,students.score}； <br>3)列表的列表：@{SUM\|i,students.0}<br> 将所有成员求和，如果指定了字段名，则源数据必须为一个对象列表； 如果是列表的列表，segName可以指定为列号；都不指定，则认为传入的是数值列表。 <br>type支持long、double、int、float等，也可以用简写l、d、i、f，浮点数支持精度控制，比如f.3，与@{CALCULATE}相同<br>注意，@{SUM}不同于@{ADD} |

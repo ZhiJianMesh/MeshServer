@@ -193,7 +193,7 @@ Linux中需要创建mesh用户，以mesh身份下载、安装、运行；termux�
 脚本的关键行为（了解后可避免多余操作）：
 
 1. **自动探测服务器根目录**：先查运行中实例的`/backend/api/where`，再查脚本所在目录、当前目录；失败时才要求用`--dir`指定；
-2. **自动探测引擎版本**：通过`sbin/command.sh company engineVer`（或`http://localhost:8523/backend/api/enginever`）获取，服务版本即引擎版本（以引擎版本为 release tag），因此**服务与引擎不会版本错配**；
+2. **自动探测引擎版本**：通过`sbin/command.sh company engineVer`获取，服务版本即引擎版本（以引擎版本为 release tag），因此**服务与引擎不会版本错配**；
 3. **服务变更后自动重启**：安装/更新时先取临时管理口令（`company gettotp`），再用`sbin/mesh.sh restart <totp>`重启；卸载时直接`restart`（重启后 bios 注销该服务）；
 4. **自动备份**：更新服务备份到`services/.<服务名>.bak.<时间戳>`；卸载备份到`backups/<服务名>.<时间戳>`；更新服务器程序时整个旧目录备份为`<根目录>.bak.<时间戳>`，并保留用户的`conf`与已装`services`；
 5. **本地包交付**：自己开发/定制的服务，可用`./meshhelper.sh install ./myservice`或`./meshhelper.sh install ./myservice.zip`直接安装（不下载）；已有服务也可以用`update ./myservice`从本地目录更新。服务目录名或包名即服务名（zip 包内`service.cfg`不在包根目录时，取其所在目录名）；目录内必须有`service.cfg`，且`api`、`ui`子目录至少有一个；服务名仅允许字母、数字、下划线，最长 30 字符；`uninstall`只接受服务名或本地目录，不接受 zip 包。
@@ -315,7 +315,9 @@ sbin/command.sh company register 公司名称 公司或个体户统一信用码 
 ./meshhelper.sh install bios
 ```
 
-手工方式：先执行`sbin/command.sh company engineVer`查询引擎版本，再从[码云](https://gitee.com/zhijian_net/enterprise/releases)或[GitHub](https://github.com/ZhiJianMesh/enterprise/releases)下载**以该引擎版本为 tag** 的bios服务包，解压到`services/bios`下。比如引擎版本是0.13.1，gitee上的bios服务下载URL形如:
+手工方式：先执行`sbin/command.sh company engineVer`查询引擎版本，
+再从[码云](https://gitee.com/zhijian_net/enterprise/releases)或[GitHub](https://github.com/ZhiJianMesh/enterprise/releases)
+下载**以该引擎版本为 tag** 的bios服务包，解压到`services/bios`下。比如引擎版本是0.13.1，gitee上的bios服务下载URL形如:
 
 ```URL
 https://gitee.com/zhijian_net/enterprise/releases/download/0.13.1/bios-0.2.5.zip
@@ -324,6 +326,7 @@ https://gitee.com/zhijian_net/enterprise/releases/download/0.13.1/bios-0.2.5.zip
 bios自身版本号会变化，但下载连接中版本使用引擎版本（release tag），因此只要tag选对即可，具体文件名以 release 资产列表为准。
 
 9. 在server目录下运行登录命令，获取证书，生成company.cfg文件、totpkey； 
+在主bios所在实例登录就可以了，其他实例在第一次启动时，命令行带`公司密码 主bios地址`，就会从主bios获得必要的配置信息，包括partition.cfg、company.cfg等。
 ```BASH
 sbin/command.sh company login 公司ID 公司密码
 ```
@@ -334,7 +337,12 @@ sbin/command.sh company login 公司ID 公司密码
 sbin/mesh.sh start [totp_or_company_pwd [main_bios]]
 sbin/mesh.sh stop|restart|status
 ```
-如果主bios实例已经启动，在其他节点上启动服务器时，输入公司密码或totp密码与主bios的地址(ip:port)就可以自动完成所有配置。
+第一次启动需要使用公司密码启动，后面的重启，如果涉及数据库初始化，可以用totp，其他情况下的重启，不必带密码启动。
+
+totp可以通过在bios实例上运行 sbin/command.sh company gettotp命令获得，注意它的有效时间（秒）。
+
+如果主bios实例已经启动，在其他节点上启动服务器时，启动命令行输入`公司密码或totp密码 主bios的地址(ip:port)`就可以自动完成所有配置。
+启动完成后可以通过`sbin/mesh.sh status`查看实例的运行状态，返回内容中有`"code":0`表示状态正常。
 
 
 ### Windows环境中安装
@@ -549,10 +557,15 @@ WantedBy=multi-user.target
 .\meshhelper.ps1 install D:\work\myservice  # 目录内必须有service.cfg，且api、ui子目录至少有一个
 ```
 
-手工操作的本质就是将服务目录拷贝到服务程序所在目录的services子目录下，如果是zip包，请解压到services子目录下（也可以直接把zip包交给meshhelper安装，见上）。
+手工操作的本质就是将服务目录拷贝到服务程序所在目录的services子目录下，
+如果是zip包，请解压到services子目录下（也可以直接把zip包交给meshhelper安装，见上）。
 注意，子目录名就是服务名，下面必须要有service.cfg文件，api、ui子目录至少要有一个。
 
 卸载方法更简单，删除services下服务目录，然后重启服务器即可。升级操作本质是先卸载、再安装两步的组合。
+
+多个服务可以一次安装，然后重启一次即可。安装时一定要注意依赖关系。
+服务的依赖关系记录在service.cfg的dependencies中，依赖服务都安装完成后，重启才能成功。
+同时，要注意服务可能是链状依赖，即，A依赖B，B依赖C……，形成一个链状甚至网状的依赖关系，所以安装时要仔细检查依赖关系。
 
 ### 界面安装&卸载
 
@@ -586,6 +599,33 @@ WantedBy=multi-user.target
 在一台windows机器上安装[codebuddy](https://www.codebuddy.cn/)或其他容易操作的AI智能体，加载mesh-app-factory技能，这台机器就成为了助手，可以用自然语言命令它完成mesh-app-factory指定的工作。
 
 无论是单例部署还是集群部署，AI智能体都可以支持。[运行环境安装](#compile_and_install)与[服务器程序安装](#server_sw_install) 可以参照本文档的其他章节。下面描述AI智能体操作与手动操作不同的命令。
+
+
+### 与服务器建立信任关系 <a id="trust_setup"></a>
+为了方便与服务器连接，可以与服务器建立信任关系，之后再连接它就不用输入帐号与密码了。
+
+**定义**：在本技能语境下，"建立信任关系"专指**在主控机运行 技能目录下`sbin\setup_ssh_mcp.ps1`，使主控机能免密 SSH 登录到目标节点。
+这一步解决的是"主控机 ↔ 目标机"的远程可达与身份信任，**不是**至简网格服务之间的信任。
+
+**前置条件（需人工确认，脚本不能自动完成）**
+1. 目标机已安装并启动 openssh-server；
+2. Linux 目标机已创建 `mesh` 用户（root 直连仅限测试）；
+2. 主控机能网络连通目标机（linux默认为`mesh@IP:22`，termux默认为`root@IP:8022`）；
+4. 已知目标机 SSH 登录账号及认证方式（口令 / 已有公钥）。
+
+**注意**：termux中root帐号可以用于登录，但是真实用户并不是root，home目录是/data/data/com.termux/files/home
+
+**命令模板（在主控机 PowerShell 执行）**
+```powershell
+# 交互式：逐步输入类型、IP、端口、账号
+sbin\setup_ssh_mcp.ps1
+
+# 连 Windows 目标机（建 SSH 信任 + 注册 MCP）
+sbin\setup_ssh_mcp.ps1 -HostName 192.168.1.50 -Port 22 -User admin -TargetType windows
+
+# 连 Linux 目标机（仅建 SSH 免密信任，跳过 MCP 注册）
+setup_ssh_mcp.ps1 -HostName 10.0.0.5 -User root -TargetType linux -SkipMCP
+```
 
 ### AI智能体安装服务器程序的流程
 
@@ -621,8 +661,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 - **在哪个目录下运行命令，就在哪个目录安装**，不需要输入目录；也可用`--dir D:\mesh\server`指定目标目录；
 - 默认源为码云，取不到时改用`--source github`；两者都不可达时用`--url <zip直链>`指定安装包地址；
-- 成功判据：目标目录下存在`sbin`、`conf`、`services`、`libs`子目录，脚本输出的下一步提示中包含注册、登录、启动命令；
-- **离线/内网环境**：先在可联网机器上下载服务器程序zip，拷贝到目标机手工解压（保证目录下直接是`sbin`、`conf`、`libs`、`services`），后续用脚本安装服务时同样支持本地 zip（`install ./xxx.zip`）。
+- 成功判据：目标目录下存在`sbin`、`conf`、`libs`子目录，脚本输出的下一步提示中包含注册、登录、启动命令；
+- **离线/内网环境**：先在可联网机器上下载服务器程序zip，拷贝到目标机手工解压（保证目录下直接是`sbin`、`conf`、`libs`），后续用脚本安装服务时同样支持本地 zip（`./meshhelper.sh install ./xxx.zip`）。
 
 
 #### 3. 检查配置与环境
@@ -632,17 +672,19 @@ Set-ExecutionPolicy -Scope Process Bypass
 - 确认运行用户对服务器根目录有读写权限（Linux 下为 mesh 用户）；
 - 多实例或集群部署时，按规划修改`channel.cfg`的端口与`partition.cfg`的分区配置，集群的关键配置是partition.cfg中的biosServers配置。
 
-#### 4. 启动并验证（成功判据）
+#### 4. 注册公司并登录（单例/集群都必须）
+
+只有注册并登录了公司才能正常启动服务器。
+- 按下面[公司注册](#comany_register)小节完成注册，然后用`sbin/command.sh company login 公司ID 公司密码`登录；
+- 第一个注册公司的实例自动成为第一个实例，集群中的其他实例登录同一公司后，通过bios服务互相发现。
+
+#### 5. 启动并验证（成功判据）
 
 - 执行`sbin/mesh.sh start`启动服务器；
 - 执行`sbin/mesh.sh status`，确认健康检查返回`code=0`（进程存在且正常）；
 - 访问`http://目标机IP:8523/backend/api/checkup`返回正常JSON；
 - 观察`logs`目录日志，首次启动会自动初始化数据库，等待日志输出稳定、无ERROR刷屏。
 
-#### 5. 注册公司并登录（单例/集群都必须）
-
-- 按下面[公司注册](#comany_register)小节完成注册，然后用`sbin/command.sh company login 公司ID 公司密码`登录；
-- 第一个注册公司的实例自动成为第一个实例，集群中的其他实例登录同一公司后，通过bios服务互相发现。
 
 #### 失败处置速查表
 
@@ -654,11 +696,25 @@ Set-ExecutionPolicy -Scope Process Bypass
 | 注册 | 提示验证码错误 | 重新获取验证码与session后重试（session一次性，必须与验证码同批使用） |
 | 注册 | 提示信用代码已注册 | 向用户说明该公司已注册，改用`company login`登录 |
 | 登录 | 登录失败 | 确认公司ID与密码正确 |
-| 服务安装 | 服务版本与引擎版本不匹配 | 使用安装脚本会自动对齐引擎版本，不会出现此错误；若手工安装，用`sbin/command.sh company engineVer`返回的引擎版本重新下载对应版本的服务 |
+| 服务安装 | 服务版本与引擎版本不匹配 | 使用安装脚本会自动对齐引擎版本，不会出现此错误；<br>若手工安装，用`sbin/command.sh company engineVer`返回的引擎版本重新下载对应版本的服务 |
 | 服务安装 | 脚本提示"未指定也未探测到服务器根目录" | 用`--dir 服务器根目录`（Windows 为`-Dir`）显式指定服务器根目录 |
 | 服务安装 | 脚本提示"无法探测引擎版本" | 服务器未启动或未登录公司：先`sbin/mesh.sh start`并`company login`，再重试 |
 | 自动重启 | `gettotp`失败、安装脚本提示"请手动执行 restart" | 目标机时间未同步（totp 依赖 UTC 时间），校准时间后重试，或手工执行`sbin/mesh.sh restart`（带公司密码或 totp） |
+| 启动 | 启动即退出，日志 `Fail to start mesh server ... fail to start virtual server`<br>报 `Fail to register 服务名 into bios`/`failed in action 7` | **被依赖的服务未装全（尤其`seqid`/`bios`/`webdb`/`oauth2`）**<br>1) 先用 `./meshhelper.sh install`装齐 `bios oauth2 assets seqid user webdb config keystore`；<br>2) 检查service.cfg中dependencies，将依赖服务安装完成后，再启动|
+| 启动 | 刚装完基础服务后第一次启动失败，提示需要公司密码 | **首次启动必须带公司密码**：`sbin/mesh.sh start <公司密码>`；<br>数据库初始化、解密数据根密钥对都需要它。<br>装完基础服务后的"第一次启动"也算首次，务必带密码；<br>只要不安装服务，后续`restart`/`start` 无需密码 |
+| 启动 | `mesh.sh status` 报 `hung up`、或反复拉起多个 java 进程、8523 始终不监听 | `mesh.sh` 的 `JAVA_OPTS` 必须含 `-Dname=mesh_server`（与 `mesh.ps1` 一致），<br>否则 `get_pids`/`is_exist` 按 `-Dname=mesh_server` 精确匹配不到进程，会误判"未启动"并不断拉起新实例 |
+| 服务安装 | gitee下载 404、取不到服务包 | `meshhelper` 以 `sbin/command.sh company enginever` 返回的引擎版本（如 `0.13.1`）为tag查 `enterprise` 仓库<br>而gitee的 tag常带 `v` 前缀（`v0.13.1`），不带`v`会404 |
+| 服务安装 | 安装多个服务时每次 `meshhelper install` 都会重启；若此前手动 `start` 留下多个孤儿 java，每次重启会逐个清理、非常慢 | 安装前先用 `ps` 看 `ServerMain` 进程，按 PID 精确 `kill`（不要用 `pkill -f`，会误杀当前 ssh shell）；装完统一做一次带密码的干净 `restart` |
+| 启动 | 刚装完一批服务首次启动，`schedule.Watcher` 报 `db schedule.tasks not found (SERVICE_NOT_FOUND)`、`seqid`/`webdb` 的 init `asyncSend timeout` | 多为启动瞬间满载导致的瞬时超时；等负载降下来 Watcher 会重试自愈，或做一次带密码的干净 `restart` 即可消失；`webdb Fail to download db cfg` 是每次启动都有的已知良性告警，不影响 `code:OK` |
 
+**agent 运维附加注意**：经 SSH 在远端执行命令时，远端 shell 会剥掉双引号，导致 `grep -E "a|b"` 变成 `a|b` 被当成管道而报语法错；
+尽量用单引号（PowerShell 里用 `''` 转义）或无引号写法、避免顶层管道。
+另外 `mesh.sh` 已将 java 启动输出重定向到 `logs/java.out.log`（业务日志在 `logs/mesh/run.log`），启动排错优先看这两处。
+
+**最终问题定位方法**：一切的源头都是代码，如果问题难以定位，
+可以从[gitee](https://gitee.com/zhijian_net/MeshServer/repository/archive/master.zip)
+或[github](https://github.com/ZhiJianMesh/MeshServer/archive/refs/heads/master.zip)
+将源码取到本地，结合logs/mesh/run.log中的日志定位问题原因。
 
 ### 公司注册<a id="comany_register"></a>
 
@@ -1033,7 +1089,7 @@ openclaw config set plugins.entries.zhijian-mesh.config.services  '[]'          
 
 ### 核心与适配器
 
-- **核心**：位于 `docs/plugin/src`中（`config`、`http`、`mesh-client`、`catalog`、`markdown`、`session`）。
+- **核心**：位于技能包中 `plugin/src/` 中（`config`、`http`、`mesh-client`、`catalog`、`markdown`、`session`）。
   它实现全部逻辑：双账号分离、令牌持久化、服务/接口元数据缓存、业务调用、结果渲染、文件落盘。
   核心只输出纯文本（Markdown）与结构化信号（例如"需要业务账号"），不感知任何宿主协议。
 - **适配器**：是薄层（约几十行），只做"宿主协议 ↔ 核心"的翻译，从核心导入能力、**不重写核心功能**：
@@ -1041,6 +1097,11 @@ openclaw config set plugins.entries.zhijian-mesh.config.services  '[]'          
     把核心暴露的 5 个能力注册成 OpenClaw 工具；
   - `mcp/`：stdio 形态的 MCP Server（`server.mjs`），把同核心的功能暴露成 MCP 工具，
     供支持 MCP 的智能体（如 CodeBuddy、WorkBuddy）直接加载。
+  - `kaijibot/`：KaijiBot（OpenClaw 的安卓/Termux 分支）适配器模板，含 `index.js`、
+    `config.js`、`runtime.js` 与 `kaijibot.plugin.json`；其 `config.js`/`runtime.js` 在
+    OpenClaw 适配基础上增加了 `resolveConfig` 兜底（KaijiBot 的 gateway 在规范化配置时会把
+    `plugins.entries["zhijian-mesh"].config` 弄丢，需回退直读 `kaijibot.json`），
+    并复用上一级的 `../src/` 核心，不复制核心代码。
 
 新增一个平台 = 新增一个薄适配器，核心逻辑只维护一份，平台间不会行为漂移。
 如果所用的智能体无法与核心功能对接，可以让智能体仿照openclaw的插件，完成符合自身要求的适配器。
@@ -1049,30 +1110,31 @@ openclaw config set plugins.entries.zhijian-mesh.config.services  '[]'          
 
 核心与适配器模板随 `mesh-app-factory` 技能一起发布：
 
-1. 在技能目录内建立 `plugin/` 子目录，把 `docs/plugin` 的 `src/`（核心）、`/`、`mcp/`
+1. 在技能目录内建立 `plugin/` 子目录，把技能包中`plugin` 的 `src/`（核心）、`/`、`mcp/`
    以及 `package.json` 等原样放入 `mesh-app-factory/plugin/`；
 2. 在技能 `SKILL.md` 增加"生成插件"指令：智能体识别当前平台后，从 `plugin/` 模板把对应适配器
-   复制/落地为可安装插件（OpenClaw 用 `/`、支持 MCP 的用 `mcp/`）；
+   复制/落地为可安装插件（OpenClaw 用 `/`、KaijiBot 用 `kaijibot/`、支持 MCP 的用 `mcp/`）；
 3. 发布后的技能目录结构示例：
 
    | 位置 | 内容 |
    | --- | --- |
    | `SKILL.md` | 技能主文档（含"生成/适配插件"说明） |
    | `plugin/src/` | 宿主无关核心（双账号、令牌持久化、渲染等） |
-   | `plugin/` | OpenClaw 适配器模板 |
+   | `plugin/` | OpenClaw 适配器模板（含 `index.js`/`openclaw.plugin.json` 入口，内嵌共享 `src/` 与 `mcp/`） |
    | `plugin/mcp/` | MCP 适配器模板（CodeBuddy/WorkBuddy 等） |
-   | `examples/` | 官方服务源码库 |
-   | `imgs/` | 文档截图 |
+   | `plugin/kaijibot/` | KaijiBot 适配器模板（含 resolveConfig 兜底，复用 `../src/` 核心） |
+   | `examples/` | 官方服务源码库，开发时可以参照实现 |
+   | `agent/` | agent默认的SOUL.md与AGENTS.md |
+   | `imgs/` | 文档截图，供人查看，解析技能时无需关注 |
 
 4. 由于核心是唯一逻辑来源，更新核心后，所有平台适配器同步生效，无需逐平台改代码。
 
 > 发布技能时只发布**代码与模板**，不要打包运行期生成的 `data/mesh-metadata.json` 与 `data/mesh-auth.json`
 > （后者含明文业务密码）；在仓库中以 `.gitignore` 忽略 `plugin/data/`。
-> 本技能 `plugin/` 是插件的可发布快照，其开发源位于网格服务器仓库的 `server/docs/plugin/`，二者保持同步。
+> 本技能 `plugin/` 是插件的可发布快照，其开发源位于网格服务器仓库的 `server/skill/plugin/`，二者保持同步。
 
 # 四、Mesh编译&运行环境安装
 Mesh开发、运行环境安装方法，以及所需原生库跨平台编译方法。
-
 
 ## Java编译&运行环境<a id="compile_and_install"></a>
 
@@ -1132,7 +1194,6 @@ Termux是一个安卓应用，从github[下载Termux应用](https://github.com/h
 因为安卓内核是Linux，Termux在安卓的基础上加了一个Linux适配层，提供了一个精简的Linux程序运行环境。
 
 至简网格服务器坚持极小的外部依赖，在这种资源极其有限的环境中，仍然可以实现多实例、多区域集群能力，能以几乎可以忽略的成本运行。
-
 
 
 #### A）工具安装
@@ -1278,6 +1339,8 @@ Termux只生成Linux-Android aarch64的原生库。
 make termux-aarch64
 ```
 将生成的so复制到QuickJS工程的src/main/resources/native/Linux-Android下对应芯片架构的目录中，运行gradle jar命令重新生成jar。
+
+
 
 
 

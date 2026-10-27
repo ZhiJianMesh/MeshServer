@@ -223,3 +223,116 @@ openclaw plugins install clawhub:<package-name>
 也可以将插件功能描述清楚，给openclaw中的agent发命令，让它完成插件实现。
 
 ## 上传插件
+
+# 四、至简网格插件部署与排错
+
+至简网格插件（包名 `@zhijian/openclaw-mesh-plugin`，插件 id `zhijian-mesh`）
+把至简网格智能体工具（`mesh_services` / `mesh_apis` / `mesh_call` / `mesh_login` / `mesh_logout`）
+挂到OpenClaw/KaijiBot上，使其能通过飞书等通道直接调用后台接口。下面记录部署与排查中反复踩过的坑。
+
+## 1.配置位置与结构
+
+插件配置写在平台配置文件（KaijiBot 为 `~/.kaijibot/kaijibot.json`，OpenClaw 为 `~/.openclaw/openclaw.json`）里：
+
+```JSON
+{
+  "plugins": {
+    "allow": ["zhijian-mesh"],
+    "entries": {
+      "zhijian-mesh": {
+        "enabled": true,
+        "config": {
+          "baseUrl": "https://127.0.0.1:8523",
+          "companyId": 40,
+          //服务查询帐号，在user服务中增加aiAdmin帐号，设置类型为“智能体”，不可以用其他类型帐号
+          "account": "aiAdmin",
+          "password": "123456",
+          "insecure": true,
+          "accessCode": "1234",
+          "services": []
+        }
+      }
+    }
+  }
+}
+```
+
+- `plugins.allow` 必须包含 `"zhijian-mesh"`，否则插件不会加载。
+- 真正的连接信息放在 `plugins.entries["zhijian-mesh"].config` 下，`baseUrl / companyId / account / password` 为必填（`account=aiAdmin` 是查询账号，写操作需用业务账号）。
+- 改完配置文件**必须重启 gateway** 才生效（见第 3 节）。
+
+## 2.已知问题
+
+### 问题1
+
+**gateway 不会把插件配置传给插件（“缺少 baseUrl” 假象）**
+
+**症状**：
+飞书里调用 `mesh_services` 报“尚未配置完整：缺少 baseUrl / account / password / companyId”，但配置文件里明明有值。
+
+**根因**：
+OpenClaw/KaijiBot 的 gateway 在启动时加载配置，会把 `plugins.entries["zhijian-mesh"].config` 这一项在“规范化/合并”过程中丢失，
+导致运行中的网关传给插件的 `api.pluginConfig` 是空的，而命令行 `kaijibot plugins list`（CLI）是**直读配置文件**的，所以 CLI 能拿到配置、看起来一切正常，这造成了“配置明明在、CLI 也行、飞书却报错”的迷惑现象。
+二者表现不一致，排查时极易被 CLI 的“成功”误导。
+
+**解决办法（已内置到插件）**：
+插件 `src/config.js` 新增 `resolveConfig(api)` —— 当 `api.pluginConfig` 缺必填项时，
+自动回退直读配置文件里的 `plugins.entries["zhijian-mesh"].config`（依次尝试 `~/.kaijibot/kaijibot.json`、`~/.openclaw/openclaw.json`、插件目录下 `mesh.config.json`）。
+这样无论宿主怎么规范化配置，插件都能拿到值。
+
+> 排查口诀：
+看到“缺少”先确认是**运行中的 gateway** 报错，还是 CLI；CLI 成功不代表 gateway 真拿到了配置。
+
+如果以后修改了插件源码，需要把 `src/config.js`、`src/runtime.js` 
+同步到手机上的插件目录（如 `~/.kaijibot/extensions/zhijian-mesh/src/`），再重启 gateway 才会生效。
+
+### 问题2
+
+**gateway 生命周期与重启**
+
+- **不热加载**：
+gateway 只在启动时读一次配置，运行中改 `kaijibot.json` 不会自动生效，**必须重启 gateway**。
+
+- **关 App 会死**：
+gateway 只在 Termux 应用存活时运行，关掉 Termux 或 Android 回收后台就会被杀，且不自动重启（这正是“突然不行”的常见原因）。
+建议配合 `termux-wake-lock` 防回收 + Termux:Boot 开机自启。
+
+- **arm64 OOM**：
+手机上启动 gateway 建议加 `NODE_OPTIONS=--max-old-space-size=1536` 防止内存不足崩溃。
+
+**正确重启方式**（在 Termux 中执行）：
+
+```BASH
+# 杀掉旧的 gateway（按标题精准匹配，不要用 pkill -f kaijibot.mjs，详见下方坑）
+pkill -f kaijibot-gateway
+sleep 1
+cd ~/openclaw
+export NODE_OPTIONS="--max-old-space-size=1536"
+# setsid 让 gateway 脱离 ssh 会话独立存活；< /dev/null 避免占用前台
+setsid node kaijibot.mjs gateway --force >> ~/openclaw/gateway.log 2>&1 < /dev/null &
+```
+
+**坑：不要 `pkill -f kaijibot.mjs`**。
+该命令会按整行匹配，把“正在执行这条 pkill 的 ssh shell 自己”也杀掉（因为命令字符串里就含 `kaijibot.mjs`），
+导致后面的 `setsid node ...` 根本没机会运行，表现为“启动命令回显为空、gateway 没起来”。
+
+杀 gateway 要用 `pkill -f kaijibot-gateway`（进程标题是 `kaijibot-gateway`）。
+
+### 问题2
+
+**mesh-app-factory 技能被静默跳过**
+
+`mesh-app-factory` 技能的 `SKILL.md` 约 286KB，超过 KaijiBot 默认的 `skills.limits.maxSkillFileBytes=256KB`，
+会被静默跳过（日志 `[skills] Skipping skill due to oversized SKILL.md`），技能不加载。需要在配置文件中调高上限：
+
+```JSON
+{
+  "skills": {
+    "limits": {
+      "maxSkillFileBytes": 524288
+    }
+  }
+}
+```
+
+技能应放在工作区技能目录 `~/.kaijibot/workspace/skills/mesh-app-factory`（source 标 `kaijibot-workspace`）。

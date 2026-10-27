@@ -39,6 +39,8 @@ detail() {
         
         this.dtl['sBirthday']=date2str(dt);
         this.dtl['status']=this.dtl.ustatus=='N'?'person':'person_off';
+        
+        if(!resp.data.powers) return;
 
         this.dtl.powers=resp.data.powers.map(p => {
             var pn='';
