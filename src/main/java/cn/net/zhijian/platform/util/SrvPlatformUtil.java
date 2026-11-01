@@ -64,8 +64,8 @@ public final class SrvPlatformUtil extends AbsPlatform {
                     InetAddress addr = addresses.nextElement();
                     // 只要 IPv4 且不是回环/链路本地
                     if (addr instanceof Inet4Address
-                            && !addr.isLoopbackAddress()
-                            && !addr.isLinkLocalAddress()) {
+                        && !addr.isLoopbackAddress()
+                        && !addr.isLinkLocalAddress()) {
                         return addr.getHostAddress();
                     }
                 }

@@ -14,6 +14,7 @@ import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
 import cn.net.zhijian.mesh.bean.ShardingNode;
 import cn.net.zhijian.mesh.bean.WebdbDNS;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsDBWorker;
 import cn.net.zhijian.mesh.frm.abs.AbsRDBWorker;
@@ -211,12 +212,12 @@ public final class DBClient extends ServiceClient implements IDBConst, IOAuth, I
             LOG.debug("dbLookup.getDbNodes(caller:{},cid:{},db:{},dbNo:{})",
                     dbReq.caller.name, dbReq.cid, dbReq.db, dbReq.dbNo);
         }
-        ServiceReqBuilder req = new ServiceReqBuilder(dbReq.caller, SERVICE_BIOS)
-                .url(BIOS_API_DBNODES)
-                .appendPara("dbNo", Integer.toString(dbReq.dbNo), false)
-                .traceId(dbReq.traceId)
-                .appToken("*")
-                .cid(dbReq.cid);
+        BiosReqBuilder req = new BiosReqBuilder(dbReq.caller);
+        req.url(BIOS_API_DBNODES)
+            .appendPara("dbNo", Integer.toString(dbReq.dbNo), false)
+            .traceId(dbReq.traceId)
+            .appToken("*")
+            .cid(dbReq.cid);
         return BiosClient.get(req).thenComposeAsync((hr)-> {
             if(hr.code != RetCode.OK || hr.data == null || hr.data.isEmpty()) {
                 LOG.error("Fail to call {} in getDbNodes({}),result:{}", BIOS_API_DBNODES, dbReq.db, hr.brief());

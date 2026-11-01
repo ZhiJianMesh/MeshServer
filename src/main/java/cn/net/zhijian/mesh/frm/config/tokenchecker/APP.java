@@ -11,7 +11,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.abs.AbsTokenChecker;
@@ -97,8 +97,8 @@ class APP extends AbsTokenChecker {
          */
         UrlPathInfo url = new UrlPathInfo("/service/getPubKey")
                 .appendPara("service", caller, false);
-        ServiceReqBuilder builder = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url(url.toString())
+        BiosReqBuilder builder = new BiosReqBuilder(si);
+        builder.url(url.toString())
                 .cid(LOCAL_COMPANY_ID)
                 .traceId(req.traceId);
         return BiosClient.get(builder).thenComposeAsync(hr -> {

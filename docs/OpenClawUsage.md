@@ -248,7 +248,6 @@ openclaw plugins install clawhub:<package-name>
           "account": "aiAdmin",
           "password": "123456",
           "insecure": true,
-          "accessCode": "1234",
           "services": []
         }
       }

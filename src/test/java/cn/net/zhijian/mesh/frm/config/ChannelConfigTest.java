@@ -10,6 +10,8 @@ import cn.net.zhijian.mesh.MeshException;
 import cn.net.zhijian.mesh.frm.abs.AbsPlatform;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.util.IPUtil;
+import cn.net.zhijian.util.IPUtil.FORMAT;
 import cn.net.zhijian.UnitTestBase;
 
 /**
@@ -56,5 +58,14 @@ public class ChannelConfigTest extends UnitTestBase {
         } catch (Exception e) {
             fail(e.getLocalizedMessage());
         }
+    }
+    
+    @Test
+    public void testLocalAddr() {
+        ChannelConfig cc = ChannelConfig.instance();
+
+        String addr = cc.localHttpAddr();
+        System.out.println("local addr:" + addr);
+        assertTrue(IPUtil.isValidIP(addr, FORMAT.V4.v + FORMAT.PORT.v) == FORMAT.NONE);
     }
 }

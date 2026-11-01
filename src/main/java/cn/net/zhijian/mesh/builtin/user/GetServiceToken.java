@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.BiosClient;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
@@ -58,13 +59,13 @@ public final class GetServiceToken extends AbsProcessor {
         int cid = req.cid();
         if(!services.contains(service) && !cloudServices.contains(service)) { //分配token之前，先判断系统是否有此服务
             ServiceInfo caller = serviceInfo();
-            ServiceReqBuilder builder = new ServiceReqBuilder(caller, SERVICE_BIOS)
-                    .traceId(req.traceId)
-                    .cid(cid)
-                    .url("/service/activeNodeNum")
-                    .appToken("*")
-                    .appendPara("partId", Integer.toString(PartitionConfig.instance().partition))
-                    .appendPara("service", service); //判断服务是否有节点在正常运行
+            BiosReqBuilder builder = new BiosReqBuilder(caller);
+            builder.traceId(req.traceId)
+                .cid(cid)
+                .url("/service/activeNodeNum")
+                .appToken("*")
+                .appendPara("partId", Integer.toString(PartitionConfig.instance().partition))
+                .appendPara("service", service); //判断服务是否有节点在正常运行
             cf = BiosClient.get(builder).thenComposeAsync(hr -> {
                 if(hr.code == RetCode.OK && ValParser.getAsInt(hr.data, "nodeNum") > 0) {
                     services.add(service);

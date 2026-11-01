@@ -1340,7 +1340,7 @@ public abstract class AbsRDBWorker extends AbsDBWorker {
             .token(token)
             .put("services", services)
             .nodeId(cid);
-        return BiosClient.post(req);
+        return ServiceClient.servicePost(req);
     }
 
     /**

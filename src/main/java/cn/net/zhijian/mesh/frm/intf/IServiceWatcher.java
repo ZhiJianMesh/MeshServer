@@ -13,7 +13,7 @@ import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.abs.AbsServerResponse;
@@ -206,8 +206,8 @@ public interface IServiceWatcher extends IConst, IThreadPool {
             }
 
             String addr = ChannelConfig.instance().localHttpAddr();
-            ServiceReqBuilder builder = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url("/status/srvinit")
+            BiosReqBuilder builder = new BiosReqBuilder(si);
+            builder.url("/status/srvinit")
                 .traceId(si.name)
                 .cid(LOCAL_COMPANY_ID)
                 .put(SEG_PARTID, PartitionConfig.instance().partition)
@@ -237,8 +237,8 @@ public interface IServiceWatcher extends IConst, IThreadPool {
             }
 
             String addr = ChannelConfig.instance().localHttpAddr();
-            ServiceReqBuilder builder = new ServiceReqBuilder(si, SERVICE_BIOS)
-                    .url("/status/srvremove")
+            BiosReqBuilder builder = new BiosReqBuilder(si);
+            builder.url("/status/srvremove")
                     .cid(CompanyInfo.instance().id) //随便一个都可以
                     .traceId(si.name)
                     .appendPara(SEG_PARTID, Integer.toString(PartitionConfig.instance().partition))

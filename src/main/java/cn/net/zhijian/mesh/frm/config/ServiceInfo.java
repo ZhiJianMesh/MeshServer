@@ -28,6 +28,7 @@ import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
 import cn.net.zhijian.mesh.bean.RequestStat;
 import cn.net.zhijian.mesh.client.BiosClient;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.HttpClient;
 import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
@@ -893,8 +894,8 @@ public final class ServiceInfo {
                 return CompletableFuture.completedFuture(v);
             }
 
-            ServiceReqBuilder req = new ServiceReqBuilder(this, IConst.SERVICE_BIOS)
-                .url("/service/dbno")
+            BiosReqBuilder req = new BiosReqBuilder(this);
+            req.url("/service/dbno")
                 .cid(cid).appToken("*")
                 .traceId("get_service_dbno_" + this.name);
             return BiosClient.get(req).thenApplyAsync(hr -> {
@@ -1025,8 +1026,8 @@ public final class ServiceInfo {
             }
             dbs.append(dbName);
             
-            ServiceReqBuilder builder = new ServiceReqBuilder(this, IConst.SERVICE_BIOS)
-                .url("/db/nodes?dbNo=" + dbNo) //私有云的都用LOCAL_DBNO
+            BiosReqBuilder builder = new BiosReqBuilder(this);
+            builder.url("/db/nodes?dbNo=" + dbNo) //私有云的都用LOCAL_DBNO
                 .traceId(this.name + "_initwebdb")
                 .cid(cid)
                 .appToken("*")
@@ -1171,8 +1172,8 @@ public final class ServiceInfo {
         //si为OM服务，appTokenWorker必不为空
         String key = this.tokenWorker.key().toString();
 
-        ServiceReqBuilder request = new ServiceReqBuilder(this, IConst.SERVICE_BIOS)
-            .token(pwdToken)
+        BiosReqBuilder request = new BiosReqBuilder(this);
+        request.token(pwdToken)
             .url("/init/register")
             .traceId(this.name + "_register")
             .put("service", this.name) //从token中无法获得调用方，所有必须传入

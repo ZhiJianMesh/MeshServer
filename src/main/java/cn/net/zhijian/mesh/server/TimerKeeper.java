@@ -39,7 +39,7 @@ public class TimerKeeper implements IThreadPool {
             public void run() {
                 long cur = System.currentTimeMillis();
                 for(TimerTaskWrapper tw : TimerTasks) {
-                    if(cur >= tw.nextTime) {
+                    if(tw.needRun(cur)) {
                         Pool.execute(() -> { //任务放在ThreadPool中执行，避免堵塞Timer自身的线程
                             try { //捕捉全部异常，避免在线程池中发生异常，导致线程丢失
                                 tw.task.run();
@@ -48,7 +48,9 @@ public class TimerKeeper implements IThreadPool {
                             }
                         });
                         tw.updateNextTime(cur);
-                        LOG.debug("Execute timer task {},next {}", tw.name, new Date(tw.nextTime));
+                        if(tw.needLog(cur)) {
+                            LOG.debug("Execute timer task {},next {}", tw.name, new Date(tw.nextTime));
+                        }
                     }
                 }
             }
@@ -87,6 +89,8 @@ public class TimerKeeper implements IThreadPool {
     }
     
     public static class TimerTaskWrapper {
+        private static final int LOG_INTERVAL = 10 * 60 * 1000;
+
         private final String name;
         private final PeriodType type;
         /*
@@ -98,7 +102,8 @@ public class TimerKeeper implements IThreadPool {
          */
         private final long val;
         private final Runnable task;
-        long nextTime;
+        private long logTime = 0;
+        private long nextTime;
         
         /**
          * 
@@ -122,6 +127,18 @@ public class TimerKeeper implements IThreadPool {
         
         public long nextTime() {
             return nextTime;
+        }
+        
+        public boolean needRun(long cur) {
+            return cur >= nextTime;
+        }
+        
+        public boolean needLog(long cur) {
+            if(cur - logTime >= LOG_INTERVAL) {
+                logTime = cur;
+                return true;
+            }
+            return false;
         }
     }
 }

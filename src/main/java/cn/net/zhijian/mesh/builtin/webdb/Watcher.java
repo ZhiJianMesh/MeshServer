@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.dbworker.SearchDBWorker;
 import cn.net.zhijian.mesh.dbworker.SqliteWorker;
 import cn.net.zhijian.mesh.dbworker.TreeDBWorker;
@@ -22,16 +22,16 @@ import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.config.ApiInfo;
 import cn.net.zhijian.mesh.frm.config.ChannelConfig;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig;
-import cn.net.zhijian.mesh.frm.config.RequestInfo;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig.DeployMode;
+import cn.net.zhijian.mesh.frm.config.RequestInfo;
+import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.config.para.ParameterInfo;
 import cn.net.zhijian.mesh.frm.config.tokenchecker.TokenCheckers;
-import cn.net.zhijian.mesh.frm.config.ServiceInfo;
-import cn.net.zhijian.mesh.frm.intf.IServiceWatcher.DefaultServiceWatcher;
-import cn.net.zhijian.mesh.frm.method.ApiMethod;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.frm.intf.IDBConst;
 import cn.net.zhijian.mesh.frm.intf.IServiceServer;
+import cn.net.zhijian.mesh.frm.intf.IServiceWatcher.DefaultServiceWatcher;
+import cn.net.zhijian.mesh.frm.method.ApiMethod;
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.LogUtil;
@@ -208,6 +208,7 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
             return getConfig(si).thenApply(rc -> {
                 File cfgFile = RunConfig.configFile(si.homeDir);
                 if(rc != null) { //优先使用bios中配置的
+                    LOG.info("Use webdb config from bios config");
                     runCfg = rc;
                     DBHandlerBase.setRunConfig(runCfg);
                     FileUtil.writeFile(cfgFile, JsonUtil.objToPrettyJson(rc.dbsList()), DEFAULT_CHARSET);
@@ -215,6 +216,7 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
                 }
 
                 if(cfgFile.exists()) {
+                    LOG.info("Use {} as webdb config", cfgFile);
                     if((runCfg = RunConfig.parse(cfgFile)) != null) {
                         DBHandlerBase.setRunConfig(runCfg);
                         return HandleResult.OK;
@@ -238,9 +240,8 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
     public CompletableFuture<HandleResult> afterLoad(IServiceServer server, ServiceInfo si, String pwd) {
         AbsSearchDBWorker.init(FileUtil.addPath(server.homeDir(), IConst.SYS_CONF_DIR));
         //设置数据库备份定时任务
-        if(runCfg.needBackup()) {
-            SqliteWorker.setBackupTimer(si);
-        }
+
+        SqliteWorker.setBackupTimer(si);
         this.dbInit(si);
 
         return super.afterLoad(server, si, pwd);
@@ -259,8 +260,8 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
          * 因为webdb是普遍被依赖的服务，所以在afterLoad中就做这样的初始化，
          * 以使得其他服务在startup时，可以获得数据库路由
          */
-        ServiceReqBuilder builder = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url("/status/dbreport")
+        BiosReqBuilder builder = new BiosReqBuilder(si);
+        builder.url("/status/dbreport")
                 .traceId(si.name)
                 .cid(CompanyInfo.instance().id) //不区分公司，填首要的就行
                 .put(SEG_PARTID, PartitionConfig.instance().partition)
@@ -289,8 +290,8 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
          * 因为webdb是普遍被依赖的服务，所以在afterLoad中就做这样的初始化，
          * 以使得其他服务在startup时，可以获得数据库路由
          */
-        ServiceReqBuilder builder = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url("/status/dbinit")
+        BiosReqBuilder builder = new BiosReqBuilder(si);
+        builder.url("/status/dbinit")
                 .traceId(si.name)
                 .cid(CompanyInfo.instance().id) //不区分公司，填首要的就行
                 .put(SEG_PARTID, PartitionConfig.instance().partition)
@@ -318,8 +319,8 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
         super.destroy(server, si);
         String addr = ChannelConfig.instance().localHttpAddr();
 
-        ServiceReqBuilder builder = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url("/status/dbremove")
+        BiosReqBuilder builder = new BiosReqBuilder(si);
+        builder.url("/status/dbremove")
                 .cid(CompanyInfo.instance().id) //不区分公司
                 .traceId(si.name)
                 .put(SEG_PARTID, Integer.toString(PartitionConfig.instance().partition))
@@ -343,25 +344,28 @@ public final class Watcher extends DefaultServiceWatcher implements IDBConst {
     }
     
     private CompletableFuture<RunConfig> getConfig(ServiceInfo si) {
-        ServiceReqBuilder req = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url("/db/getConfig")
-                .appendPara("addr", ChannelConfig.instance().localHttpAddr())
-                .cid(CompanyInfo.instance().id) //不区分公司
-                .appToken("*")
-                .traceId(si.name + "_get_dbconfig");
+        BiosReqBuilder req = new BiosReqBuilder(si);
+        req.url("/db/getConfig")
+            .appendPara("addr", ChannelConfig.instance().localHttpAddr())
+            .cid(CompanyInfo.instance().id) //不区分公司
+            .appToken("*")
+            .traceId(si.name + "_get_dbconfig");
         return BiosClient.get(req).thenApplyAsync(hr -> {
             if(hr.code != RetCode.OK) {
-                LOG.info("Fail to download db cfg,result:{},use default", hr.brief());
+                LOG.info("Fail to download webdb cfg,result:{}", hr.brief());
                 return null;
             }
             String cfg = ValParser.getAsStr(hr.data, "cfg").trim();
             if(StringUtil.isEmpty(cfg) || !cfg.matches("^\\[(\\{.*\\})+\\]$")) {
-                LOG.error("Invalid db cfg,content:{}", cfg); //单例情况下无设置
+                LOG.error("Invalid webdb cfg,content:{}", cfg); //单例情况下无设置
                 return null;
             }
-            File cfgFile = RunConfig.configFile(si.homeDir);
-            FileUtil.writeFile(cfgFile, cfg, DEFAULT_CHARSET);
-            return RunConfig.parse(cfgFile);
+            List<Object> dbList = JsonUtil.jsonToListWithLF(cfg);
+            if(dbList == null || dbList.isEmpty()) {
+                LOG.error("Invalid webdb cfg,content:{}", cfg); //设置了错误的格式
+                return null;
+            }
+            return RunConfig.parse(dbList);
         }, Pool);
     }
 }

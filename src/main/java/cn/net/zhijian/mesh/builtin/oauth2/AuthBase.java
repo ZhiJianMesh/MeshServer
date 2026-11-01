@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 
 import cn.net.zhijian.mesh.bean.DeferrableEle;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsProcessor;
 import cn.net.zhijian.mesh.frm.config.ApiInfo;
@@ -80,8 +80,8 @@ abstract class AuthBase extends AbsProcessor {
          * 否则会死循环，因为一旦bios调用oAuth2，而oAuth2又要调用bios
          */
         ServiceInfo si = serviceInfo();
-        ServiceReqBuilder req = new ServiceReqBuilder(si, SERVICE_BIOS)
-            .url(url)
+        BiosReqBuilder req = new BiosReqBuilder(si);
+        req.url(url)
             .cid(LOCAL_COMPANY_ID)
             .appendPara("service", caller)
             .appendPara("callee", callee)

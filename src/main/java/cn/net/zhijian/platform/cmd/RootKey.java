@@ -90,8 +90,7 @@ public class RootKey extends AbsCommand {
         private final KeyStore keystore;
     
         public PKCSKeyStore(String confPath) throws Exception {
-            /* 最好使用硬件信任根，在服务器上无此条件，只能产生一个信任根文件
-             * 在安卓中，使用keystore实现（基于TEE），它更加安全。
+            /* 最好使用硬件信任根，在服务器上无此条件，只能产生一个信任根文件。
              * root.keystore用于加密oauth、user服务的codebook、数据密钥，
              * 即使丢失此密钥，也不会影响使用，因为会重新创建密钥及codebook。
              * 但是，对于在至简网格中运行的公司，它们的数据根密钥是用它加密的，

@@ -132,7 +132,7 @@ is_started() {
 cpu_mem_usage() {
     local pid="$1"
     ps -p "${pid}" -o %cpu=,%mem= --no-headers 2>/dev/null \
-        | awk '{printf "CPU: %s%% MEM: %s%%", $1, $2}'
+        | awk '{printf "CPU: %s%% MEM: %s%%\n", $1, $2}'
 }
 
 # ---- 核心功能函数 ----
@@ -180,8 +180,8 @@ start_loop() {
         done
     ) &
 
-    # 后台执行一次启动检测（与守护循环分离，java 快速崩溃时也不会堆积监控进程）
-    test_server &
+    # 启动检测（与守护循环分离，java 快速崩溃时也不会堆积监控进程）
+    test_server
 }
 
 # 启动检测：轮询健康检查，等待服务启动成功并输出结果
@@ -280,7 +280,6 @@ status() {
     pid=$(get_pids | head -n1)
     echo "${APP_NAME} process is up (pid ${pid}) but health check not passed yet (starting or not ready)"
     cpu_mem_usage "${pid}"
-    echo ""
     
     return 2
 }

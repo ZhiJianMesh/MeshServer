@@ -154,16 +154,16 @@ public final class SqliteWorker extends AbsJDBCWorker {
         if(builder.backup) {
             fq = createQueue(builder.cid, builder.root);
             //有slave时才会创建消费队列，用于同步，设置时如果无slave，backup应为false
-            //但是无slaves，仍然可以启动备份，因为每日备份，需要压缩备份，然后存到至简网格中
-            if(slaves != null) {
+            if(slaves != null) { //远程备份
                 for(NodeAddress slave : slaves) {
                     String name = slave.addr.replace(':', '@').replace('.', '_'); //要做文件名，不能有冒号与点号
                     addConsumer(name, FileQueue.InitPosition.CUR,
                             new SyncQueueHandler(builder.si, cid, slave, service, dbName, dbNo));
                 }
             }
-
-            String backupDir = initBackup(builder.root, dbDir, builder.cid);
+            //无slaves，仍然启动本地备份，因为每日备份时，需要不中断服务的情况下将数据库压缩后存到至简网格中
+            //如果无本地备份，就必须停止数据库写入，然后再压缩数据库文件
+            String backupDir = initLocalBackup(builder.root, dbDir, builder.cid);
             bakDbFile = FileUtil.addPath(backupDir, dbName + ".db");
             LOG.debug("Create backup db file `{}`", bakDbFile);
             bakConnPool = new ResourcePool<>(poolName + "_bak", 1, 3000, new RwConnectionFactory(bakDbFile));
@@ -246,7 +246,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
      * @param srcDbDir Source directory
      * @throws FQException file queue exception
      */
-    private String initBackup(String dbRoot, String srcDbDir, int cid) throws FQException {
+    private String initLocalBackup(String dbRoot, String srcDbDir, int cid) throws FQException {
         String backupDir;
         if(cid > LOCAL_COMPANY_ID) {
             backupDir = FileUtil.addPath(dbRoot, BAK_DBS_DIR, Integer.toString(cid), service);
@@ -487,7 +487,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
         private final Logger LOG = LogUtil.getInstance();
         private final ServiceInfo si; //实列运行于其中的服务
 
-        private boolean backup = false; //是否备份
+        private boolean backup = true; //是否备份
         final String root; //运行的根路径
 
         /**
@@ -596,7 +596,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
                     taskNum++;
                 }
             }
-            
+
             if(taskNum == 0) { //此处退出，避免每分钟执行一次目录操作
                 return HandleResult.future(RetCode.OK, "no database need backup");
             }
@@ -1064,6 +1064,9 @@ public final class SqliteWorker extends AbsJDBCWorker {
         ));
     }
     
+    /**
+     * 更新数据库备份时间点信息，启动后被调用一次，此后每天调用一次
+     */
     private static void updateBackupInfo() {
         String dbHomeDir = AbsPlatform.dbRoot();
         File bakHome = new File(FileUtil.addPath(dbHomeDir, BAK_DBS_DIR));
@@ -1101,7 +1104,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
     }
     
     @SuppressWarnings("unchecked")
-    public static void updateBackupInfo(String cids) {
+    private static void updateBackupInfo(String cids) {
         CompanyInfo ci = CompanyInfo.instance();
         if(ci == null) {
             LOG.error("No valid company info");

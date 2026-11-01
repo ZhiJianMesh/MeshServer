@@ -30,6 +30,7 @@ import cn.net.zhijian.mesh.bean.HandleTask;
 import cn.net.zhijian.mesh.bean.RequestStat;
 import cn.net.zhijian.mesh.bean.ServiceReport;
 import cn.net.zhijian.mesh.client.BiosClient;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
@@ -352,8 +353,8 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
         }
 
         String addr = ChannelConfig.instance().localHttpAddr();
-        ServiceReqBuilder builder = ServiceClient.backendReqBuilder(SERVICE_BIOS)
-            .url("/status/srvreports")
+        BiosReqBuilder builder = ServiceClient.backendBiosReqBuilder();
+        builder.url("/status/srvreports")
             .traceId("reportStatus")
             .cid(CompanyInfo.instance().id)
             .put("addr", addr)
@@ -1044,8 +1045,8 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
      * @return 如果已经注册，则返回true
      */
     private boolean isServiceRegistered(ServiceInfo caller, String service) {
-        ServiceReqBuilder req = new ServiceReqBuilder(caller, SERVICE_BIOS)
-                .url("/service/registered")
+        BiosReqBuilder req = new BiosReqBuilder(caller);
+        req.url("/service/registered")
                 .cid(CompanyInfo.instance().id)
                 .appToken("*")
                 .traceId(caller.name)

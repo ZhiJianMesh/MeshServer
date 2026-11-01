@@ -28,6 +28,8 @@ abstract class AbsDB implements IDBConst {
     private static final String CFG_SEG_USER = "user"; //数据库帐号
     private static final String CFG_SEG_PWD = "pwd"; //数据库密码
     private static final String CFG_SEG_DBURL = "url"; //数据库URL，sqlite无此配置
+    //是否本地备份，只用于sqlite，为true时，无论是否有slaves，都启动队列进行备份
+    private static final String CFG_SEG_BACKUP = "backup";
 
     static final String SEG_STATUS = "status"; //状态
 
@@ -48,9 +50,6 @@ abstract class AbsDB implements IDBConst {
     
     abstract AbsRDBWBuilder getBuilder(ServiceInfo si, int cid, String service, String db);
     abstract DBType type();
-    //本身具备同步能力的数据库，固定返回false
-    //对于sqlite等文件数据库，有slaves的情况，才需要启动定时备份，并且在主库执行定时备份
-    abstract boolean needBackup();
     
     abstract boolean parseExt(Map<String, Object> cfg);
 
@@ -112,7 +111,8 @@ abstract class AbsDB implements IDBConst {
         String sType = ValParser.getAsStr(cfg, CFG_SEG_TYPE, DBType.SQLITE.name()).toUpperCase();
         AbsDB db = null;
         if(sType.equals(DBType.SQLITE.name())) {
-            db = new SqliteDB(dbNo, level, shardingStart, shardingEnd, readConnNum, slaves, mode);
+            boolean backup = ValParser.getAsBool(cfg, CFG_SEG_BACKUP, true);
+            db = new SqliteDB(dbNo, level, shardingStart, shardingEnd, readConnNum, slaves, mode, backup);
             return db.parseExt(cfg) ? db : null;
         }
 
@@ -138,7 +138,7 @@ abstract class AbsDB implements IDBConst {
     public static AbsDB defaultDb() {
         LOG.debug("Create default sqlite webdb,dbNo:{},sharding:(0,{}),maxConn:{},no slaves",
                    LOCAL_DBNO, MAX_SHARDING_NUM, DEFAULT_MAX_CONN_NUM);
-        return new SqliteDB(LOCAL_DBNO, 0, 0, MAX_SHARDING_NUM, DEFAULT_MAX_CONN_NUM, null, DB_MASTER);
+        return new SqliteDB(LOCAL_DBNO, 0, 0, MAX_SHARDING_NUM, DEFAULT_MAX_CONN_NUM, null, DB_MASTER, true);
     }
 
     Map<String, Object> toMap() {
@@ -156,17 +156,19 @@ abstract class AbsDB implements IDBConst {
         return map;
     }
 
-    
     static class SqliteDB extends AbsDB {
-        private SqliteDB(int dbNo, int level, int shardingStart, int shardingEnd, int readConnNum, NodeAddress[] slaves, String mode) {
+        private final boolean backup;
+        
+        private SqliteDB(int dbNo, int level, int shardingStart, int shardingEnd, int readConnNum, NodeAddress[] slaves, String mode, boolean backup) {
             super(dbNo, level, shardingStart, shardingEnd, 1, readConnNum, slaves, mode);
+            this.backup = backup;
         }
 
         @Override
         AbsRDBWBuilder getBuilder(ServiceInfo si, int cid, String service, String db) {
             SqliteBuilder builder = new SqliteBuilder(si, cid, service, db,
                     1/*sqlite只能一个写连接*/, readConnNum, AbsPlatform.dbRoot());
-            //builder.backup(true);
+            builder.backup(this.backup);
             builder.slaves(this.slaves);
             builder.sharding(shardStart, shardEnd);
 
@@ -184,8 +186,10 @@ abstract class AbsDB implements IDBConst {
         }
         
         @Override
-        public boolean needBackup() {
-            return this.slaves != null && this.slaves.length > 0;
+        Map<String, Object> toMap() {
+            Map<String, Object> map = super.toMap();
+            map.put(CFG_SEG_BACKUP, this.backup);
+            return map;
         }
     }
 
@@ -212,11 +216,6 @@ abstract class AbsDB implements IDBConst {
             builder.sharding(shardStart, shardEnd);
 
             return builder;
-        }
-
-        @Override
-        public boolean needBackup() {
-            return false;
         }
 
         @Override

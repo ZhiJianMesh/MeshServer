@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 
 import cn.net.zhijian.mesh.MeshException;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.intf.IConst;
@@ -111,8 +111,8 @@ public class BiosDNS {
     }
     
     private void initMain(NodeAddress old, NodeAddress next) {
-        ServiceReqBuilder req = ServiceClient.backendReqBuilder(IConst.SERVICE_BIOS)
-                .url("/mainbios")
+        BiosReqBuilder req = ServiceClient.backendBiosReqBuilder();
+        req.url("/mainbios")
                 .appendPara("act", "set")
                 .appendPara("old", old.addr, false)
                 .appendPara("next", next.addr, false);
@@ -134,8 +134,8 @@ public class BiosDNS {
      * 先调用此接口获得最新的主bios编号
      */
     public void initMain() {
-        ServiceReqBuilder req = ServiceClient.backendReqBuilder(IConst.SERVICE_BIOS)
-            .url("/mainbios").appendPara("act", "get");
+        BiosReqBuilder req = ServiceClient.backendBiosReqBuilder();
+        req.url("/mainbios").appendPara("act", "get");
          
         for(NodeAddress node : nodes) {//逐个同步查询，取到正确的就停止
             try {

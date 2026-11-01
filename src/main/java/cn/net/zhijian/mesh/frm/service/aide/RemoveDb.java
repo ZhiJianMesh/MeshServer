@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
 import cn.net.zhijian.mesh.client.BiosClient;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
@@ -101,8 +102,8 @@ public class RemoveDb extends AideBase {
             }
             dbs.append(dbName);
             
-            ServiceReqBuilder builder = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url("/db/dbNodes?dbNo=" + dbNo + "&partId=" + partId)
+            BiosReqBuilder builder = new BiosReqBuilder(si);
+            builder.url("/db/dbNodes?dbNo=" + dbNo + "&partId=" + partId)
                 .traceId(req.traceId)
                 .cid(cid)
                 .appToken("*");

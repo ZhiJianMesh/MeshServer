@@ -178,16 +178,7 @@ public class Command extends AbsProcessor {
     private CompletableFuture<HandleResult> setBackup(RequestInfo req) {
         int at = req.req.getInt("at");
         LOG.debug("Set db backupAt {},cid:{}", at, req.ci.id);
-        return req.ci.setBackupAt(at).thenApply(hr -> {
-            if(hr.code != RetCode.OK) {
-                return hr;
-            }
-            ServiceInfo webdb = server.getService(IConst.SERVICE_WEBDB);
-            if(webdb != null) { //私有云环境，当前实例如有webdb服务，则启动它的备份定时任务
-                SqliteWorker.updateBackupInfo("" + req.ci.id);
-            }
-            return hr;
-        });
+        return req.ci.setBackupAt(at);
     }
 
     private CompletableFuture<HandleResult> setLogLevel(RequestInfo req) {

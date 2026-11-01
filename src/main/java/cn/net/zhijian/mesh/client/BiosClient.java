@@ -47,6 +47,11 @@ public class BiosClient extends HttpClient implements IOAuth {
      */
     private static final Map<Integer, ConfigValue> ConfigCache = new ConcurrentHashMap<>();
 
+    public static class BiosReqBuilder extends ServiceReqBuilder {
+        public BiosReqBuilder(ServiceInfo caller) {
+            super(caller, SERVICE_BIOS);
+        }
+    }
     /**
      * 指定节点，访问bios，需要使用应用自己的私钥产生token，
      * bios中保存了所有应用的公私钥，bios使用对应的公钥验证token合法性
@@ -54,7 +59,7 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @param req 请求体
      * @return 异步执行结果
      */
-    public static CompletableFuture<HandleResult> get(NodeAddress node, ServiceReqBuilder req) {
+    public static CompletableFuture<HandleResult> get(NodeAddress node, BiosReqBuilder req) {
         String url = serviceApiUrl(SCHEME, SERVICE_BIOS, req.url, node.addr);
         return getFrom(node, url, req.headers, req.traceId);
     }
@@ -65,7 +70,7 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @param req 请求体
      * @return 异步执行结果
      */
-    public static CompletableFuture<HandleResult> get(ServiceReqBuilder req) {
+    public static CompletableFuture<HandleResult> get(BiosReqBuilder req) {
         NodeAddress node = PartitionConfig.instance().mainBios();
         String url = serviceApiUrl(SCHEME, SERVICE_BIOS, req.url, node.addr);
         return getFrom(node, url, req.headers, req.traceId);
@@ -77,7 +82,7 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @param req 请求体
      * @return 异步执行结果
      */
-    public static CompletableFuture<HandleResult> delete(ServiceReqBuilder req) {
+    public static CompletableFuture<HandleResult> delete(BiosReqBuilder req) {
         NodeAddress node = PartitionConfig.instance().mainBios();
         String url = serviceApiUrl(SCHEME, SERVICE_BIOS, req.url, node.addr);
         return delFrom(node, url, req.headers, req.traceId);
@@ -88,7 +93,7 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @param req 请求
      * @return 异步响应
      */
-    public static CompletableFuture<HandleResult> post(ServiceReqBuilder req) {
+    public static CompletableFuture<HandleResult> post(BiosReqBuilder req) {
         NodeAddress node = PartitionConfig.instance().mainBios();
         String url = serviceApiUrl(SCHEME, SERVICE_BIOS, req.url, node.addr);
         return postJsonTo(node, url, req.headers, req.body(), req.traceId);
@@ -99,7 +104,7 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @param req 请求
      * @return 异步响应
      */
-    public static CompletableFuture<HandleResult> put(ServiceReqBuilder req) {
+    public static CompletableFuture<HandleResult> put(BiosReqBuilder req) {
         NodeAddress node = PartitionConfig.instance().mainBios();
         String url = serviceApiUrl(SCHEME, SERVICE_BIOS, req.url, node.addr);
         return putJsonTo(node, url, req.headers, req.body(), req.traceId);
@@ -173,11 +178,11 @@ public class BiosClient extends HttpClient implements IOAuth {
                 return CompletableFuture.completedFuture(value.val);
             }
 
-            ServiceReqBuilder req = new ServiceReqBuilder(caller, SERVICE_BIOS)
-                    .url("/config/get").appendPara("k", item)
-                    .appToken("*")
-                    .cid(CompanyInfo.instance().id) //不区分公司
-                    .traceId(caller.name + '_' + item);
+            BiosReqBuilder req = new BiosReqBuilder(caller);
+            req.url("/config/get").appendPara("k", item)
+               .appToken("*")
+               .cid(CompanyInfo.instance().id) //不区分公司
+               .traceId(caller.name + '_' + item);
             return get(req).thenApplyAsync(hr -> {
                 if(hr.code != RetCode.OK || hr.data == null) {
                     LOG.warn("Fail to get config {}.{}, result:{}",
@@ -210,8 +215,8 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @return 保存结果
      */
     public static CompletableFuture<Boolean> putConfig(ServiceInfo caller, String item, String val) {
-        ServiceReqBuilder req = new ServiceReqBuilder(caller, SERVICE_BIOS)
-                .traceId(caller.name + '_' + item)
+        BiosReqBuilder req = new BiosReqBuilder(caller);
+        req.traceId(caller.name + '_' + item)
                 .url("/config/put")
                 .put("k", item)
                 .put("v", val)
@@ -236,12 +241,12 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @return 保存结果
      */
     public static CompletableFuture<String> putConfigIfAbsent(ServiceInfo caller, String item, String val) {
-        ServiceReqBuilder req = new ServiceReqBuilder(caller, SERVICE_BIOS)
-                .traceId(caller.name + '_' + item)
-                .url("/config/putIfAbsent")
-                .put("k", item)
-                .put("v", val)
-                .appToken("*");
+        BiosReqBuilder req = new BiosReqBuilder(caller);
+        req.traceId(caller.name + '_' + item)
+            .url("/config/putIfAbsent")
+            .put("k", item)
+            .put("v", val)
+            .appToken("*");
         return put(req).thenApplyAsync(hr -> {
             if(hr.code == RetCode.OK) {
                 String v = ValParser.getAsStr(hr.data, item);
@@ -266,8 +271,8 @@ public class BiosClient extends HttpClient implements IOAuth {
     public static CompletableFuture<HandleResult> omGet(NodeAddress node, ServiceInfo si, UrlPathInfo urlInfo, String pwd) {
         CompanyInfo ci = CompanyInfo.instance();
 
-        ServiceReqBuilder req = new ServiceReqBuilder(si, SERVICE_BIOS)
-                .url(urlInfo.toString())
+        BiosReqBuilder req = new BiosReqBuilder(si);
+        req.url(urlInfo.toString())
                 .traceId(si.name + "_get_" + ci.id)
                 .cid(ci.id)
                 .token(pwd);
@@ -291,11 +296,12 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @return 加密结果，在data.cipher中
      */
     public static CompletableFuture<HandleResult> rootEncode(ServiceInfo caller, String plain) {
-        return post(new ServiceReqBuilder(caller, SERVICE_BIOS)
-                .url("/rootkey/encode")
-                .cid(CompanyInfo.instance().id)
-                .traceId(caller.name)
-                .put(PLAIN, plain));
+        BiosReqBuilder req = new BiosReqBuilder(caller);
+        req.url("/rootkey/encode")
+            .cid(CompanyInfo.instance().id)
+            .traceId(caller.name)
+            .put(PLAIN, plain);
+        return post(req);
     }
 
     /**
@@ -305,11 +311,12 @@ public class BiosClient extends HttpClient implements IOAuth {
      * @return 解密结果，在data.plain中
      */
     public static CompletableFuture<HandleResult> rootDecode(ServiceInfo caller, String cipher) {
-        return post(new ServiceReqBuilder(caller, SERVICE_BIOS)
-                .url("/rootkey/decode")
-                .cid(CompanyInfo.instance().id)
-                .traceId(caller.name)
-                .put(CIPHER, cipher));
+        BiosReqBuilder req = new BiosReqBuilder(caller);
+        req.url("/rootkey/decode")
+            .cid(CompanyInfo.instance().id)
+            .traceId(caller.name)
+            .put(CIPHER, cipher);
+        return post(req);
     }
     
     public static String downloadCfgFile(String name, String omPwd) throws MeshException {

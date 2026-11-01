@@ -14,6 +14,7 @@ import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
 import cn.net.zhijian.mesh.bean.ProxyResponse;
 import cn.net.zhijian.mesh.bean.ServiceDNS;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbstractDNS;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig;
@@ -338,6 +339,10 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
     public static ServiceReqBuilder backendReqBuilder(String callee) {
         return new ServiceReqBuilder(BackendService, callee);
     }
+    
+    public static BiosReqBuilder backendBiosReqBuilder() {
+        return new BiosReqBuilder(BackendService);
+    }
 
     /**
      * 异步GET调用公有云服务的接口
@@ -516,8 +521,8 @@ public class ServiceClient extends HttpClient implements IThreadPool, IOAuth {
             LOG.debug("serviceLookup(caller:{}, callee:{})", req.caller.name, req.callee);
         }
 
-        ServiceReqBuilder builder = new ServiceReqBuilder(req.caller, SERVICE_BIOS)
-                .url(BIOS_API_SERVICENODES)
+        BiosReqBuilder builder = new BiosReqBuilder(req.caller);
+        builder.url(BIOS_API_SERVICENODES)
                 .appendPara("partId", Integer.toString(PartitionConfig.instance().partition))
                 .appendPara("service", req.callee)
                 .traceId(req.traceId)

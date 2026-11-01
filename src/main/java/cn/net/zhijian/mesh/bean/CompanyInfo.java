@@ -332,9 +332,9 @@ public class CompanyInfo {
            .put("info", info);
         return ServiceClient.cloudPost(req).thenComposeAsync(hr -> {
             if(hr.code != RetCode.OK) {
-               LOG.error("Fail to register, result:{}", hr.brief());
-               LOG.info("Request data:{}", req.data());
-               return CompletableFuture.completedFuture(hr);
+                LOG.error("Fail to register, result:{}", hr.brief());
+                LOG.info("Request data:{}", req.data());
+                return CompletableFuture.completedFuture(hr);
             }
             int cid = ValParser.getAsInt(hr.data, "cid");
             byte[] caBytes = ByteUtil.base642bin(ValParser.getAsStr(hr.data, "ca", IConst.EMPTY_STR));

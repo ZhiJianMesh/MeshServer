@@ -12,7 +12,7 @@ import cn.net.zhijian.mesh.bean.AccessToken;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
@@ -111,8 +111,8 @@ public class BACKEND extends COMPANY {
                 return CompletableFuture.completedFuture(HandleResult.OK);
             }
 
-            ServiceReqBuilder builder = ServiceClient.backendReqBuilder(SERVICE_BIOS)
-                    .url("/keys/setTokenPwd")
+            BiosReqBuilder builder = ServiceClient.backendBiosReqBuilder();
+            builder.url("/keys/setTokenPwd")
                     .put("pwd", v) //加密后存入bios服务
                     .traceId("setTokenPwd" + ci.id)
                     .token(ci.adminToken(SERVICE_BIOS).generate())
@@ -139,8 +139,8 @@ public class BACKEND extends COMPANY {
             }
 
             if(cur >= expiresAt) {
-                ServiceReqBuilder builder = ServiceClient.backendReqBuilder(SERVICE_BIOS)
-                        .url("/keys/getTokenPwd")
+                BiosReqBuilder builder = ServiceClient.backendBiosReqBuilder();
+                builder.url("/keys/getTokenPwd")
                         .traceId("getTokenPwd" + ci.id)
                         .token(ci.adminToken(SERVICE_BIOS).generate())
                         .cid(ci.id); //必须保证有正确的cid头部

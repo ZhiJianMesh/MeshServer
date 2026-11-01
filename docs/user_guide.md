@@ -10,6 +10,8 @@
 | 2026.6.1 | 创建文档 | flyinmind |
 | 2024.7.23 | 调整文档结构，将编译与运行环境部分合并到这篇文档中 | flyinmind |
 | 2026.8.20 | 增加meshhelper一键安装脚本用法（脚本随服务器程序发布在根目录，在哪个目录运行就安装到哪个目录），更新AI智能体使用说明 | flyinmind |
+| 2026.10.28 | 增加"登录/安装/启动顺序与人为易错点"小节，固化正确顺序：login(正确公司ID+密码)→安装基础服务→首启带密码 | flyinmind |
+| 2026.10.28 | 增加"SSH连接优化"与"公司密码与临时口令"两小节（避免ssh/scp阻塞、公司密码不落盘） | flyinmind |
 
 # 摘要
 
@@ -234,7 +236,10 @@ chmod +x meshhelper.sh
 ./meshhelper.sh install server --url <zip直链>     #无法访问仓库API时, 直接指定安装包直链
 ```
 
-安装成功后，当前目录下会出现`sbin`、`conf`、`services`、`libs`等子目录；脚本还会打印注册公司、登录、启动的后续命令，可直接照做。其余参数（`--dir`、`--source`、`-h`等）见[meshhelper 安装脚本](#meshhelper_usage)。
+安装成功后，当前目录下会出现`sbin`、`conf`、`libs`等子目录；脚本还会打印注册公司、登录、启动的后续命令，可直接照做。
+其余参数（`--dir`、`--source`、`-h`等）见[meshhelper 安装脚本](#meshhelper_usage)。
+
+删除sbin目录下的".bat"、".ps1"文件，给所有".sh"文件添加可执行权限（chmod +x sbin/*.sh）。
 
 4. 运行`sbin/command.sh company`执行公司相关的命令；
 
@@ -245,7 +250,7 @@ chmod +x meshhelper.sh
 <a id="company_commands"></a>
 | 命令  | 参数 | 作用 |
 | ---   | --- | ---  |
-| register | company_name company_creditcode password cfm_password session verify_code | 注册公司 |
+| register | company_name company_creditcode password cfm_password session verify_code | 注册公司，手动注册请到[至简网格首页](http://www.zhijian.net.cn/)，<br>在注册页面输入信息后，获得完整命令行，再到服务器server目录手动运行这个命令行；<br>自动注册请参照[公司注册](#comany_register) |
 | login | company_id password [outside_addr [inside_addr]] | 登录公司，获得证书，产生company.cfg |
 | chgpwd | old_password new_password | 修改公司密码 |
 | chgAuth | password | 传入公司密码，修改公司鉴权密钥对 |
@@ -293,6 +298,8 @@ chmod +x meshhelper.sh
 
 6. 访问`http://www.zhijian.net.cn/`，点击“注册”，进入注册页面，输入注册信息获得注册命令行；
 
+如果使用智能体自动注册，请参照[公司注册](#comany_register)。
+
 ![register](imgs/usage/register.png)
 
 7. 在server目录下运行注册命令，等待注册成功；
@@ -326,7 +333,8 @@ https://gitee.com/zhijian_net/enterprise/releases/download/0.13.1/bios-0.2.5.zip
 bios自身版本号会变化，但下载连接中版本使用引擎版本（release tag），因此只要tag选对即可，具体文件名以 release 资产列表为准。
 
 9. 在server目录下运行登录命令，获取证书，生成company.cfg文件、totpkey； 
-在主bios所在实例登录就可以了，其他实例在第一次启动时，命令行带`公司密码 主bios地址`，就会从主bios获得必要的配置信息，包括partition.cfg、company.cfg等。
+在主bios所在实例登录就可以了，其他实例在第一次启动时，命令行带`公司密码 主bios地址`，
+就会从主bios获得必要的配置信息，包括partition.cfg、company.cfg等。
 ```BASH
 sbin/command.sh company login 公司ID 公司密码
 ```
@@ -337,7 +345,9 @@ sbin/command.sh company login 公司ID 公司密码
 sbin/mesh.sh start [totp_or_company_pwd [main_bios]]
 sbin/mesh.sh stop|restart|status
 ```
-第一次启动需要使用公司密码启动，后面的重启，如果涉及数据库初始化，可以用totp，其他情况下的重启，不必带密码启动。
+**第一次启动需要使用公司密码启动（很重要）**，后面的重启，如果涉及安装服务，可以用totp，其他情况下的重启，不必带密码启动。
+
+注意：公司密码不要写死在脚本里，正确做法见下文"公司密码与临时口令"小节。
 
 totp可以通过在bios实例上运行 sbin/command.sh company gettotp命令获得，注意它的有效时间（秒）。
 
@@ -368,7 +378,10 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\meshhelper.ps1 -Help
 ```
 
-注意：PowerShell 中运行当前目录下的脚本必须写`.\`前缀。Windows 版参数与 Linux 版一一对应（`--source`→`-Source`、`--dir`→`-Dir`、`--url`→`-Url`），详见[meshhelper 安装脚本](#meshhelper_usage)。
+注意：PowerShell 中运行当前目录下的脚本必须写`.\`前缀。Windows 版参数与 Linux 版一一对应
+（`--source`→`-Source`、`--dir`→`-Dir`、`--url`→`-Url`），详见[meshhelper 安装脚本](#meshhelper_usage)。
+
+删除sbin目录下的".sh"文件。
 
 4. 切换到server目录可以运行`sbin\command.bat company`执行公司相关的命令；
 
@@ -586,7 +599,7 @@ WantedBy=multi-user.target
 4. 至简网格服务安装、升级与卸载；
 5. 至简网格服务开发与定制。
 
-技能包由三部分组成，**必须整体拷贝，不能只复制 SKILL.md**（否则文档内的图片与示例服务都会丢失）：
+技能包由三部分组成，**必须整体拷贝，不能只复制 SKILL.md**（否则所需的图片、示例服务、插件都会丢失）：
 
 | 位置 | 内容 |
 | --- | --- |
@@ -626,6 +639,54 @@ sbin\setup_ssh_mcp.ps1 -HostName 192.168.1.50 -Port 22 -User admin -TargetType w
 # 连 Linux 目标机（仅建 SSH 免密信任，跳过 MCP 注册）
 setup_ssh_mcp.ps1 -HostName 10.0.0.5 -User root -TargetType linux -SkipMCP
 ```
+
+### 智能体SSH连接优化
+
+在本地（主控机）`~/.ssh/config` 中为网格服务器所在网段增加以下配置，可消除 ssh / scp 长时间阻塞：
+
+```ssh
+Host 192.168.1.*
+    StrictHostKeyChecking accept-new
+    GSSAPIAuthentication no          # 关掉 Kerberos，消除最长约 30s 的认证超时
+    PreferredAuthentications publickey
+    PubkeyAuthentication yes
+    AddressFamily inet               # 只用 IPv4，避免 IPv6 探测
+    ConnectTimeout 10
+    ServerAliveInterval 30
+    ServerAliveCountMax 3
+```
+
+要点：
+
+- 阻塞的主因是 ssh 默认尝试 GSSAPI / Kerberos 认证（连不上 KDC 时超时约 30s）以及 IPv6 探测；关掉即可秒连。
+- **不要开启 `ControlMaster` 连接复用**：Termux sshd会报 `getsockname failed: Not a socket`，反而连不上。
+- 各主机若用不同密钥，在通配符之前用 `Host 192.168.1.17` 等单独指定 `IdentityFile` 与 `Port`。
+
+
+### 公司密码使用规范
+
+智能体在与服务端交互时会写脚本实现一系列动作，注意不要将密码写入脚本。
+
+公司密码只在**首次启动**时需要一次，之后的启停应改用短生命周期的**临时管理口令（totp）**，公司密码不应出现在任何脚本或历史中。
+
+```BASH
+# 首启（仅此一次需要公司密码；密码只经参数/交互传入，用完即清除，调用后 history -c）
+bash mesh_firstboot.sh <公司ID> <公司密码>
+
+# 日常重启：用 gettotp 的 6 位临时口令，完全不碰公司密码
+TOTP=$(sbin/command.sh company gettotp | grep -oE '[0-9]{6}' | head -1)   # 输出形如 249361,left time:58
+sbin/mesh.sh restart "$TOTP"
+
+# 已首启过的实例：日常直接启动（无密码）
+sbin/mesh.sh start
+```
+
+运维脚本规范：
+
+- 脚本**不得写死公司密码**；密码通过参数或 `read -s` 交互输入，执行完 `unset`；
+- 首启命令执行后用 `history -c` 清除命令行历史；
+- totp 默认 60s 有效，过期重跑 `gettotp` 即可；日常启停统一走 totp，避免公司密码反复出现在 `ps`、日志与历史里。
+
 
 ### AI智能体安装服务器程序的流程
 
@@ -685,8 +746,20 @@ Set-ExecutionPolicy -Scope Process Bypass
 - 访问`http://目标机IP:8523/backend/api/checkup`返回正常JSON；
 - 观察`logs`目录日志，首次启动会自动初始化数据库，等待日志输出稳定、无ERROR刷屏。
 
+#### 6. 登录 / 安装 / 启动：顺序与易错点（必读）
 
-#### 失败处置速查表
+首实例**正确的顺序**是：
+
+1. **用正确的公司ID登录**：`sbin/command.sh company login <正确公司ID> <公司密码>`
+   - 公司ID 必须是注册时返回的那个；用错 ID 会登录到错误的公司，`company.cfg` 错配，后续启动、服务注册全部错位；
+2. **安装基础服务**：`meshhelper.sh install bios`
+   -其余基础服务 `oauth2 assets seqid user webdb config keystore workflow verifycode` 同样用 `install` 安装；
+3. **第一次启动必须带公司密码**：`sbin/mesh.sh start <公司密码>`
+   - 第一次启动要把keystore服务的数据库（含公司的**数据根密钥对 PDR**，数据加解密都依赖它）正确初始化到 `dbroot`，所以第一次启动必须输入公司密码，不带密码会报 `no password` / `INVALID_TOKEN`，keystore 无法加载，服务器起不来或反复重启；
+   - 服务已部署时重跑也不会破坏已有数据。
+4. **安装了新服务的实例重启**：因为安装了新服务，所以需要初始化数据库，所以必须输入totp，或者公司密码；
+
+#### 7. 失败处置速查表
 
 | 步骤 | 失败现象 | 处置方法 |
 | ---- | ------ | ------ |
@@ -696,6 +769,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 | 注册 | 提示验证码错误 | 重新获取验证码与session后重试（session一次性，必须与验证码同批使用） |
 | 注册 | 提示信用代码已注册 | 向用户说明该公司已注册，改用`company login`登录 |
 | 登录 | 登录失败 | 确认公司ID与密码正确 |
+| 登录 | 使用**错误的公司ID**登录到错误公司（密码恰好相同），`company.cfg` 错配，后续启动/服务注册全部错位 | 确认并复用注册返回的正确公司ID再做 `login` |
+| 安装 | 没走完"登录→安装基础服务→首启带密码"的完整链路，keystore 库没被初始化 | 严格按 1→2→3 执行；装完基础服务后的"第一次启动"也算首启，必须带公司密码或totp |
 | 服务安装 | 服务版本与引擎版本不匹配 | 使用安装脚本会自动对齐引擎版本，不会出现此错误；<br>若手工安装，用`sbin/command.sh company engineVer`返回的引擎版本重新下载对应版本的服务 |
 | 服务安装 | 脚本提示"未指定也未探测到服务器根目录" | 用`--dir 服务器根目录`（Windows 为`-Dir`）显式指定服务器根目录 |
 | 服务安装 | 脚本提示"无法探测引擎版本" | 服务器未启动或未登录公司：先`sbin/mesh.sh start`并`company login`，再重试 |
@@ -703,6 +778,9 @@ Set-ExecutionPolicy -Scope Process Bypass
 | 启动 | 启动即退出，日志 `Fail to start mesh server ... fail to start virtual server`<br>报 `Fail to register 服务名 into bios`/`failed in action 7` | **被依赖的服务未装全（尤其`seqid`/`bios`/`webdb`/`oauth2`）**<br>1) 先用 `./meshhelper.sh install`装齐 `bios oauth2 assets seqid user webdb config keystore`；<br>2) 检查service.cfg中dependencies，将依赖服务安装完成后，再启动|
 | 启动 | 刚装完基础服务后第一次启动失败，提示需要公司密码 | **首次启动必须带公司密码**：`sbin/mesh.sh start <公司密码>`；<br>数据库初始化、解密数据根密钥对都需要它。<br>装完基础服务后的"第一次启动"也算首次，务必带密码；<br>只要不安装服务，后续`restart`/`start` 无需密码 |
 | 启动 | `mesh.sh status` 报 `hung up`、或反复拉起多个 java 进程、8523 始终不监听 | `mesh.sh` 的 `JAVA_OPTS` 必须含 `-Dname=mesh_server`（与 `mesh.ps1` 一致），<br>否则 `get_pids`/`is_exist` 按 `-Dname=mesh_server` 精确匹配不到进程，会误判"未启动"并不断拉起新实例 |
+| 启动 | 日志中有Fail to call {服务名}.watcher.beforeLoad, result:{code:WRONG_PARAMETER,info:no password}、`INVALID_TOKEN`；服务器起不来或反复拉起  | 首次启动没有带公司密码启动，start加公司密码参数 |
+| 启动 | 日志出现Fail to call keystore.afterLoad,result:{code:DATA_WRONG,info:invalid keypair from cloud} | keystore下载了错误的公司根密钥，无法解开；删除 |
+| 启动 | 报 `db not exists` | 手动删除了dbroot下面的目录或文件 | 服务重新安装，启动时输入公司密码 |
 | 服务安装 | gitee下载 404、取不到服务包 | `meshhelper` 以 `sbin/command.sh company enginever` 返回的引擎版本（如 `0.13.1`）为tag查 `enterprise` 仓库<br>而gitee的 tag常带 `v` 前缀（`v0.13.1`），不带`v`会404 |
 | 服务安装 | 安装多个服务时每次 `meshhelper install` 都会重启；若此前手动 `start` 留下多个孤儿 java，每次重启会逐个清理、非常慢 | 安装前先用 `ps` 看 `ServerMain` 进程，按 PID 精确 `kill`（不要用 `pkill -f`，会误杀当前 ssh shell）；装完统一做一次带密码的干净 `restart` |
 | 启动 | 刚装完一批服务首次启动，`schedule.Watcher` 报 `db schedule.tasks not found (SERVICE_NOT_FOUND)`、`seqid`/`webdb` 的 init `asyncSend timeout` | 多为启动瞬间满载导致的瞬时超时；等负载降下来 Watcher 会重试自愈，或做一次带密码的干净 `restart` 即可消失；`webdb Fail to download db cfg` 是每次启动都有的已知良性告警，不影响 `code:OK` |
@@ -843,16 +921,19 @@ curl "http://localhost:8523/member/api/apis"
 
 | 你想做什么 | 对智能体说的话 |
 | --- | --- |
-| 安装服务器程序 | “请在这台机器上安装最新的至简网格服务器程序，安装到/home/mesh/server” |
-| 安装首个实例的bios | “这是第一个实例，请先安装bios（注册发现）服务” |
-| 安装服务 | “请给服务器安装member（极简会员）服务” |
-| 更新服务 | “请把member服务更新到最新版” |
-| 卸载服务 | “请卸载tally服务，卸载前先备份” |
-| 安装本地开发的服务 | “把 D:\work\myservice 这个本地服务目录（或 myservice.zip 服务包）安装到服务器上（目录名/包名就是服务名，已存在就覆盖）” |
-| 更新服务器程序 | “请把服务器程序更新到最新版，保留我的conf配置和已安装的服务” |
-| 查看运行状态 | “看一下服务器的运行状态，并把最近的服务日志给我” |
-| 离线安装 | “目标机不能上外网，安装包（服务器程序zip和member服务zip）我已经放到 /home/mesh/pkgs 下了，请用它完成安装” |
-| 开发并部署服务 | “参照 examples 里的 inventory 写一个简单的记账服务，装到本机服务器并验证接口能用” |
+| 连接Linux/Termux服务器 | 请与192.168.1.18@22建立连接，帐号mesh，密码XXXXXX，连接后请与他建立信任关系，我本机的ssh工具用的是bitvise |
+| 安装服务器程序 | 请在这台机器上安装最新的至简网格服务器程序，安装到/home/mesh/server，安装完成后再安装基础服务 |
+| 安装服务 | 请给服务器安装member（极简会员）服务 |
+| 更新服务 | 请把member服务更新到最新版 |
+| 注册公司 | 请注册公司，名称为xxxx，密码为yyyyyy，统一信用码为zzzzzzzzzzzzzzzzzz(共18位) |
+| 登录公司 | 请用刚才注册的公司ID、密码，在这个服务器上登录公司 |
+| 启动服务器 | 请启动服务器，首次启动，请输入密码yyyyyy |
+| 卸载服务 | 请卸载tally服务，卸载前先备份 |
+| 安装本地开发的服务 | 把 D:\work\myservice 这个本地服务目录（或 myservice.zip 服务包）安装到服务器上（目录名/包名就是服务名，已存在就覆盖） |
+| 更新服务器程序 | 请把服务器程序更新到最新版，保留我的conf配置和已安装的服务 |
+| 查看运行状态 | 看一下服务器的运行状态，并把最近的服务日志给我 |
+| 离线安装 | 目标机不能上外网，安装包（服务器程序zip和member服务zip）我已经放到 /home/mesh/pkgs 下了，请用它完成安装 |
+| 开发并部署服务 | 参照 examples 里的 tally 写一个简单的记账服务，装到本服务器并验证功能 |
 
 给智能体下命令时的注意事项：
 
@@ -1202,12 +1283,12 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 
 | 命令 | 用处 |
 | --- | --- |
-| pkg install termux-auth -y | 提供passwd命令，设置或修改用户密码 |
-| passwd	|设置root用户的秘密，termux中可以直接root用户访问|
+| pkg install termux-auth -y | 提供passwd命令，设置或修改用户密码<br>设置linux用户的秘密，termux中可以直接root用户访问 |
 | pkg install termux-services -y | 服务管理，比如运行sv-enable sshd |
 | pkg install openssh -y | sshd服务，用于远程命令行操控 |
-| sshd |启动sshd服务，启动后就可以使用Bitvise等工具远程连接|
 | pkg install -y openjdk-21 | Java运行环境安装 |
+
+运行`ssdh`启动sshd服务；运行`sv-enable sshd`使以后重启termux，sshd服务自动启动。sshd服务启动后就可以使用Bitvise等工具远程连接。
 
 每次在termux中安装新工具前，建议运行一下 pkg update && pkg upgrade 命令及时更新系统。
 
@@ -1260,7 +1341,7 @@ deb https://mirrors.tuna.tsinghua.edu.cn/termux/apt/termux-main stable main
 3. Ubuntu安装后，在Windows命令行运行wsl即进入Ubuntu系统；
 4. 最后安装交叉编译环境，很容易支持Linux、Windows、Android(ndk)系统的交叉编译。
 
-#### Linux、Windows交叉编译工具
+##### Linux、Windows交叉编译工具
 
 ```bash
 sudo apt update && sudo apt upgrade
@@ -1273,7 +1354,7 @@ sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 sudo apt install -y git make cmake
 ```
 
-#### 安装Android NDK
+##### 安装Android NDK
 
 以r26c为例，其他版本的命令做适当修改即可。
 
@@ -1329,7 +1410,12 @@ make all
 ```
 windows、linux的jar使用gradle jar命令生成。
 
-Android需要的是aar文件，所以先将so文件放在Android工程src/main/jniLibs相应芯片架构的目录下，然后点击右边栏gradle图标，选择项目的tasks\build\assemble生成aar文件。
+Android需要的是aar文件，所以先将so文件放在Android工程src/main/jniLibs相应芯片架构的目录下，然后点击右边栏gradle图标，
+选择项目的tasks\build\assemble生成aar文件。
+
+注意，有的版本的linux中glibc版本太低，**最差的情况**，
+需要从[gitee](https://gitee.com/zhijian_net/QuickJS)下载工程到对应的linux服务器上编译连接生成新的so，
+然后打包到quickjs的jar中。
 
 ##### Termux
 

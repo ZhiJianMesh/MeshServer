@@ -1,10 +1,6 @@
 package cn.net.zhijian.platform.cmd;
 
 import java.io.File;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -12,7 +8,7 @@ import cn.net.zhijian.mesh.MeshException;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.config.ChannelConfig;
@@ -279,44 +275,11 @@ public class Company extends AbsCommand {
         }
     }
     
-    private InetAddress getSuitableAddr(List<InetAddress> addrs,
-            Class<? extends InetAddress> cls, boolean local) {
-        for(InetAddress addr : addrs) {//排在前面的优先
-            if(cls.isInstance(addr)) {
-                if(addr.isLoopbackAddress()) { 
-                    continue;
-                }
-                if(local) {
-                    if(addr.isSiteLocalAddress()) {
-                        return addr;
-                    }
-                } else if(!addr.isSiteLocalAddress()
-                        && !addr.isLoopbackAddress()) {
-                    return addr;
-                }
-            }
-        }
-        return null;
-    }
-    
     private String getInsideAddr(String insideAddr) {
         if(!StringUtil.isEmpty(insideAddr)) {
             return insideAddr;
         }
-        List<InetAddress> addrs = IPUtil.getIPList();
-        InetAddress addr = getSuitableAddr(addrs, Inet4Address.class, true);//优先用内网IPv4
-        if(addr == null) {
-            addr = getSuitableAddr(addrs, Inet6Address.class, true);
-        }
-        
-        if(addr == null) {
-            printHelp(help(), new String[] {
-                "Can't get a valid internal ip address",
-                "You should input the paramter"
-            });
-            return null;
-        }
-        return addr.getHostAddress();
+        return ChannelConfig.instance().localHttpAddr();
     }
     
     private boolean changePassword(String[] args) throws Exception {
@@ -466,8 +429,8 @@ public class Company extends AbsCommand {
     private boolean setTotp(String[] args) {
         try {
             CompanyInfo ci = getLocalCompany();
-            ServiceReqBuilder builder = ServiceClient.backendReqBuilder(IConst.SERVICE_BIOS)
-                    .url("/keys/setTotpPwd")
+            BiosReqBuilder builder = ServiceClient.backendBiosReqBuilder();
+            builder.url("/keys/setTotpPwd")
                     .token(ci.adminToken(IConst.SERVICE_BIOS).generate())
                     .cid(ci.id)
                     .nodeId(ci.id);
@@ -500,8 +463,8 @@ public class Company extends AbsCommand {
             try {
                 CompanyInfo ci = getLocalCompany();
                 //bios中密码是最准确的
-                ServiceReqBuilder builder = ServiceClient.backendReqBuilder(IConst.SERVICE_BIOS)
-                        .url("/keys/getTotpPwd")
+                BiosReqBuilder builder = ServiceClient.backendBiosReqBuilder();
+                builder.url("/keys/getTotpPwd")
                         .token(ci.adminToken(IConst.SERVICE_BIOS).generate())
                         .cid(ci.id)
                         .nodeId(ci.id);

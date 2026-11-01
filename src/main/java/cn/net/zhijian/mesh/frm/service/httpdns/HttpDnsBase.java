@@ -11,15 +11,15 @@ import org.slf4j.Logger;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsProcessor;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
 import cn.net.zhijian.mesh.frm.config.ApiInfo;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig;
-import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig.DeployMode;
+import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.intf.IServiceServer;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
@@ -80,8 +80,8 @@ abstract class HttpDnsBase extends AbsProcessor {
 
     private static CompletableFuture<RouteConfig> initRouteConfig(CompanyInfo ci, ServiceInfo si) {
         String token = ci.adminToken(SERVICE_BIOS).generate();
-        ServiceReqBuilder reqSrvList = ServiceClient.backendReqBuilder(SERVICE_BIOS)
-                .url("/service/list")
+        BiosReqBuilder reqSrvList = ServiceClient.backendBiosReqBuilder();
+        reqSrvList.url("/service/list")
                 .cid(ci.id)
                 .token(token)
                 .traceId("getservices");
@@ -108,8 +108,8 @@ abstract class HttpDnsBase extends AbsProcessor {
     }
     
     private static CompletableFuture<RouteConfig> requestRoute(CompanyInfo ci, String token, Map<String, Boolean> services) {
-        ServiceReqBuilder reqAddrs = ServiceClient.backendReqBuilder(SERVICE_BIOS)
-                .url("/status/srvlist")
+        BiosReqBuilder reqAddrs = ServiceClient.backendBiosReqBuilder();
+        reqAddrs.url("/status/srvlist")
                 .cid(ci.id)
                 .token(token)
                 .traceId("getsrvlist");

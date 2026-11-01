@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.BiosClient;
-import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
+import cn.net.zhijian.mesh.client.BiosClient.BiosReqBuilder;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsProcessor;
 import cn.net.zhijian.mesh.frm.abs.AbsServerRequest;
@@ -40,8 +40,8 @@ public class Services extends AbsProcessor {
     protected CompletableFuture<HandleResult> handle(AbsServerRequest req, Map<String, Object> resp) {
         ServiceInfo si = serviceInfo();
         String url = "/service/getList";
-        ServiceReqBuilder reqServices = new ServiceReqBuilder(si, SERVICE_BIOS)
-            .url(url)
+        BiosReqBuilder reqServices = new BiosReqBuilder(si);
+        reqServices.url(url)
             .cid(req.cid())
             .appToken("*")
             .traceId(req.traceId);

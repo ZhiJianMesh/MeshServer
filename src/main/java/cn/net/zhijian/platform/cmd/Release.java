@@ -469,6 +469,9 @@ public class Release extends AbsCommand implements IConst {
             this.minCptVer = minCptVer;
             this.si = si;
             this.cmt = cmt;
+            if(serverIncludes.contains(SERVICE_CONFIG_FILE)) {
+                serverIncludes.remove(SERVICE_CONFIG_FILE); //代码中写死一定会打包的文件
+            }
             this.serverIncludes = serverIncludes;
             this.excludes = excludes;
             this.baseVers = baseVers;

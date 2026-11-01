@@ -87,6 +87,7 @@ final class RunConfig {
             LOG.error("Invalid run config file `{}`", cfgFile);
             return null;
         }
+        LOG.info("Use {} as webdb config", cfgFile);
 
         return parse(dbList);
     }
@@ -95,14 +96,6 @@ final class RunConfig {
         return new File(FileUtil.addPath(serviceHomeDir, "run.cfg"));
     }
 
-    public boolean needBackup() {
-        for(AbsDB db : dbs) {
-            if(db.needBackup()) {
-                return true;
-            }
-        }
-        return false;
-    }
     /**
      * @param dbList 配置内容
      * @return 配置对象
