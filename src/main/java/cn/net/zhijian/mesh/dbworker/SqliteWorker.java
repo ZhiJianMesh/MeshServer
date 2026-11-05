@@ -318,7 +318,6 @@ public final class SqliteWorker extends AbsJDBCWorker {
     }
 
     private void mergeFile(ResourcePool<SQLiteConn> pool, String dbFile) {
-        LOG.info("Begin merge file `{}`", dbFile);
         pool.close();
         //打开后，立刻关闭，用以合并wal、journal文件
         new CombineConnectionFactory(dbFile);
@@ -559,6 +558,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
         
         SqliteBuilder builder = new SqliteBuilder(si, LOCAL_COMPANY_ID, si.name, db,
                 1, DEFAULT_MAX_CONN_NUM, si.homeDir);
+        builder.backup(false); //本地数据库无需创建本地备份
         builder.createIfAbsent(true); //不存在则创建
         builder.longToStr(false);
         builder.slaves(slaves);
@@ -1268,6 +1268,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
 
     static class CombineConnectionFactory implements IResourceFactory<SQLiteConn> {
         public CombineConnectionFactory(String dbFile) {
+            LOG.info("Start to merge db file `{}`", dbFile);
             /*
              * JournalMode为WAL时，会产生wal、shm文件，即使关闭链接，这些文件也不会消失。
              * 这些文件特别大，不利于数据文件备份，所以在关闭之前，强制合并一次。
@@ -1288,8 +1289,10 @@ public final class SqliteWorker extends AbsJDBCWorker {
                 }
                 conn.close();
             } catch (SQLException e) {
-                LOG.warn("Fail to merge wal file of {}", dbFile, e);
+                LOG.warn("Fail to merge db wal file `{}`", dbFile, e);
+                return;
             }
+            LOG.info("End to merge db file `{}`", dbFile);
         }
     
         public SQLiteConn create() {

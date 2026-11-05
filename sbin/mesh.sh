@@ -53,6 +53,7 @@ START_WAIT_SEC=30     # 等待服务启动完成 / 健康检查宽限的最长�
 STOP_WAIT_SEC=30      # 等待服务停止完成的最长时间
 RESTART_SLEEP_SEC=3   # 重启前等待时间
 HEALTH_TIMEOUT=5      # 单次健康检查的 curl 超时时间
+TIMEZONE="GMT$(date +%Z)"
 
 # ---- classpath 构建 ----
 # 使用 glob + 存在性判断，避免裸 ls 在无 jar 时输出错误；
@@ -79,6 +80,8 @@ JAVA_OPTS+=(-Dio.netty.tryReflectionSetAccessible=true)
 JAVA_OPTS+=(--add-opens java.base/java.nio=ALL-UNNAMED)
 # 解决日志配置文件加载问题
 JAVA_OPTS+=(-Dlogs.root=${LOGS} -Dlogback.configurationFile=${APP_HOME}/conf/logback.xml)
+# 部分安卓中termux环境java无法从系统获取正确的时区
+JAVA_OPTS+=(-Duser.timezone="${TIMEZONE}")
 
 # 检查必需命令是否存在
 for cmd in java curl; do
@@ -172,6 +175,7 @@ start_loop() {
             if [ -n "${MAINBIOS}" ]; then
                 args+=("${MAINBIOS}")
             fi
+            # echo ${args}
             # 在此堵塞，直到 java 进程退出
             java "${args[@]}" &> /dev/null
             if [ ! -f "${PID_FILE}" ]; then # .pid 文件不存在，则终止

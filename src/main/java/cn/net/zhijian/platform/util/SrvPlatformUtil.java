@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -44,13 +45,16 @@ public final class SrvPlatformUtil extends AbsPlatform {
     }
 
     /**
-     * 获取本机IPv4地址
+     * 获取本机IPv4地址，取子网最小的内网地址
      * @return 本机IPv4地址，null表示无网络连接
      * @throws  
      */
     @Override
     public String absMyIp() {
         // 兜底
+        int maskLen = 0;
+        InetAddress addr = null;
+        
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while (interfaces.hasMoreElements()) {
@@ -59,18 +63,24 @@ public final class SrvPlatformUtil extends AbsPlatform {
                 if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) {
                     continue;
                 }
-                Enumeration<InetAddress> addresses = ni.getInetAddresses();
-                while (addresses.hasMoreElements()) {
-                    InetAddress addr = addresses.nextElement();
+
+                for (InterfaceAddress interfaceAddress : ni.getInterfaceAddresses()) {
+                    InetAddress iAddr = interfaceAddress.getAddress();
                     // 只要 IPv4 且不是回环/链路本地
-                    if (addr instanceof Inet4Address
-                        && !addr.isLoopbackAddress()
-                        && !addr.isLinkLocalAddress()) {
-                        return addr.getHostAddress();
+                    if (iAddr instanceof Inet4Address
+                        && !iAddr.isLoopbackAddress()
+                        && !iAddr.isLinkLocalAddress()) {
+                        int l = interfaceAddress.getNetworkPrefixLength();
+                        if(maskLen < l) {
+                            addr = iAddr;
+                        }
                     }
                 }
             }
-            return InetAddress.getLocalHost().getHostAddress();
+            if(addr == null) {
+                addr = InetAddress.getLocalHost();
+            }
+            return addr.getHostAddress();
         } catch (UnknownHostException | SocketException e) {
             LOG.error("Fail to get local ip, use loop ip as instead", e);
             return "127.0.0.1";

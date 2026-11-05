@@ -11,7 +11,8 @@ More about it, refer to the project [HomePage](http://www.zhijian.net.cn/).
 6. Necessary basic services are ready, e.g. oauth2,sequence-id,schedule,user,workflow,webdb,keystore;
 7. Ready-made corresponding client for windows/android, vue+quasar knowledge is enough to develop;
 8. Cut down big number of code, reduce development difficulty;
-9. There are many applications in [Enterprise](https://github.com/ZhiJianMesh/endterprise), all can be used in your enterprise stably and freely. They are also good examples.
+9. Using software such as WorkBuddy, you can install, maintain, and develop customized services; the server can integrate with AI agents such as OpenClaw, and when paired with WeChat and Feishu, the system can be used just like assigning tasks to employees.
+10. There are many applications in [Enterprise](https://github.com/ZhiJianMesh/endterprise), all can be used in your enterprise stably and freely. They are also good examples.
 
 ## Start/Stop command
 Switch into server directory at fisrt in Linux/Termux/Windows.

@@ -105,9 +105,9 @@ public class Company extends AbsCommand {
     @Override
     public String[] help() {
         return new String[]{name + ",a set of company commands",
-                "1)register company_name company_creditcode password cfm_password session verify_code",
+                "1)register company_name company_creditcode password cfm_password session verify_code [inside_addr] [outside_addr]",
                 "  get session and verify_code from `http://http://www.zhijian.net.cn/www/cmdaide.html`",
-                "2)login company_id password [outside_addr [inside_addr]]",
+                "2)login company_id password [inside_addr] [outside_addr]",
                 "3)pubKey - display auth-public-key",
                 "4)chgpwd old_password new_password",
                 "5)chgAuth password",

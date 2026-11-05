@@ -1098,7 +1098,7 @@ public class ServiceServer extends IServiceServer.AbsServiceServer implements IT
                 fm = fileMethods.get(DEFAULT_INDEX);
             } else {
                 //动态文件url，包含URL_DYNAMIC_FLAG，参数在uri中
-                //比如从appstore下载版本的连接中就包含了URL_DYNAMIC_FLAG
+                //比如从appstore服务图标的连接中就包含了URL_DYNAMIC_FLAG
                 //文件的路径由URL_DYNAMIC_FLAG后面的内容决定
                 int pos = req.uri.indexOf(URL_DYNAMIC_FLAG);
                 if(pos > 0) {

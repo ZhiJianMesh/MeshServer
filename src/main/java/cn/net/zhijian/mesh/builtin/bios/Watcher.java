@@ -240,6 +240,7 @@ public final class Watcher extends IServiceWatcher.DefaultServiceWatcher impleme
         PartitionConfig partCfg = PartitionConfig.instance();
         if(partCfg.isMainBios()) {
             HandleResult hr = initMeta(server.homeDir(), si, meta);
+            LOG.debug("Mainbios.initMeta {},result {}", server.homeDir(), hr.brief());
             if(hr.code != RetCode.OK) {
                 return HandleResult.future(hr);
             }
@@ -279,7 +280,7 @@ public final class Watcher extends IServiceWatcher.DefaultServiceWatcher impleme
               |_db1
                  |_tabledef
          |_service2...
-       */
+        */
         long updTime = System.currentTimeMillis();
         //存放partition、preference、route中的内容及datarootkey
         meta.createDir("/common", updTime);
@@ -357,8 +358,8 @@ public final class Watcher extends IServiceWatcher.DefaultServiceWatcher impleme
         servicePath = "/service/" + SERVICE_WEBDB;
         meta.createDir(servicePath, updTime);
         meta.createDir(servicePath + "/callers", updTime);
-           meta.createDir(servicePath + "/dbs", updTime);
-           meta.createDir(servicePath + "/configs", updTime);
+        meta.createDir(servicePath + "/dbs", updTime);
+        meta.createDir(servicePath + "/configs", updTime);
 
         File webdbFile = new File(FileUtil.addPath(confPath, "webdb.cfg"));
         if(webdbFile.exists()) {

@@ -250,8 +250,8 @@ chmod +x meshhelper.sh
 <a id="company_commands"></a>
 | 命令  | 参数 | 作用 |
 | ---   | --- | ---  |
-| register | company_name company_creditcode password cfm_password session verify_code | 注册公司，手动注册请到[至简网格首页](http://www.zhijian.net.cn/)，<br>在注册页面输入信息后，获得完整命令行，再到服务器server目录手动运行这个命令行；<br>自动注册请参照[公司注册](#comany_register) |
-| login | company_id password [outside_addr [inside_addr]] | 登录公司，获得证书，产生company.cfg |
+| register | company_name company_creditcode password cfm_password session verify_code [inside_addr] [outside_addr]| 注册公司，手动注册请到[至简网格首页](http://www.zhijian.net.cn/)，<br>在注册页面输入信息后，获得完整命令行，再到服务器server目录手动运行这个命令行；<br>自动注册请参照[公司注册](#comany_register)<br>不输入inside_addr时使用本机的内网IP，集群部署时，需要输入，因为本机不一定是内网入口IP |
+| login | company_id password [inside_addr] [outside_addr] | 登录公司，获得证书，产生company.cfg；不输入inside_addr时使用本机的内网IP，集群部署时，需要输入，因为本机不一定是内网入口IP |
 | chgpwd | old_password new_password | 修改公司密码 |
 | chgAuth | password | 传入公司密码，修改公司鉴权密钥对 |
 | setinfo | company_name [country [province [city [info]]]] | 修改公司信息 |
@@ -259,8 +259,8 @@ chmod +x meshhelper.sh
 | pubKey | | 显示公司认证的公钥 |
 | info | | 显示公司信息，包括ID、名称、密钥对等 | 
 | backupAt | [backupAt] | 设置公司数据库备份时间点，不传[backupAt]用来查询备份时间点<br>backupAt用的时UTC分钟，比如东八区2点，传入1080（120-480+1440） |
-| setTotp | | 设置totp根密钥 |
-| getTotp | | 服务实例启动时用到，从totp.key文件中或bios中读取根密钥，然后计算出临时管理totp，并返回剩余的有效秒数；从bios查询时必须保证bios服务已启动 |
+| setTotp | password | 设置totp根密钥 |
+| getTotp | | 服务实例启动时用到，从totp.key文件中或bios中读取根密钥，然后计算出临时管理totp，并返回剩余的有效秒数 |
 | engineVer | |返回引擎版本号，从github或gitee下载服务时，需要根据引擎版本号下载，引擎版本不匹配的服务可能无法正常工作 |
 
 5. 配置文件都放在server/conf目录下；
@@ -766,7 +766,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 | 环境检查 | `java: command not found` | 按[运行环境安装](#compile_and_install)安装OpenJDK 11+后重试 |
 | 下载解压 | 下载超时、解压报错 | 更换镜像源重试；重新下载并校验压缩包完整性 |
 | 启动 | `mesh.sh status`返回非0 | 查看`logs`下最新日志；确认8523等端口未被占用；检查`channel.cfg`配置 |
-| 注册 | 提示验证码错误 | 重新获取验证码与session后重试（session一次性，必须与验证码同批使用） |
+| 注册 | 提示验证码错误 | 验证码过期时间为5分钟，重新获取验证码与session后重试（session一次性，须与验证码同批且尽快执行） |
+| 注册 | 提示`invalid insideAddr` | 命令末尾显式传入内网地址 `IP:端口`（如 `192.168.1.17:8523`），通常是程序自动探测内网IP失败的实现问题，临时传参即可绕过 |
 | 注册 | 提示信用代码已注册 | 向用户说明该公司已注册，改用`company login`登录 |
 | 登录 | 登录失败 | 确认公司ID与密码正确 |
 | 登录 | 使用**错误的公司ID**登录到错误公司（密码恰好相同），`company.cfg` 错配，后续启动/服务注册全部错位 | 确认并复用注册返回的正确公司ID再做 `login` |
@@ -813,20 +814,37 @@ http://www.zhijian.net.cn/verifycode/api/image?w=130&h=40&l=5
     }
 }
 ```
-智能体需要显示base64格式的验证码图片，提示用户看图输入正确的验证码。AI智能体注册公司的流程如下：
+智能体需要把验证码图片**解码成真实图片文件**再展示给用户（不要直接把 base64 文本贴给用户，用户看不懂），提示用户看图输入正确的验证码。AI智能体注册公司的流程如下：
+
+> **重要约定（踩坑经验）**
+> - **验证码一次性且会过期**：必须在“即将执行注册”前才去取，取到后尽快让用户看码并执行；隔很多轮对话才用，会因 session 失效而报验证码错误。
+> - **`session` 原样使用**：接口返回的 `session` 偶尔是**负数**，这是服务器原值，直接作为字符串传入即可，**不要试图修正**。
+> - **Windows 用 `command.bat`，Linux/Termux 用 `command.sh`**；命令在 **server 目录**下运行（脚本会自动切换到其上一级作为项目根）。
+> - **注册报错先看本节末尾“注册失败排查”，不要去翻 `cmd/Company.java` 等源码“探测地址”**——绝大多数是实现层问题或验证码过期，按文档传参即可。
 
 #### 第一步：收集注册信息
 
-向用户询问以下两项信息（**本步不要索要密码**，密码在第三步与验证码一起动态索取）：
+向用户询问以下信息（**本步不要索要密码**，密码在第三步与验证码一起动态索取）：
 1.  **公司名称**（例如：南京云创科技有限公司）
 2.  **统一社会信用代码**（18位）
-3.  **密码**
+3.  **密码**(确认密码与此相同)
+4.  **公司服务器内网地址（可选）**：格式 `IP:端口`（如 `192.168.1.17:8523`）。若用户指定服务器地址（例如“连到 192.168.1.17 上注册”），应该连接到这个服务器，在服务器的服务程序所在目录执行company login。
 
 #### 第二步：获取并展示验证码
 
-1.  请求`http://www.zhijian.net.cn/verifycode/api/image?w=130&h=40&l=5`，获取验证码图片和对应的 `session`。
-2.  将base64格式的验证码图片展示给用户，并提示：“请输入下图中的验证码：”
-3.  **等待用户输入验证码**，在用户提供验证码之前，**不要**继续执行。
+1.  请求 `http://www.zhijian.net.cn/verifycode/api/image?w=130&h=40&l=5`，解析 JSON，得到 `data.img`（base64 png）与 `data.session`。
+2.  **解码并保存为真实图片文件**：把 `data.img` 去掉前缀 `data:image/png;base64,` 后做 base64 解码，写入一个本地 PNG 文件（如工作区根目录的 `verifycode.png`）。
+    - Windows / PowerShell 示例：
+      ```powershell
+      $r = curl.exe -s "http://www.zhijian.net.cn/verifycode/api/image?w=130&h=40&l=5"
+      $o = $r | ConvertFrom-Json
+      $b64 = $o.data.img
+      if ($b64 -like "data:image/*;base64,*") { $b64 = $b64.Split(',')[1] }
+      [IO.File]::WriteAllBytes("verifycode.png", [Convert]::FromBase64String($b64))
+      Write-Host "SESSION=$($o.data.session)"
+      ```
+3.  **把图片文件路径告诉用户去打开**（不要贴 base64），并提示：“请打开 verifycode.png，输入下图中的验证码：”
+4.  **等待用户输入验证码**，在用户提供验证码之前，**不要**继续执行。
 
 #### 第三步：执行注册命令（密码动态提示）
 
@@ -837,14 +855,23 @@ http://www.zhijian.net.cn/verifycode/api/image?w=130&h=40&l=5
 
 2.  **等待用户输入密码**，收到密码后，**立即在内存中构建完整命令**，不写入任何日志或文件。
 
-3.  在终端执行以下格式的命令（使用用户刚提供的密码和验证码）：
+3.  在终端执行以下格式的命令（使用用户刚提供的密码和验证码；若第一步收集到内网地址，把它作为最后一个参数 `insideAddr` 传入）：
     ```bash
     # Linux / Termux 环境
-    sbin/command.sh company register "公司名称" "统一社会信用代码" "用户输入的密码" "用户输入的密码" "session" "验证码"
+    sbin/command.sh company register "公司名称" "统一社会信用代码" "用户输入的密码" "用户输入的密码" "session" "验证码" ["内网地址IP:端口"]
 
-    # Windows 环境
-    sbin\command.bat company register "公司名称" "统一社会信用代码" "用户输入的密码" "用户输入的密码" "session" "验证码"
-	```
+    # Windows 环境（用 command.bat）
+    sbin\command.bat company register "公司名称" "统一社会信用代码" "用户输入的密码" "用户输入的密码" "session" "验证码" ["内网地址IP:端口"]
+    ```
+    - `内网地址IP:端口` 为可选项：当程序**无法自动探测**服务器内网地址（注册报 `invalid insideAddr`）时，必须显式传入；或按用户指定的服务器地址传入（如 `192.168.1.17:8523`）。
+
+#### 注册失败排查（先看这里，不要去翻源码）
+
+| 报错 | 原因 / 处理 |
+| --- | --- |
+| 提示验证码错误 / 验证码过期 | session 是一次性的且与验证码同批，**重新获取验证码与 session 后重试**（务必在取到后尽快执行） |
+| `WRONG_PARAMETER: invalid insideAddr` | 内网地址校验不过：通常是程序自动探测内网 IP 失败，请在命令行末尾显式传入 `内网地址IP:端口`（如 `192.168.1.17:8523`），**不要去读源码“探测地址”** |
+| 信用代码已注册 | 向用户说明该公司已注册|
 
 ### 服务安装&卸载
 
@@ -1163,10 +1190,10 @@ openclaw config set plugins.entries.zhijian-mesh.config.services  '[]'          
   调用时这些参数均可传入人可读的时间（如 `2026-03-15 10:00:00`）或年月（`2026-03`），核心会按字段单位自动反向编码成服务端数值（毫秒/分/时/天按日期解析后换算，月度按 `年*12+(月-1)`）；
 - 各服务需要给**业务账号**授权，否则 `mesh_call` 返回 `NO_RIGHT(111)`。
 
-## 基于核心的插件开发与多平台适配
+## 多平台适配
 
 为了让同一套网格对接逻辑能在不同智能体平台上复用（OpenClaw 插件、CodeBuddy/WorkBuddy 的 MCP、
-或其它智能体SDK），对接逻辑被独立到一个**宿主无关的核心**中，与具体平台解耦。
+或其它智能体），对接逻辑被独立到一个**宿主无关的核心**中，与具体平台解耦，只完成与至简网格通过http协议对接的逻辑。
 
 ### 核心与适配器
 
@@ -1298,15 +1325,19 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 
 1. 用nano命令在home目录下编辑”.bashrc”文件（注意文件前面有个点），添加以下内容；
 ```bash
+#如果需要查看隐藏文件可以使用 alias ll='ls -lA'
 alias ll=’ls -l’
 ```
-如果需要查看隐藏文件可以使用 alias ll='ls -lA'
 
 2. 修改$PREFIX/etc/apt/sources.list使用清华的镜像，提升安装速度；
 ```bash
 deb https://mirrors.tuna.tsinghua.edu.cn/termux/apt/termux-main stable main
 ```
 3. termux-wake-lock：让termux保持运行，忽略电池优化，运行后手机上会弹出窗口确认，请选择“总是允许”（每个品牌不同版本都不同）；
+
+>有些厂商的手机运行termux-wake-lock后，也不能阻止它杀死termux后台应用，需要手动到“设置”中搜索“电池”，
+找到电池优化之类的配置，将termux设置成后台保持运行。每个厂家、不同版本的设置都不相同，在此无法一一列举。
+
 4. sv-enable sshd：使sshd服务自动启动（第一次要用sshd启动）；
 5. termux-setup-storage：允许访问外部存储（可以不设置）。
 

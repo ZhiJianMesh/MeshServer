@@ -105,7 +105,10 @@ public class ChannelConfig {
                 internalIp = null;
             }
         }
+
         if(StringUtil.isEmpty(internalIp)) {
+            // 默认获取本地最小子网的内网IP
+            // 如果需要不同的规则，需要自己实现SrvPlatformUtil中的方法
             internalIp = AbsPlatform.myIp();
         }
 

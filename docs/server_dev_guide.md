@@ -11,7 +11,7 @@
 | 2024.3.1 | 创建文档 | flyinmind |
 | 2024.4.8 | 增加安装部分的内容 | flyinmind |
 | 2026.6.24 | 1）修改占位符；<br>2）转为markdown格式；<br>3）更正部分内容；<br>4）将安装部分删除，独立成一个文档| flyinmind |
-| 2026.8.3 | 1）修改onSuccess、var等的描述；<br>2) 增加版本号描述| flyinmind |
+| 2026.8.3 | 1）修改onSuccess、var等的描述；<br>2）增加版本号描述| flyinmind |
 
 
 # 术语
@@ -690,7 +690,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | 配置项 | 定义 | 类型 | 备注 |
 | --- | --- | --- | --- |
 | name | 参数名称 | String | 同一个接口的参数列表中，必须唯一 |
-| type | 参数类型，不区分大小写 | String | STRING、INT、LONG、FLOAT、BOOL、DATE、DOUBLE、OBJECT、BYTES、NOW、UUID、SEQUENCE、CONFIG、JSON。 <br>几个特殊类型： <br>Config：从bios的服务配置项中获取内容； <br>Json：json串，作为响应参数时会被转成json对象，作为输入参数时，被转为json字符串 |
+| type | 参数类型，不区分大小写 | String | STRING、INT、LONG、FLOAT、BOOL、DATE、DOUBLE、OBJECT、BYTES、NOW、UUID、SEQUENCE、CONFIG、JSON、IP、PASSWORD。 <br>几个特殊类型： <br>Config：从bios的服务配置项中获取内容； <br>Json：json串，作为响应参数时会被转成json对象，作为输入参数时，被转为json字符串 |
 | must | 是否为必须参数 | Bool | 如果为true，当请求未携带此参数时，校验失败 |
 | max | Number型：最大值； String型：最大长度 | 与type指定的类型一致 | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MAX\_VALUE。 long、double、float以此类推。 String类型默认为255 |
 | min | Number型：最小值； String型：最小长度 | 与type指定的类型一致 | 数值型的情况，默认为该类型能够表达的最大值，比如type为int时，默认为Integer.MIN\_VALUE。 long、double、float以此类推。 String类型默认为0 |
@@ -720,7 +720,7 @@ database.cfg定义了rdb的表结构，treedb、searchdb没有建表操作，但
 | rule | 密码强度检查 | String | 以逗号分隔成四个部分，从后向前，可以省略一部分，它们分别为： <br>minLen:最短长度，默认为4 <br>charTypeNum:字符类型数量（大写字母、小写字母、数字、英文标点、其他），默认为3 <br>differentCharNum:不同字符数量，默认为4 <br>accountPara:账号字段名称，用于判断密码是否与账号类似，默认为null，表示不判断 |
 | equalsTo | 需要等于的字段 | String | 用在确认密码中，判断本参数必须要等于另外一个参数，取值的处理方式与biggerThan相同 |
 | | | | **IP特有配置（继承了所有String参数的配置项）** |
-| format | 检查字符串是否为合法的IP地址 | String |V4:是否为IPv4地址 <br>V6:是否为IPv6地址 <br>PORT:是否携带了端口号 <br>LAN:是否为内网地址 <br>WAN:是否为外网地址 <br>LIST:以逗号分隔的多个地址 |
+| format | 检查字符串是否为合法的IP地址 | String |V4:是否为IPv4地址 <br>V6:是否为IPv6地址 <br>PORT:是否携带了端口号 <br>LAN:是否为内网地址 <br>WAN:是否为外网地址 <br>LIST:以逗号分隔的多个地址<br>多个格式定义用"\|"分隔，比如"V4\|PORT" |
 | | | | **Sequence特有配置** |
 | len | 序列值字节数 | Int | 只可以为4或8，为4时返回Int类型，为8时返回Long类型 |
 | | | | **Config特有配置** |

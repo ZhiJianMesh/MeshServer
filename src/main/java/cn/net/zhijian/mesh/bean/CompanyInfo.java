@@ -849,7 +849,7 @@ public class CompanyInfo {
     /**
      * 将私网服务器的信息注册到httpdns服务中，
      * 使得端侧输入公司ID、接入码时，可以自动获得内网入口地址与外网入口地址。
-     * 在启动服务、保证accessCode、保存外部地址时，会调用此函数
+     * 在启动服务、保存accessCode、保存外部地址时，会调用此函数
      * @return 异步执行结果
      */
     public CompletableFuture<HandleResult> registerToHttpdns() {
