@@ -43,8 +43,10 @@ APP_HOME=$(cd "$(dirname "$0")/.." && pwd)   # 脚本位于 sbin 下，APP_HOME 
 cd "${APP_HOME}" || exit 1
 PID_FILE="${APP_HOME}/.pid"                  # 存放进程PID的文件，同时表示是否继续运行
 LOGS="${APP_HOME}/logs"
+LOG_FILE="${LOGS}/java.out.log"          # 启动阶段脚本打印 + java 输出的统一日志文件
 LIBPATH="${APP_HOME}/libs"
 CHECK_URL="http://localhost:8523/backend/api/checkup"   # 健康检查接口地址
+
 OMPWD="$2"
 MAINBIOS="$3"
 
@@ -54,6 +56,8 @@ STOP_WAIT_SEC=30      # 等待服务停止完成的最长时间
 RESTART_SLEEP_SEC=3   # 重启前等待时间
 HEALTH_TIMEOUT=5      # 单次健康检查的 curl 超时时间
 TIMEZONE="GMT$(date +%Z)"
+
+mkdir -p "${LOGS}"                       # 保证 mlog/mdot 追加日志时目录已存在
 
 # ---- classpath 构建 ----
 # 使用 glob + 存在性判断，避免裸 ls 在无 jar 时输出错误；
@@ -151,7 +155,7 @@ start() {
     elif [ "${st}" -eq 1 ]; then
         start_loop
     else
-        # 进程吊死：先停止再启动
+        # 进程吊死/残留：先 stop（内部已等待退出）再启动，避免端口争用与误判
         stop
         start_loop
     fi
@@ -176,8 +180,8 @@ start_loop() {
                 args+=("${MAINBIOS}")
             fi
             # echo ${args}
-            # 在此堵塞，直到 java 进程退出
-            java "${args[@]}" &> /dev/null
+            # 在此堵塞，直到 java 进程退出；java 输出同样落到 java.out.log
+            java "${args[@]}" >> "${LOG_FILE}" 2>&1
             if [ ! -f "${PID_FILE}" ]; then # .pid 文件不存在，则终止
                 break
             fi
@@ -224,7 +228,9 @@ test_server() {
     fi
 }
 
-# 服务停止方法
+# 服务停止方法（停止逻辑的唯一实现）：
+# 删 .pid → 终止进程 → 等待退出（打点）→ 超时兜底。
+# 返回时进程已清干净，start / restart 直接复用即可，不要再另写等待逻辑
 stop() {
     if is_exist; then
         rm -rf "${PID_FILE}" # 守护循环判断 .pid 不存在则 break

@@ -16,8 +16,6 @@ import cn.net.zhijian.mesh.frm.config.PartitionConfig;
 import cn.net.zhijian.mesh.frm.config.PartitionConfig.DeployMode;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.platform.IPlatformConst;
-import cn.net.zhijian.util.DateUtil;
-import cn.net.zhijian.util.DateUtil.PeriodType;
 import cn.net.zhijian.util.FileUtil;
 import cn.net.zhijian.util.IPUtil;
 import cn.net.zhijian.util.IPUtil.FORMAT;
@@ -81,10 +79,6 @@ public class Company extends AbsCommand {
             return info(args1);
         }
         
-        if(cmd.equals("backupat")) {
-            return backupAt(args1);
-        }
-        
         if(cmd.equals("settotp")) {
             return setTotp(args1);
         }
@@ -114,10 +108,9 @@ public class Company extends AbsCommand {
                 "6)setinfo company_name [country [province [city [info]]]]",
                 "7)accesscode [code|generate]",
                 "8)info",
-                "9)backupAt [backupAt]",
-                "10)settotp",
-                "11)gettotp [your_secret[ code_len[ time_step]] | generate[ code_len]]",
-                "12)engineVer"
+                "9)settotp",
+                "10)gettotp [your_secret[ code_len[ time_step]] | generate[ code_len]]",
+                "11)engineVer"
                 };
     }
 
@@ -382,47 +375,6 @@ public class Company extends AbsCommand {
         System.out.println("city: " + localCompany.city());
         System.out.println("county: " + localCompany.county());
         System.out.println("auth public key: " + localCompany.authKeyPair().publicKey2Str());
-        return true;
-    }
-    
-    private boolean backupAt(String[] args) throws Exception {
-        try {
-            if(args.length > 1) {
-                CompanyInfo localCompany = getLocalCompany();
-                int backupAt = ValParser.parseInt(args[0], -1);
-                if(backupAt < 0) {
-                    System.out.println("Invalid backupAt value:" + args[0]);
-                    return false;
-                }
-                localCompany.setBackupAt(backupAt).whenComplete((hr, e) -> {
-                    if(e != null) {
-                        System.out.println("Fail to set backupAt:" + e.getMessage());
-                        return;
-                    }
-                    System.out.println("set backupAt to " + backupAt);
-                }).get(10, TimeUnit.SECONDS);
-            } else {
-                CompanyInfo localCompany = getLocalCompany();
-                localCompany.getBackupAt().whenComplete((hr, e) -> {
-                    if(e != null) {
-                        System.out.println("Fail to get backupAt:" + e.getMessage());
-                        return;
-                    }
-                    if(hr.code != RetCode.OK) {
-                        System.out.println("Fail to get backupAt:" + hr.brief());
-                        return;
-                    }
-                    int backupAt = ValParser.getAsInt(hr.data, "backupAt");
-                    long recent = ValParser.getAsLong(hr.data, "recent");
-                    long nextBackup = DateUtil.recentNextTime(PeriodType.DAY, 0, backupAt * 60000);
-                    System.out.println("backupAt:" + backupAt
-                            + ",recent:" + DateUtil.utcToLocale(recent)
-                            + ",nextBackupAt:" + DateUtil.utcToLocale(nextBackup));
-                }).get(10, TimeUnit.SECONDS);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         return true;
     }
     

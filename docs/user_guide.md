@@ -258,8 +258,7 @@ chmod +x meshhelper.sh
 | accesscode | [code\|generate] | 产生公司接入码，如果不输入[code\|generate]，则为查询接入码 |
 | pubKey | | 显示公司认证的公钥 |
 | info | | 显示公司信息，包括ID、名称、密钥对等 | 
-| backupAt | [backupAt] | 设置公司数据库备份时间点，不传[backupAt]用来查询备份时间点<br>backupAt用的时UTC分钟，比如东八区2点，传入1080（120-480+1440） |
-| setTotp | password | 设置totp根密钥 |
+| setTotp |  | 设置totp根密钥 |
 | getTotp | | 服务实例启动时用到，从totp.key文件中或bios中读取根密钥，然后计算出临时管理totp，并返回剩余的有效秒数 |
 | engineVer | |返回引擎版本号，从github或gitee下载服务时，需要根据引擎版本号下载，引擎版本不匹配的服务可能无法正常工作 |
 
@@ -354,6 +353,16 @@ totp可以通过在bios实例上运行 sbin/command.sh company gettotp命令获�
 如果主bios实例已经启动，在其他节点上启动服务器时，启动命令行输入`公司密码或totp密码 主bios的地址(ip:port)`就可以自动完成所有配置。
 启动完成后可以通过`sbin/mesh.sh status`查看实例的运行状态，返回内容中有`"code":0`表示状态正常。
 
+11. 数据库相关操作
+
+运行`sbin/command.sh db`执行数据库相关的命令，这些命令只适用于内置的sqlite数据库。
+如果使用MySQL、SQLServer等数据库，同步、备份依赖数据库自身能力。
+
+| 命令  | 参数 | 作用 |
+| ---   | --- | ---  |
+| backupAt | [backupAt] | 设置公司数据库备份时间点，不传[backupAt]则用来查询备份时间点<br>backupAt格式为"HH:mm"，小时部分用24小时格式 |
+| backup | | 强制执行一次备份<br>因为每日自动备份，通常不必执行此命令，只有在做大版本升级时才需要强行备份一次 |
+| restore | | 从云端恢复数据<br>发生灾难性事故后，如果数据无法本地恢复，则从云端恢复数据<br>在webdb实例上运行，恢复前需要在实例上登录公司信息，并启动服务器 |
 
 ### Windows环境中安装
 1. 直接用当前工作用户即可安装；

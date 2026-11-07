@@ -19,6 +19,8 @@ import cn.net.zhijian.mesh.frm.config.ChannelConfig;
 import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.frm.intf.IDBConst;
+import cn.net.zhijian.util.IPUtil;
+import cn.net.zhijian.util.IPUtil.FORMAT;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
@@ -101,6 +103,10 @@ abstract class AbsDB implements IDBConst {
             for(String s : ss.split(",")) {
                 s = s.trim();
                 if(!local.equals(s)) { //删除本地ip
+                    if(IPUtil.isValidIP(s, FORMAT.V4.v + FORMAT.PORT.v) != FORMAT.NONE) {
+                        LOG.error("Invalid address {} in {}", s, ss);
+                        return null;
+                    }
                     list.add(new NodeAddress(IConst.SERVICE_WEBDB, s));
                 }
             }
@@ -150,7 +156,9 @@ abstract class AbsDB implements IDBConst {
         map.put(CFG_SEG_SHARDEND, shardEnd);
         map.put(CFG_SEG_WRITECONN, writeConnNum);
         map.put(CFG_SEG_READCONN, readConnNum);
-        map.put(CFG_SEG_SLAVES, NodeAddress.join(slaves, ","));
+        if(slaves != null && slaves.length > 0) {
+            map.put(CFG_SEG_SLAVES, NodeAddress.join(slaves, ","));
+        }
         //主从实例的状态标识不同
         map.put(SEG_STATUS, DB_MASTER.equals(this.mode) ? "M" : "S");
         return map;
