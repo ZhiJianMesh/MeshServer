@@ -1,17 +1,15 @@
 package cn.net.zhijian.mesh.frm.abs;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 
 import cn.net.zhijian.mesh.bean.NodeAddress;
+import cn.net.zhijian.util.HttpCallback;
+import cn.net.zhijian.util.HttpResp;
 import cn.net.zhijian.util.LogUtil;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
 
-public abstract class AbsHttpCallback<T> extends CompletableFuture<T> implements Callback {
+public abstract class AbsHttpCallback<T> extends CompletableFuture<T> implements HttpCallback {
     private static final Logger ACCESS = LogUtil.getInstance("ACCESS");
     private static final Logger LOG = LogUtil.getInstance();
 
@@ -19,9 +17,9 @@ public abstract class AbsHttpCallback<T> extends CompletableFuture<T> implements
     public final NodeAddress node;
     public final long start = System.currentTimeMillis();
 
-    public abstract int onSuccess(Response resp);
+    public abstract int onSuccess(HttpResp resp);
 
-    public abstract void onException(Call call, Throwable e);
+    public abstract void onException(String url, Throwable e);
 
     /**
      * @param node    被调节点
@@ -33,11 +31,10 @@ public abstract class AbsHttpCallback<T> extends CompletableFuture<T> implements
     }
 
     @Override
-    public void onFailure(Call call, IOException e) {
+    public void onFailure(Throwable e, String url, String method) {
         // method,useTime,statusCode,resultCode,uri,traceId
-        String url = call.request().url().toString();
         ACCESS.info("C\t{}\t\t{}\t-1\t-1\t{}\t{}",
-                call.request().method(), System.currentTimeMillis() - start,
+                method, System.currentTimeMillis() - start,
                 url, traceId);
         if (LOG.isDebugEnabled()) { //debug打开时，会打印异常调用栈
             LOG.error("Fail to asyncSend({}\t{})", url, traceId, e);
@@ -49,20 +46,19 @@ public abstract class AbsHttpCallback<T> extends CompletableFuture<T> implements
         if (node != null) {
             node.report(false);
         }
-        onException(call, e);
+        onException(url, e);
     }
 
     @Override
-    public void onResponse(Call call, Response resp) {
+    public void onResponse(HttpResp resp) {
         if (node != null) {
             node.reset();
         }
         int resultCode = onSuccess(resp);
-        String url = resp.request().url().toString();
         // method,useTime,statusCode,resultCode,uri,traceId
         ACCESS.info("C\t{}\t{}\t{}\t{}\t{}\t{}",
-                resp.request().method(), System.currentTimeMillis() - start,
-                resp.code(), resultCode, url, traceId);
+                resp.method(), System.currentTimeMillis() - start,
+                resp.code(), resultCode, resp.url(), traceId);
     }
 
     public interface IDownloadProgress {

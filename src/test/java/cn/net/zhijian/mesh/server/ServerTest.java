@@ -36,6 +36,9 @@ import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.MapBuilder;
 import cn.net.zhijian.util.Totp;
 import cn.net.zhijian.UnitTestBase;
+import cn.net.zhijian.util.HttpCallback;
+import cn.net.zhijian.util.HttpResp;
+import cn.net.zhijian.util.HttpUtil;
 import cn.net.zhijian.util.ValParser;
 import io.netty.handler.ssl.SslContext;
 
@@ -220,7 +223,7 @@ public class ServerTest extends UnitTestBase implements ITcpProtocol {
             tcpServerConnect(os, is, reqId++);
             
             System.out.println("tcpServerSendMsgTcpClient");
-            tcpServerSendMsgTcpClient(os, is);
+            tcpServerSendMsgToTcpClient(os, is);
             
             System.out.println("tcpServerHeartbeat");
             tcpServerHeartbeat(os, is, reqId++);
@@ -233,6 +236,88 @@ public class ServerTest extends UnitTestBase implements ITcpProtocol {
         }
     }
     
+    @Test
+    public void testHttpUtilLocalGet() {
+        //用改造后的JDK HttpClient（HttpUtil）访问本地HTTP服务，验证新客户端在server进程内联调正确
+        String url = "http://" + HTTP_SRV_ADDR + "/user/test.txt";
+        Map<String, String> headers = MapBuilder.of("cid", "40");
+        CountDownLatch latch = new CountDownLatch(1);
+        final String[] body = new String[1];
+        final int[] code = new int[1];
+        final Throwable[] err = new Throwable[1];
+        HttpUtil.create(8000, 8000).asyncGet(url, headers, new HttpCallback() {
+            @Override
+            public void onResponse(HttpResp r) {
+                try {
+                    //HttpUtil在回调返回后即关闭响应体，必须在回调内读取
+                    code[0] = r.code();
+                    body[0] = r.string();
+                } catch (Exception e) {
+                    err[0] = e;
+                }
+                latch.countDown();
+            }
+
+            @Override
+            public void onFailure(Throwable e, String u, String method) {
+                err[0] = e;
+                latch.countDown();
+            }
+        });
+        try {
+            assertTrue(latch.await(50, TimeUnit.SECONDS), "HttpUtil local get timeout");
+        } catch (InterruptedException e) {
+            fail(e.getMessage());
+        }
+        assertNull(err[0], err[0] == null ? "" : err[0].getMessage());
+        assertNotNull(body[0], "No response body");
+        assertEquals(200, code[0]);
+        assertEquals("abcd", body[0]);
+    }
+
+    @Test
+    public void testHttpUtilNamespace() {
+        //用改造后的HttpUtil访问本地命名空间接口，验证GET与JSON响应解析
+        String url = "http://" + HTTP_SRV_ADDR + "/user/api/nameSpaceTest";
+        Map<String, String> headers = MapBuilder.of("cid", "40");
+        CountDownLatch latch = new CountDownLatch(1);
+        final String[] body = new String[1];
+        final Throwable[] err = new Throwable[1];
+        HttpUtil.create(8000, 8000).asyncGet(url, headers, new HttpCallback() {
+            @Override
+            public void onResponse(HttpResp r) {
+                try {
+                    //HttpUtil在回调返回后即关闭响应体，必须在回调内读取
+                    body[0] = r.string();
+                } catch (Exception e) {
+                    err[0] = e;
+                }
+                latch.countDown();
+            }
+
+            @Override
+            public void onFailure(Throwable e, String u, String method) {
+                err[0] = e;
+                latch.countDown();
+            }
+        });
+        try {
+            assertTrue(latch.await(50, TimeUnit.SECONDS), "HttpUtil namespace timeout");
+        } catch (InterruptedException e) {
+            fail(e.getMessage());
+        }
+        assertNull(err[0], err[0] == null ? "" : err[0].getMessage());
+        assertNotNull(body[0], "No response body");
+        try {
+            Map<String, Object> hr = JsonUtil.jsonToMap(body[0]);
+            assertEquals(RetCode.OK, ValParser.getAsInt(hr, "code"));
+            Map<String, Object> data = ValParser.getAsObject(hr, "data");
+            assertTrue(data != null && data.containsKey("test"));
+        } catch (Exception e) {
+            fail(e.getMessage());
+        }
+    }
+
     private void tcpServerConnect(DataOutputStream os, DataInputStream is, int reqId) throws IOException {
         /* len(4) + cmd(1) + reqId(4) + ver(4)
          * + resource_len
@@ -395,7 +480,7 @@ public class ServerTest extends UnitTestBase implements ITcpProtocol {
         assertTrue(data != null && data.containsKey("account"));
     }
     
-    private void tcpServerSendMsgTcpClient(DataOutputStream os, DataInputStream is) throws Exception {
+    private void tcpServerSendMsgToTcpClient(DataOutputStream os, DataInputStream is) throws Exception {
         CountDownLatch waiter = new CountDownLatch(1);
         new Thread() {
             public void run() {

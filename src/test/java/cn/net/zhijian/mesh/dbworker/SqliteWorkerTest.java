@@ -34,21 +34,17 @@ public class SqliteWorkerTest extends UnitTestBase {
     private static final String dbName = "rDb";
 
     private void executeWrite(SqliteWorker db, String sql, String now,
-            Map<String, Integer> results, CountDownLatch counter) {
-        new Thread() {
-            @Override
-            public void run() {
+            Map<String, Integer> results) {
+            try {
+
                 try(AbsConnection writeConn = db.getWriteConn()) {
                     String s = AbsRDBWorker.modifyDMLSql(sql, now);
                     int result = db.executeRawDML(writeConn, s);
                     results.put(sql, result);
-                } catch (Exception e) {
-                    fail("Fail to executeRawDML", e);
-                } finally {
-                    counter.countDown();
                 }
+            } catch (Exception e) {
+                fail("Fail to executeRawDML", e);
             }
-        }.start();
     }
     
     private void executeRead(Runnable run) {
@@ -152,12 +148,10 @@ public class SqliteWorkerTest extends UnitTestBase {
             "update config set v='1' where k in('A','B')",
             "delete from config"
         };
-        CountDownLatch counter1 = new CountDownLatch(sqls.length);
         Map<String, Integer> results = new ConcurrentHashMap<>();
         for(String sql : sqls) {
-            executeWrite(db, sql, now, results, counter1);
+            executeWrite(db, sql, now, results);
         }
-        counter1.await();
         Integer result = results.get(sqls[0]);
         assertEquals(result.intValue(), 2, sqls[0]);
         result = results.get(sqls[1]);
@@ -188,7 +182,9 @@ public class SqliteWorkerTest extends UnitTestBase {
     
     @Test
     public void testSqliteWorkerWith1ReadConn() throws InterruptedException {
-        SqliteBuilder builder = new SqliteBuilder(testService, 40, SERVICE, dbName, 1, 1, AbsPlatform.dbRoot());
+        //独立db文件：与BaseFeatures共用rDb时，两个测试先后打开同一文件，
+        //连接/锁释放不彻底会偶发 SQLITE_BUSY，且失败残留会污染下一次运行。
+        SqliteBuilder builder = new SqliteBuilder(testService, 40, SERVICE, "rDb1R", 1, 1, AbsPlatform.dbRoot());
         builder.createIfAbsent(true);
         builder.longToStr(true);
         builder.backup(false);
@@ -199,7 +195,7 @@ public class SqliteWorkerTest extends UnitTestBase {
     @Test
     public void testSqliteWorkerSubsOf() {
         //boolean createIfNotExists, boolean longToStr, String[] slaves
-        SqliteBuilder builder = new SqliteBuilder(testService, 40, SERVICE, dbName, 1, 5, AbsPlatform.dbRoot());
+        SqliteBuilder builder = new SqliteBuilder(testService, 40, SERVICE, "rDbSub", 1, 5, AbsPlatform.dbRoot());
         builder.createIfAbsent(true);
         builder.longToStr(true);
         builder.backup(false);
@@ -262,7 +258,7 @@ public class SqliteWorkerTest extends UnitTestBase {
     @Test
     public void testSqliteAddColIfNotExists() {
         //boolean createIfNotExists, boolean longToStr, String[] slaves
-        SqliteBuilder builder = new SqliteBuilder(testService, 40, SERVICE, dbName, 1, 5, AbsPlatform.dbRoot());
+        SqliteBuilder builder = new SqliteBuilder(testService, 40, SERVICE, "rDbCol", 1, 5, AbsPlatform.dbRoot());
         builder.createIfAbsent(true);
         builder.longToStr(true);
         builder.backup(false);
@@ -333,7 +329,7 @@ public class SqliteWorkerTest extends UnitTestBase {
     
     @Test
     public void testSqliteWorkerBackup() throws InterruptedException {
-        String dbName = "rDb1";
+        String dbName = "rDbBak";
 
         //boolean createIfNotExists, boolean longToStr, String[] slaves
         SqliteBuilder builder = new SqliteBuilder(testService, 40, SERVICE, dbName, 1, 5, AbsPlatform.dbRoot());

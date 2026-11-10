@@ -107,7 +107,7 @@ public final class ResponseInfo {
             }
             
             if(!handler.parse(si, params, respMap)) {
-                LOG.error("Fail to parse {}", respMap);
+                LOG.error("Fail to parse response map {}", respMap);
                 return null;
             }
         } else {

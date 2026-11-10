@@ -19,13 +19,9 @@ cn.net.zhijian.fileq
 cn.net.zhijian.util
 
 ===log
-slf4j-api-1.7.36.jar
-logback-core-1.2.11.jar
-logback-classic-1.2.11.jar
-
-===ok httpclient
-okhttp-3.14.9.jar
-okio-1.17.2.jar
+slf4j-api-2.0.17.jar
+logback-core-1.5.20.jar
+logback-classic-1.5.20.jar
 
 ===sqlite
 sqlite-jdbc-3.53.1.0.jar（支持termux原生库）

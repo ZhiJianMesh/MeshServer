@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cn.net.zhijian.mesh.js.JsEngine;
+import cn.net.zhijian.util.ValParser;
 
 /**
  * 线程池&公共定时器，可以共用Pool与定时器
@@ -49,9 +50,29 @@ public interface IThreadPool {
      * 性能很高，生产者和消费者速度相当时效果最佳。适合吞吐大，并发不高的场景。
      * Pool是高度公用的线程池，所以不能用SynchronousQueue，而用LinkedBlockingQueue
      */
-    ExecutorService Pool = new ThreadPoolExecutor(
-            Runtime.getRuntime().availableProcessors() * 2, //如果用1，启动时就会吊死，未知原因
-            Runtime.getRuntime().availableProcessors() * 5,
+    ExecutorService Pool = initPool();
+    static ExecutorService initPool() {
+        String s = System.getProperty("threadPool.min");
+        int min = ValParser.parseInt(s, 0);
+        if(min < 2) {
+            min = 2;
+        }
+        if(min > 9) { //一个自定义的限制，没有测试数据证明不能超过9倍
+            min = 9;
+        }
+        s = System.getProperty("threadPool.max");
+        int max = ValParser.parseInt(s, 0);
+        if(max > 100) {
+            max = 100;
+        }
+        if(max <= min) {
+            max = min + min / 1;
+        }
+        int base = Runtime.getRuntime().availableProcessors();
+        
+        return new ThreadPoolExecutor(
+            min * base, //如果用1，启动时就会吊死，未知原因
+            max * base,
             60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(),
             new NamedThreadFactory("process") {
@@ -67,4 +88,5 @@ public interface IThreadPool {
                     return super.newThread(wrapper);
                 }
             });
+    }
 }

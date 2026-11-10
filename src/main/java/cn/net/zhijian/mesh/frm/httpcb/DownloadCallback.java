@@ -9,10 +9,9 @@ import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsHttpCallback;
+import cn.net.zhijian.util.HttpResp;
 import cn.net.zhijian.util.HttpUtil;
 import cn.net.zhijian.util.LogUtil;
-import okhttp3.Call;
-import okhttp3.Response;
 
 public class DownloadCallback extends AbsHttpCallback<HandleResult> {
     private static final Logger LOG = LogUtil.getInstance();
@@ -31,14 +30,14 @@ public class DownloadCallback extends AbsHttpCallback<HandleResult> {
     }
 
     @Override
-    public int onSuccess(Response resp) {
+    public int onSuccess(HttpResp resp) {
         if (!resp.isSuccessful()) {
             LOG.warn("Download response is not successful, status code:{}", resp.code());
             super.complete(new HandleResult(RetCode.INTERNAL_ERROR, "invalid response"));
             return RetCode.INTERNAL_ERROR;
         }
 
-        String url = resp.request().url().toString();
+        String url = resp.url();
         LOG.debug("Save `{}` to `{}`,code:{}", url, saveAs, resp.code());
         File saveAsFile = new File(saveAs);
         File path = saveAsFile.getParentFile();
@@ -66,9 +65,9 @@ public class DownloadCallback extends AbsHttpCallback<HandleResult> {
     }
 
     @Override
-    public void onException(Call call, Throwable e) {
+    public void onException(String url, Throwable e) {
         if(LOG.isDebugEnabled()) { //在AbsHttpCallback已打印异常，此处不必再次打印
-            LOG.error("Fail to download {}@{},{}", call.request().url(), traceId, e.getMessage());
+            LOG.error("Fail to download {}@{},{}", url, traceId, e.getMessage());
         }
         super.complete(new HandleResult(RetCode.INTERNAL_ERROR, "http request failed"));
     }

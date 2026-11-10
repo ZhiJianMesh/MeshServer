@@ -13,10 +13,9 @@ import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsHttpCallback;
+import cn.net.zhijian.util.HttpResp;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.MapBuilder;
-import okhttp3.Call;
-import okhttp3.Response;
 
 public class BigFileDownloadCallback extends AbsHttpCallback<HandleResult> {
     private static final Logger LOG = LogUtil.getInstance();
@@ -26,15 +25,15 @@ public class BigFileDownloadCallback extends AbsHttpCallback<HandleResult> {
     private final IDownloadProgress progress;
 
     @Override
-    public int onSuccess(Response resp) {
+    public int onSuccess(HttpResp resp) {
         if (!resp.isSuccessful()) {
             LOG.error("Fail to download {},{}, status code:{}",
-                    resp.request().url(), traceId, resp.code());
+                    resp.url(), traceId, resp.code());
             super.complete(new HandleResult(RetCode.UNKNOWN_ERROR, "Fail to download"));
             return RetCode.UNKNOWN_ERROR;
         }
 
-        LOG.info("Save `{}` to `{}`", resp.request().url(), saveAs);
+        LOG.info("Save `{}` to `{}`", resp.url(), saveAs);
         File saveAsFile = new File(saveAs);
         File path = saveAsFile.getParentFile();
         if(path == null) {
@@ -49,7 +48,7 @@ public class BigFileDownloadCallback extends AbsHttpCallback<HandleResult> {
         }
 
         HandleResult hr;
-        try(InputStream inputStream = Objects.requireNonNull(resp.body()).byteStream();
+        try(InputStream inputStream = Objects.requireNonNull(resp.body());
             FileOutputStream fileOutputStream = new FileOutputStream(saveAsFile)) {
             byte[] buffer = new byte[2048];
             int len;
@@ -63,7 +62,7 @@ public class BigFileDownloadCallback extends AbsHttpCallback<HandleResult> {
             hr = new HandleResult(RetCode.OK, data);
         } catch (IOException e) {
             LOG.error("Fail to save `{}` to {},{}",
-                    resp.request().url(), saveAs, traceId, e);
+                    resp.url(), saveAs, traceId, e);
             hr = new HandleResult(RetCode.INTERNAL_ERROR, "Fail to get the file");
         }
         super.complete(hr);
@@ -71,9 +70,9 @@ public class BigFileDownloadCallback extends AbsHttpCallback<HandleResult> {
     }
 
     @Override
-    public void onException(Call call, Throwable e) {
+    public void onException(String url, Throwable e) {
         if(LOG.isDebugEnabled()) { //在AbsHttpCallback已打印异常，此处不必再次打印
-            LOG.error("Fail to download {}@{},{}", call.request().url(), traceId, e.getMessage());
+            LOG.error("Fail to download {}@{},{}", url, traceId, e.getMessage());
         }
         super.complete(new HandleResult(RetCode.INTERNAL_ERROR, "Fail to download"));
     }
@@ -89,4 +88,3 @@ public class BigFileDownloadCallback extends AbsHttpCallback<HandleResult> {
         this.progress = progress;
     }
 }
-

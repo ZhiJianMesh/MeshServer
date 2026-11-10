@@ -40,7 +40,8 @@ public final class TcpConnection implements ITcpProtocol, IThreadPool {
     final ChannelHandlerContext ctx; //与私有云服务端的连接
     public final String rid;
     public final int ver; //连接使用的协议版本，用于以后可能的版本兼容
-    private final Map<Integer, ControlRequest> requests = Collections.synchronizedMap(new LinkedHashMap<>());
+    //不加private是为了便于单元测试
+    final Map<Integer, ControlRequest> requests = Collections.synchronizedMap(new LinkedHashMap<>());
     private volatile long recentMsg = -1;
     
     public TcpConnection(String rid, int ver, ChannelHandlerContext ctx) {
@@ -59,41 +60,22 @@ public final class TcpConnection implements ITcpProtocol, IThreadPool {
         if(ctx == null || !ctx.channel().isActive()) {
             return CompletableFuture.completedFuture(new HandleResult(RetCode.NO_RIGHT, "channel is not active"));
         }
-
-        Map<String, String> h = req.headers();
-        byte[] headers = h != null && !h.isEmpty() ? JsonUtil.objToBytes(h) : null;
-        
-        Map<String, Object> params = req.params();
-        byte[] body = params != null && !params.isEmpty() ? JsonUtil.objToBytes(params) : null;
-        int reqId = sendControl(CONTROL, cmd, headers, body);
-        CompletableFuture<HandleResult> future = new CompletableFuture<>();
-        requests.put(reqId, new ControlRequest(future, req));
-        
-        return future; //等待handleCtrlResp处理完毕再complete
-    }
-    
-    public void close() {
-        if(ctx == null || !ctx.channel().isActive()) {
-            return;
-        }
-        LOG.debug("Connection({}) closed, idle time:{}", rid, idleTime());
-        ctx.channel().close();
-        requests.clear();
-    }
-    
-    /**
-     * 服务端发给客户端的控制命令报文
-     * @param cmd 命令字，CLOSE或CONTROL
-     * @param val 附加值，cmd为CLOSE、CONTROL时定义不同
-     * @param headers 请求头，
-     * @param body 请求体
-     */
-    private int sendControl(int cmd, int val, byte[] headers, byte[] body) {
         int reqId = Sequence.getAndIncrement();
         if(reqId <= 0) { //0为保留值，用在服务端发起的CLOSE命令中，见sendClose()的实现
             Sequence.set(1);
             reqId = Sequence.getAndIncrement();
         }
+        Map<String, String> h = req.headers();
+        byte[] headers = h != null && !h.isEmpty() ? JsonUtil.objToBytes(h) : null;
+
+        Map<String, Object> params = req.params();
+        byte[] body = params != null && !params.isEmpty() ? JsonUtil.objToBytes(params) : null;
+
+        CompletableFuture<HandleResult> future = new CompletableFuture<>();
+
+        //先注册请求再发送，避免客户端回复早于注册导致No control request
+        requests.put(reqId, new ControlRequest(future, req)); //先注册，再发送
+
         /*
          * total_len(4) + cmd(1) + reqid(4)
          * + val(4，子命令字，由系统自己定义)
@@ -107,9 +89,9 @@ public final class TcpConnection implements ITcpProtocol, IThreadPool {
 
         ByteBuf buf = ByteBufAllocator.DEFAULT.buffer(len);
         buf.writeInt(len);
-        buf.writeByte(cmd);
+        buf.writeByte(CONTROL);
         buf.writeInt(reqId);
-        buf.writeInt(val);
+        buf.writeInt(cmd);
         if(headers != null) {
             buf.writeInt(headers.length);
             buf.writeBytes(headers);
@@ -122,10 +104,19 @@ public final class TcpConnection implements ITcpProtocol, IThreadPool {
             buf.writeBytes(body);
         } else {
             buf.writeInt(0);
-        }    
+        }
         ctx.writeAndFlush(buf);
         
-        return reqId;
+        return future;
+    }
+    
+    public void close() {
+        if(ctx == null || !ctx.channel().isActive()) {
+            return;
+        }
+        LOG.debug("Connection({}) closed, idle time:{}", rid, idleTime());
+        ctx.channel().close();
+        requests.clear();
     }
     
     /**
@@ -285,7 +276,7 @@ public final class TcpConnection implements ITcpProtocol, IThreadPool {
         });
     }
     
-    private static class ControlRequest {
+    static class ControlRequest {
         final CompletableFuture<HandleResult> future;
         final AbsServerRequest req;
         

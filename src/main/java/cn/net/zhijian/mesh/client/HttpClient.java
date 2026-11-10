@@ -1,22 +1,29 @@
 package cn.net.zhijian.mesh.client;
 
 import java.io.File;
-import java.security.cert.Certificate;
+import java.net.Socket;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HostnameVerifier;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 import org.slf4j.Logger;
 
@@ -41,17 +48,11 @@ import cn.net.zhijian.util.SecureUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.UrlPathInfo;
 import cn.net.zhijian.util.ValParser;
-import okhttp3.ConnectionPool;
-import okhttp3.Dispatcher;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.internal.tls.OkHostnameVerifier;
 
 /**
- * 
- * 内部访问http的客户端，只用于访问服务端接口，
- * 可以使用http/https协议，如果是https，则必须提供可信的证书，
- * 因为此实现中，没有提供预置的根证书
+ * 内部访问http的客户端，只用于访问服务端接口。
+ * 基于JDK11内置的java.net.http.HttpClient，并装载了内置私有根证书（ROOTCER），
+ * 内部https服务与公有证书的外部https服务都可访问，证书校验见MeshTrustManager。
  * @author flyinmind of csdn.net
  */
 public class HttpClient {
@@ -71,58 +72,225 @@ public class HttpClient {
         + "1btpSclUjbpKc6kZ0X00puSg2qbmStFuhEiBcfOjBiYMCI34WbYvxHWb5ZhcwI2";
 
     /**
-     * 此http客户端没有设置私有根证书，
-     * 只可用于调用http或公有云的其他https服务，这些服务必须提供可信的证书
+     * 内部服务间调用的客户端，已装载内置私有根证书（ROOTCER + MeshTrustManager），
+     * 既可以访问内部https服务，也可以访问使用公有证书的外部https服务
      */
     protected static final HttpUtil http;
-    
-    private static final Dispatcher dispatcher;
-    private static final ConnectionPool connectionPool;
+
     private static RootTruster rootTrust;
     private static SSLContext sslContext;
-    private static final HostnameVerifier hostnameVerifier;
+    private static final java.net.http.HttpClient jdkClient;
     private static final List<HttpUtil> https = new ArrayList<>();
 
     static {
         /*
-         * 【极其重要】本系统极大依赖服务间调用，maxRequestsPerHost默认为5个，
-         * 一旦服务间调用并发量大于5时，就会出现等待超时，造成调用链上某一环失败，从而导致整个调用失败。
-         * 此值如果太大，会导致Dispatcher的线程池暴增，所以两者之间需要仔细衡量。
-          【注意】这段初始化工作比较耗时，在8C-1.4G的机器上超过2s
+         * 【重要】JDK的HttpClient默认禁止设置host、content-length、date等受限请求头，
+         * 而OSS签名请求必须显式带date，UrlRequest.headers里也带host/content-length。
+         * 该系统属性在jdk.internal.net.http.common.Utils初始化时读取，
+         * 必须在任何java.net.http类被使用前设置，所以放在本静态块的第一行。
          */
-        dispatcher = new Dispatcher();
-        dispatcher.setMaxRequests(500);
-        dispatcher.setMaxRequestsPerHost(100);
-        connectionPool = new ConnectionPool();
+        System.setProperty("jdk.httpclient.allowRestrictedHeaders",
+                "host,content-length,date,connection,upgrade,expect,from,via,warning");
 
+        /*
+         * 【极其重要】本系统极大依赖服务间调用。旧okhttp的Dispatcher默认每host只有5个并发，
+         * 超过就排队等待直至超时；JDK客户端由连接池与HTTP/2多路复用管理并发，
+         * 不再有maxRequestsPerHost这个瓶颈，也无需共享Dispatcher/ConnectionPool。
+         */
         String tlsVer = SecureUtil.getMaxTlsVer();
         try {
             rootTrust = RootTruster.create(ROOTCER);
             sslContext = SSLContext.getInstance(tlsVer);
-            sslContext.init(null, new TrustManager[]{rootTrust}, SecureUtil.getRandom());
+            // 内置私有根证书 + 证书域名白名单 + 标准主机名校验，全部在MeshTrustManager里
+            sslContext.init(null, new TrustManager[]{new MeshTrustManager(rootTrust)},
+                    SecureUtil.getRandom());
         } catch (Exception e) {
             LOG.error("Fail to create root trustmanager", e);
-        }
-        
-        LOG.debug("Max tls version:{}", tlsVer);
-        hostnameVerifier = (hostname, session) -> {
             try {
-                Certificate[] certs = session.getPeerCertificates();
-                if (certs != null && certs.length > 0 && certs[0] instanceof X509Certificate) {
-                    X509Certificate cert = (X509Certificate) certs[0]; //第一个是证书链上最末端的证书
-                    String peer = cert.getSubjectX500Principal().getName();
-                    if (peer.contains(IConst.CER_DOMAIN)) { //不关心url中的域名，只关心证书中的域名
-                        return true;
+                sslContext = SSLContext.getDefault(); //降级为系统默认证书，保证服务能启动
+            } catch (Exception e2) {
+                LOG.error("Fail to get default SSLContext", e2);
+            }
+        }
+
+        LOG.debug("Max tls version:{}", tlsVer);
+        // 关闭JSSE内置的endpoint identification，主机名校验改由MeshTrustManager完成，
+        // 这样才能保留"证书SubjectDN含CER_DOMAIN就放行"的白名单逻辑
+        SSLParameters sslParams = new SSLParameters();
+        sslParams.setEndpointIdentificationAlgorithm("");
+
+        jdkClient = java.net.http.HttpClient.newBuilder()
+            .sslContext(sslContext)
+            .sslParameters(sslParams)
+            .version(java.net.http.HttpClient.Version.HTTP_2)
+            .connectTimeout(Duration.ofMillis(HttpUtil.DEFAULT_CLIENT_TIMEOUT))
+            .build();
+
+        http = buildClient(HttpUtil.DEFAULT_CLIENT_TIMEOUT); //默认的请求客户端
+    }
+
+    /**
+     * 内置私有根证书 + 主机名校验器。
+     * <p>
+     * java.net.http.HttpClient没有HostnameVerifier回调，主机名校验由JSSE在TLS握手时完成，
+     * 所以必须实现X509ExtendedTrustManager（而不是X509TrustManager），
+     * 才能在带SSLEngine的重载里拿到peerHost与证书链。
+     * <ul>
+     *  <li>证书链校验：完全委托原有的RootTruster（内置根证书，否则回落到系统信任库）</li>
+     *  <li>内置证书：SubjectDN含CER_DOMAIN即放行，不校验url中的host（内部用IP访问）</li>
+     *  <li>其它证书：按subjectAltName(dNSName/iPAddress)、通配符、CN回退自行校验主机名</li>
+     * </ul>
+     * 【注意】不能用HttpsURLConnection.getDefaultHostnameVerifier()取代OkHostnameVerifier：
+     * 它只是HttpsClient用于判断是否走内置HostnameChecker的哨兵对象，verify()恒返回false。
+     */
+    private static final class MeshTrustManager extends X509ExtendedTrustManager {
+        private final RootTruster delegate;
+
+        MeshTrustManager(RootTruster delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+                throws CertificateException {
+            delegate.checkServerTrusted(chain, authType);
+            verifyHost(chain, engine == null ? null : engine.getPeerHost());
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
+                throws CertificateException {
+            delegate.checkServerTrusted(chain, authType);
+            verifyHost(chain, socket == null || socket.getInetAddress() == null
+                    ? null : socket.getInetAddress().getHostAddress());
+        }
+
+        private void verifyHost(X509Certificate[] chain, String host)
+                throws CertificateException {
+            if(chain == null || chain.length == 0) {
+                return;
+            }
+            String peer = chain[0].getSubjectX500Principal().getName();
+            if(peer.contains(IConst.CER_DOMAIN)) { //不关心url中的域名，只关心证书中的域名
+                return;
+            }
+            //不是内置域名CER_DOMAIN，则按SAN/CN校验主机名
+            if(!hostnameMatches(host, chain[0])) {
+                throw new CertificateException("Hostname verification failed:" + host);
+            }
+        }
+
+        /** 按RFC 2818/6125校验主机名：优先subjectAltName，无SAN时才回退CN */
+        private static boolean hostnameMatches(String host, X509Certificate cert) {
+            if(StringUtil.isEmpty(host)) {
+                return false;
+            }
+            String h = host.toLowerCase(Locale.ROOT);
+            if(h.startsWith("[") && h.endsWith("]")) { //IPv6的方括号
+                h = h.substring(1, h.length() - 1);
+            }
+            if(h.endsWith(".")) { //完全限定域名末尾的点
+                h = h.substring(0, h.length() - 1);
+            }
+            boolean ip = isIpAddress(h);
+            try {
+                Collection<List<?>> sans = cert.getSubjectAlternativeNames();
+                if(sans != null) {
+                    for(List<?> san : sans) {
+                        if(san == null || san.size() < 2 || !(san.get(0) instanceof Number)) {
+                            continue;
+                        }
+                        int type = ((Number) san.get(0)).intValue();
+                        Object val = san.get(1);
+                        if(val == null) {
+                            continue;
+                        }
+                        String name = String.valueOf(val).toLowerCase(Locale.ROOT);
+                        if((ip && type == 7 && h.equals(name))
+                                || (!ip && type == 2 && matchesDns(h, name))) {
+                            return true;
+                        }
+                    }
+                    return false; //证书带了SAN，就不再回退到CN
+                }
+            } catch (CertificateParsingException e) {
+                LOG.warn("Fail to parse subjectAltNames of {}", cert.getSubjectX500Principal(), e);
+            }
+            return matchesDns(h, commonName(cert.getSubjectX500Principal().getName()));
+        }
+
+        private static boolean matchesDns(String host, String pattern) {
+            if(pattern == null) {
+                return false;
+            }
+            String p = pattern.toLowerCase(Locale.ROOT);
+            if(p.startsWith("*.")) {
+                String suffix = p.substring(2);
+                int dot = host.indexOf('.');
+                return dot > 0 && !suffix.isEmpty() && host.substring(dot + 1).equals(suffix);
+            }
+            return host.equals(p);
+        }
+
+        private static boolean isIpAddress(String h) {
+            if(h.indexOf(':') >= 0) { //IPv6
+                return true;
+            }
+            String[] parts = h.split("\\.", -1);
+            if(parts.length != 4) {
+                return false;
+            }
+            for(String p : parts) {
+                if(p.isEmpty() || p.length() > 3) {
+                    return false;
+                }
+                for(int i = 0; i < p.length(); i++) {
+                    if(p.charAt(i) < '0' || p.charAt(i) > '9') {
+                        return false;
                     }
                 }
-            } catch (SSLPeerUnverifiedException e) {
-                LOG.error("Fail to create root trustmanager,tls version:{}", tlsVer, e);
             }
-            //不是内置域名CER_DOMAIN，则使用默认的校验
-            return OkHostnameVerifier.INSTANCE.verify(hostname, session);
-        };
-        
-        http = buildClient(HttpUtil.DEFAULT_CLIENT_TIMEOUT); //默认的请求客户端
+            return true;
+        }
+
+        private static String commonName(String dn) {
+            try {
+                for(Rdn rdn : new LdapName(dn).getRdns()) {
+                    if("CN".equalsIgnoreCase(rdn.getType())) {
+                        return String.valueOf(rdn.getValue());
+                    }
+                }
+            } catch (InvalidNameException e) {
+                LOG.debug("Fail to parse DN:{}", dn, e);
+            }
+            return null;
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType)
+                throws CertificateException {
+            delegate.checkServerTrusted(chain, authType);
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            delegate.checkClientTrusted(chain, authType); //双向认证才会用到，RootTruster未实现
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) {
+            delegate.checkClientTrusted(chain, authType);
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) {
+            delegate.checkClientTrusted(chain, authType);
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return delegate.getAcceptedIssuers();
+        }
     }
     
     public static HttpUtil getHttpClient(int timeout) {
@@ -141,18 +309,9 @@ public class HttpClient {
     }
     
     private static HttpUtil buildClient(int timeout) {
-        OkHttpClient.Builder builder = new OkHttpClient.Builder()
-            .readTimeout(timeout, TimeUnit.MILLISECONDS)
-            .writeTimeout(timeout, TimeUnit.MILLISECONDS)
-            .connectTimeout(timeout, TimeUnit.MILLISECONDS)
-            .protocols(Arrays.asList(Protocol.HTTP_2, Protocol.HTTP_1_1))
-            .retryOnConnectionFailure(true)
-            .connectionPool(connectionPool)
-            .dispatcher(dispatcher)
-            .hostnameVerifier(hostnameVerifier)
-            .sslSocketFactory(sslContext.getSocketFactory(), rootTrust);
-        
-        return new HttpUtil(builder, timeout);
+        // 所有实例共享同一个带私有根证书的JDK客户端；请求超时由每个HttpRequest单独设置，
+        // 按timeout缓存HttpUtil只是为了复用，不再重复创建连接池与线程
+        return new HttpUtil(jdkClient, timeout);
     }
 
     /**

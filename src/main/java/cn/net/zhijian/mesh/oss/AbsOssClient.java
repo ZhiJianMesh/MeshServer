@@ -2,6 +2,7 @@ package cn.net.zhijian.mesh.oss;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -13,13 +14,11 @@ import cn.net.zhijian.mesh.client.HttpClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.util.HttpCallback;
+import cn.net.zhijian.util.HttpResp;
 import cn.net.zhijian.util.HttpUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.ValParser;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 public abstract class AbsOssClient extends HttpClient {
     //providers
@@ -128,7 +127,7 @@ public abstract class AbsOssClient extends HttpClient {
         long size = locFile.length();
         AbsObsCallback future = new AbsObsCallback() {
             @Override
-            public HandleResult onSuccess(Response resp) {
+            public HandleResult onSuccess(HttpResp resp) {
                 if (!resp.isSuccessful()) {
                     LOG.error("upload({}) failed, status code:{}", req.url, resp.code());
                     return new HandleResult(RetCode.THIRD_PARTY_ERR, errMsg(resp));
@@ -151,24 +150,24 @@ public abstract class AbsOssClient extends HttpClient {
     public static CompletableFuture<HandleResult> download(UrlRequest req, File saveAs, int size) {
         AbsObsCallback future = new AbsObsCallback() {
             @Override
-            public HandleResult onSuccess(Response resp) {
+            public HandleResult onSuccess(HttpResp resp) {
                 if (!resp.isSuccessful()) {
                     LOG.error("download({}) failed, status code:{}", req.url, resp.code());
                     return new HandleResult(RetCode.THIRD_PARTY_ERR, errMsg(resp));
                 }
 
-                try (ResponseBody body = resp.body()) {
+                try (InputStream body = resp.body()) {
                     if(body == null) {
                         return new HandleResult(RetCode.THIRD_PARTY_ERR, "invalid response,body is null");
                     }
-                    long size = FileUtil.copyStream(body.byteStream(), saveAs);
+                    long size = FileUtil.copyStream(body, saveAs);
                     if(LOG.isDebugEnabled()) {
                         long useTime = System.currentTimeMillis() - req.startAt;
                         LOG.debug("download({}):use time={},size={},speed={}", req.url, useTime, size, (1000L * size / useTime));
                     }
                     return HandleResult.OK;
                 } catch (Exception e) {
-                    LOG.error("Fail to get response from {}", resp.request().url(), e);
+                    LOG.error("Fail to get response from {}", resp.url(), e);
                     return HandleResult.OK;
                 }
             }
@@ -179,16 +178,16 @@ public abstract class AbsOssClient extends HttpClient {
         return future;
     }
 
-    protected static String errMsg(Response resp) {
-        try (ResponseBody body = resp.body()) {
-            if (body != null) {
-                return body.string();
-            } else {
+    protected static String errMsg(HttpResp resp) {
+        try {
+            String s = resp.string();
+            if(s.isEmpty()) {
                 LOG.info("response body is empty");
                 return "unknown error";
             }
+            return s;
         } catch (IOException e) {
-            LOG.error("Fail to get response of {}", resp.request().url(), e);
+            LOG.error("Fail to get response of {}", resp.url(), e);
             return "unknown error";
         }
     }
@@ -198,23 +197,23 @@ public abstract class AbsOssClient extends HttpClient {
      * @author flyinmind of csdn.net
      *
      */
-    public abstract static class AbsObsCallback extends CompletableFuture<HandleResult> implements Callback {
-        public abstract HandleResult onSuccess(Response resp);
+    public abstract static class AbsObsCallback extends CompletableFuture<HandleResult> implements HttpCallback {
+        public abstract HandleResult onSuccess(HttpResp resp);
 
         @Override
-        public void onFailure(Call call, IOException e) {
+        public void onFailure(Throwable e, String url, String method) {
             if (LOG.isDebugEnabled()) {
-                LOG.error("Fail to request({})", call.request().url(), e);
+                LOG.error("Fail to request({})", url, e);
             } else {
-                LOG.error("Fail to request({}),{}", call.request().url(), e.getMessage());
+                LOG.error("Fail to request({}),{}", url, e.getMessage());
             }
             super.complete(new HandleResult(RetCode.INTERNAL_ERROR, "internal exception"));
         }
 
         @Override
-        public void onResponse(Call call, Response resp) {
+        public void onResponse(HttpResp resp) {
             if(LOG.isDebugEnabled()) {
-                LOG.debug("Call:{}, statusCode:{}", call.request().url(), resp.code());
+                LOG.debug("Call:{}, statusCode:{}", resp.url(), resp.code());
             }
             super.complete(onSuccess(resp));
         }

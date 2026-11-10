@@ -293,9 +293,7 @@ public class JsEngineTest extends UnitTestBase {
         
         js = "var dt=new Date();"
             + "var hour=dt.getHours();"
-            + "var t=dt.getTime()+dt.getTimezoneOffset()*60000;"//0区
-            + "dt.setTime(t);"
-            + "hour - dt.getHours()";
+            + "-dt.getTimezoneOffset()/60;";
         s = JsEngine.getInt(js);
         assertEquals(s, cal.getTimeZone().getRawOffset() / 3600000);
     }

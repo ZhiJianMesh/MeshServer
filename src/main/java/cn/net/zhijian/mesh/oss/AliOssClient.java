@@ -8,6 +8,7 @@ import static cn.net.zhijian.util.HttpUtil.HEAD_DATE;
 import static cn.net.zhijian.util.HttpUtil.HEAD_HOST;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -20,13 +21,12 @@ import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.util.ByteUtil;
 import cn.net.zhijian.util.DateUtil;
 import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.util.HttpResp;
 import cn.net.zhijian.util.HttpUtil;
 import cn.net.zhijian.util.IUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.SecureUtil;
 import cn.net.zhijian.util.UrlPathInfo;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 public final class AliOssClient extends AbsOssClient {
     private static final Logger LOG = LogUtil.getInstance();
@@ -70,24 +70,24 @@ public final class AliOssClient extends AbsOssClient {
         String url = SCHEME +  endPoint + '/' + objName;
         AbsObsCallback future = new AbsObsCallback() {
             @Override
-            public HandleResult onSuccess(Response resp) {
+            public HandleResult onSuccess(HttpResp resp) {
                 if (!resp.isSuccessful()) {
                     LOG.error("GET({}) failed, status code:{}", objName, resp.code());
                     return new HandleResult(RetCode.THIRD_PARTY_ERR, errMsg(resp));
                 }
                 
-                try (ResponseBody body = resp.body()) {
+                try (InputStream body = resp.body()) {
                     if(body == null) {
                         return new HandleResult(RetCode.THIRD_PARTY_ERR, "invalid response,body is null");
                     }
-                    long size = FileUtil.copyStream(body.byteStream(), new File(saveAs));
+                    long size = FileUtil.copyStream(body, new File(saveAs));
                     if(LOG.isDebugEnabled()) {
                         long useTime = System.currentTimeMillis() - reqAt;
                         LOG.debug("GET({}):use time={},size={},speed={}", objName, useTime, size, (1000L * size / useTime));
                     }
                     return HandleResult.OK;
                 } catch (Exception e) {
-                    LOG.error("Fail to get response from {}", resp.request().url(), e);
+                    LOG.error("Fail to get response from {}", resp.url(), e);
                     return HandleResult.OK;
                 }
             }
@@ -156,7 +156,7 @@ public final class AliOssClient extends AbsOssClient {
         String url = SCHEME + endPoint + '/' + objName;
         AbsObsCallback future = new AbsObsCallback() {
             @Override
-            public HandleResult onSuccess(Response resp) {
+            public HandleResult onSuccess(HttpResp resp) {
                 if (!resp.isSuccessful()) {
                     LOG.error("PUT({}) failed, status code:{}", objName, resp.code());
                     return new HandleResult(RetCode.THIRD_PARTY_ERR, errMsg(resp));
@@ -223,7 +223,7 @@ public final class AliOssClient extends AbsOssClient {
         }
         AbsObsCallback future = new AbsObsCallback() {
             @Override
-            public HandleResult onSuccess(Response resp) {
+            public HandleResult onSuccess(HttpResp resp) {
                 if (!resp.isSuccessful()) {
                     LOG.error("DELETE({}) failed, status code:{}", objName, resp.code());
                     return new HandleResult(RetCode.THIRD_PARTY_ERR, errMsg(resp));

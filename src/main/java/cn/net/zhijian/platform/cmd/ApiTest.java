@@ -2,6 +2,8 @@ package cn.net.zhijian.platform.cmd;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.http.HttpRequest;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,16 +18,12 @@ import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.client.HttpClient;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.util.FileUtil;
+import cn.net.zhijian.util.HttpResp;
 import cn.net.zhijian.util.HttpUtil;
 import cn.net.zhijian.util.JsonUtil;
 import cn.net.zhijian.util.LogUtil;
 import cn.net.zhijian.util.StringUtil;
 import cn.net.zhijian.util.ValParser;
-import okhttp3.MediaType;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 public class ApiTest extends AbsCommand {
     private static final Logger LOG = LogUtil.getInstance();
@@ -36,7 +34,7 @@ public class ApiTest extends AbsCommand {
     private static final String HOLDER_REQNO = "#reqNo";
     private static final String HOLDER_THREADNO = "#threadNo";
     private static final String HOLDER_CURTIME = "#curTime";
-    private static final MediaType MEDIA_TYPE = MediaType.get("application/json; charset=utf-8");
+    private static final String CONTENT_TYPE = "application/json; charset=utf-8";
     
     private static final String HOST = "host";
     //private static final String TIMEOUT = "timeout";
@@ -237,19 +235,20 @@ public class ApiTest extends AbsCommand {
                 headers.putAll(this.headers);
             }        
             
-            Request.Builder builder = null;
+            HttpRequest.Builder builder = null;
             if(method.equals(METHOD_GET) || method.equals(METHOD_DELETE)) {
                 builder = http.buildRequest(method, host + url, headers, null);
             } else if(method.equals(METHOD_POST) || method.equals(METHOD_PUT)) {
                 body = replaceHolders(JsonUtil.objToJson(cfgBody), runtimeData, no);
                 builder = http.buildRequest(method, host + url, headers,
-                        RequestBody.create(MEDIA_TYPE, body));
+                        HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
+                builder.setHeader(HttpUtil.HEAD_CONTENT_TYPE, CONTENT_TYPE);
             } else {
                 LOG.error("Invalid method:{}", method);
                 continue;
             }
             
-            try(Response resp = http.syncRequest(builder.build())) {
+            try(HttpResp resp = http.syncRequest(builder.build())) {
                 if(resp == null) {
                     LOG.error("Failed, get a null response, or wrong status code:{}");
                     continue;
@@ -261,15 +260,13 @@ public class ApiTest extends AbsCommand {
                     continue;
                 }
                 
-                try(ResponseBody respBody = resp.body()) {
-                    body = respBody.string();
-                    respJson = JsonUtil.jsonToMap(body);
-                    if(respJson == null || respJson.size() == 0) {
-                        LOG.error("Fail to parse body from response:{}", body);
-                        continue;
-                    }
+                body = resp.string();
+                respJson = JsonUtil.jsonToMap(body);
+                if(respJson == null || respJson.size() == 0) {
+                    LOG.error("Fail to parse body from response:{}", body);
+                    continue;
                 }
-                
+
                 retCode = ValParser.getAsInt(respJson, HandleResult.CODE, -1);
                 checkOk = expectedCode == retCode;
                 if(retCode == RetCode.OK) {
