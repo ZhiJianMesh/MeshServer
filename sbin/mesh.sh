@@ -3,28 +3,7 @@
 # mesh.sh -- Mesh 服务启停与状态管理脚本
 #
 # 作者: flyinmind@csdn.net
-# 日期: 2023/3/31  (改进)
-#
-# 在 mesh.sh 基础上修复/改进的问题：
-#   1. 修复 start/status 中 "elif [ $? -eq ... ]" 的 $? 被 if 条件消费导致
-#      判断失效的 bug（原版 is_started 返回 2 的"吊死"态不会走 stop 再启动）
-#   2. 变量名 HOME 改为 APP_HOME，避免覆盖用户主目录环境变量
-#   3. 新增 get_pids() 统一查询进程，按 "-Dname=mesh_server" 精确匹配，
-#      避免裸 grep 误匹配其它含同名字符串的进程
-#   4. classpath 改用 glob + 存在性判断拼接，去掉裸 ls；
-#      显式加入 . 与 bin/main 作为 classpath 起点，不再依赖 shell 隐式的空路径元素
-#   5. JAVA_OPTS 改为数组，-classpath 从中拆分出来单独传参，
-#      避免 jar 路径含空格时被 shell 分词截断
-#   6. 返回值语义统一：is_exist 0=进程存在/1=不存在；
-#      is_started 0=正常/1=未启动/2=吊死
-#   7. status 的 CPU/MEM 改用 ps -o %cpu,%mem 读取，
-#      修正原 top -b 输出解析取错列的问题
-#   8. 健康检查解析 JSON 中的 "code":0 字段，比仅判断花括号更可靠；
-#      响应缓存到 CHECK_RESP，status 不再重复请求
-#   9. 增加 java/curl 命令可用性检查、mkdir -p、变量统一加引号等健壮性修复
-#   10. stop 支持多 PID 逐个终止（原 kill $pid 只杀第一个）
-#   11. test_server 移出守护循环主体，java 快速崩溃时不会堆积监控子进程
-#   12. 超时/等待等魔法数字提取为顶部变量，便于调整
+# 日期: 2026/11/11
 #
 # 特别注意：
 #   该脚本使用系统 kill 命令来强制终止指定的 java 程序进程。

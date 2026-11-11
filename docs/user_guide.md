@@ -1324,12 +1324,32 @@ Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下
 | pkg install openssh -y | sshd服务，用于远程命令行操控 |
 | pkg install -y openjdk-21 | Java运行环境安装 |
 
-运行`ssdh`启动sshd服务；运行`sv-enable sshd`使以后重启termux，sshd服务自动启动。sshd服务启动后就可以使用Bitvise等工具远程连接。
+运行`sshd`启动sshd服务；运行`sv-enable sshd`使以后重启termux，sshd服务自动启动。sshd服务启动后就可以使用Bitvise等工具远程连接。
 
 每次在termux中安装新工具前，建议运行一下 pkg update && pkg upgrade 命令及时更新系统。
 
-运行 termux-info可以查看termux、linux、android的版本信息。
+运行 termux-info可以查看termux、linux、android的版本信息。用ifconfig命令产看Termux的IP地址。
 
+> 安装Termux、启用termux-auth、设置密码、启动sshd等操作需手工完成，WorkBuddy做不了。
+
+当Termux应用已打开，并启用了sshd后，将Termux的IP与端口号(8022)告诉WorkBuddy，后面的操作可以在WorkBuddy中用大白话让它帮你完成。比如：
+
+1. 与192.168.1.10:8022建立信任关系（过程中需要输入用passwd命令设置的Termux的密码）；
+
+2. 安装 termux-services、 openjdk-21；
+
+3. 设置sshd自动启动；
+
+4. 设置Termux，让它可以保持后台运行，忽略电池优化；
+
+5. 创建server目录，并将至简网格的服务器安装在它下面，完成后，继续安装至简网格的基础服务；
+
+6. 开发一个记账服务，需求...，开发完成后，安装到至简网格中；
+
+7. 安装 kaijibot，并安装至简网格的插件，至简网格服务器地址是192.168.1.10:8523；
+
+> kaijibot是OpenClaw的Termux定制版，linux、windows环境可以选择OpenClaw。
+ 
 #### B）必要的配置
 
 1. 用nano命令在home目录下编辑”.bashrc”文件（注意文件前面有个点），添加以下内容；

@@ -5,52 +5,74 @@
 
 ## Termux安装
 
-Termux是一个安卓应用，安卓内核是Linux，Termux在安卓内核的基础上加了一个适配层，提供了一个精简的Linux程序运行环境。从github[下载Termux应用](https://github.com/hanxinhao000/ZeroTermux/releases)，选择最新arm64 release版本。下载后拷贝到安卓手机中，在文件管理中找到下载的apk文件，点击就能安装。
+Termux是一个安卓应用，安卓内核是Linux，Termux在安卓内核的基础上加了一个适配层，提供了一个精简的Linux程序运行环境。
+从github[下载Termux应用](https://github.com/hanxinhao000/ZeroTermux/releases)，选择最新arm64 release版本。
+下载后拷贝到安卓手机中，在文件管理中找到下载的apk文件，点击就能安装。
 
 如果无法访问github，安装[watt加速工具](https://apps.microsoft.com/detail/9mtcfhs560ng?launch=true&hl=zh-CN&gl=CN)，运行加速就可以访问了。
 
 因为不是从厂商的应用市场下载安装的，所以安装过程会有告警，请忽略所有告警。
 
-单纯的openclaw消耗的资源不多，一部手机跑四、五个agent没什么问题。如果要求所有信息都不出内网，就需要运行本地模型，单靠一部手机是不可能的。所以要么使用其他机器安装ollama+大模型，要么使用DeepSeek等厂商提供的API接口。我使用的是第三方厂商提供的API接口，所以本地资源消耗极少。
-
-因为不是从手机厂商的应用市场安装，所以安装过程会有告警，请忽略所有告警。
-
+单纯的openclaw消耗的资源不多，一部手机跑四、五个agent没什么问题。
+如果要求所有信息都不出内网，就需要运行本地模型，单靠一部手机是不可能的。所以要么使用其他机器安装ollama+大模型，要么使用DeepSeek等厂商提供的API接口。
+我使用的是第三方厂商提供的API接口，所以本地资源消耗极少。
 
 ### A）工具安装
 
-Termux安装完成后，打开应用，显示一个命令行工具，使用pkg命令（对应于linux中的apt）安装以下工具：
+Termux安装完成后，使用pkg命令（对应于linux中的apt）安装以下工具：
 
-|命令|用处|
-|---|---|
-|pkg install termux-auth -y	|提供passwd命令，设置或修改用户密码|
-|passwd	|设置root用户的秘密，termux中可以直接root用户访问|
-|pkg install termux-services -y	|服务管理，比如运行sv-enable sshd|
-|pkg install openssh - y|sshd服务，用于远程命令行操控|
-|sshd|启动sshd服务，这时可以使用Bitvise等工具远程连接|
-|pkg install nodejs -y|openclaw依赖nodejs服务，可以使用后面的脚本统一安装，也可以这里手动安装，避免脚本中安装老版本，导致后面提示nodejs版本不正确|
-|pkg install python -y|如果需要让龙虾做一些自动化工具，用python是比较方便的，特别是数据分析之类的|
+| 命令 | 用处 |
+| --- | --- |
+| pkg install termux-auth -y | 提供passwd命令，设置或修改用户密码<br>设置linux用户的秘密，termux中可以直接root用户访问 |
+| pkg install termux-services -y | 服务管理，比如运行sv-enable sshd |
+| pkg install openssh -y | sshd服务，用于远程命令行操控 |
+| pkg install -y openjdk-21 | Java运行环境安装 |
 
-安装了openssh服务后，可以通过Bitvise等工具在PC上登录（端口号选择8022，而不是22），在键盘上操作更加方便快捷。
+运行`sshd`启动sshd服务；运行`sv-enable sshd`使以后重启termux，sshd服务自动启动。sshd服务启动后就可以使用Bitvise等工具远程连接（端口号选择8022，而不是22）。
 
 每次在termux中安装新工具前，建议运行一下 pkg update && pkg upgrade 命令及时更新系统。
 
-运行 termux-info可以查看termux、linux、android的版本信息。
+运行 termux-info可以查看termux、linux、android的版本信息。用ifconfig命令产看Termux的IP地址。
+
+> 安装Termux、启用termux-auth、设置密码、启动sshd等操作需手工完成，WorkBuddy做不了。
+
+当Termux应用已打开，并启用了sshd后，将Termux的IP与端口号(8022)告诉WorkBuddy，后面的操作可以在WorkBuddy中用大白话让它帮你完成。比如：
+
+1. 与192.168.1.10:8022建立信任关系（过程中需要输入用passwd命令设置的Termux的密码）；
+
+2. 安装 termux-services、 openjdk-21；
+
+3. 设置sshd自动启动;
+
+4. 设置Termux，让它可以保持后台运行，忽略电池优化；
+
+5. 创建server目录，并将至简网格的服务器安装在它下面，完成后，继续安装至简网格的基础服务；
+
+6. 开发一个记账服务，需求...，开发完成后，安装到至简网格中；
+
+7. 安装 kaijibot，并安装至简网格的插件，至简网格服务器地址是192.168.1.10:8523；
+
+> kaijibot是OpenClaw的Termux定制版，linux、windows环境可以选择OpenClaw。
 
 ### B）必要的配置
 
 1. 用nano命令在home目录下编辑”.bashrc”文件（注意文件前面有个点），添加以下内容；
 ```bash
+#如果需要查看隐藏文件可以使用 alias ll='ls -lA'
 alias ll=’ls -l’
 ```
-如果需要查看隐藏文件可以使用 alias ll='ls -lA'
 
 2. 修改$PREFIX/etc/apt/sources.list使用清华的镜像，提升安装速度；
 ```bash
 deb https://mirrors.tuna.tsinghua.edu.cn/termux/apt/termux-main stable main
 ```
-3. **termux-wake-lock**：让termux保持运行，忽略电池优化，运行后手机上会弹出窗口确认，请选择“总是允许”（每个品牌不同版本都不同）；
-4. **sv-enable sshd**：使sshd服务自动启动（第一次要用sshd启动）；
-5. **termux-setup-storage**：允许访问外部存储（可以不设置）。
+3. termux-wake-lock：让termux保持运行，忽略电池优化，运行后手机上会弹出窗口确认，请选择“总是允许”（每个品牌不同版本都不同）；
+
+>有些厂商的手机运行termux-wake-lock后，也不能阻止它杀死termux后台应用，需要手动到“设置”中搜索“电池”，
+找到电池优化之类的配置，将termux设置成后台保持运行。每个厂家、不同版本的设置都不相同，在此无法一一列举。
+
+4. sv-enable sshd：使sshd服务自动启动（第一次要用sshd启动）；
+5. termux-setup-storage：允许访问外部存储（可以不设置）。
 
 ## 安装OpenClaw
 
