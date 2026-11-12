@@ -74,7 +74,7 @@
 
 本文主要用于指导至简网格服务端程序开发，包括数据库定义、接口定义等。
 
-至简网格[服务端](https://gitee.com/zhijian_net/MeshServer)、[服务](https://gitee.com/zhijian_net/enterprise) / [GitHub 服务](https://github.com/ZhiJianMesh/enterprise)都已开源。
+至简网格[服务端](https://gitee.com/zhijian_net/MeshServer)、[服务](https://gitee.com/zhijian_net/enterprise) 都已开源。
 如果文档中未写明白的，可以直接参照代码获得更深入的理解。
 
 服务器最小可以安装在一部老旧的安卓手机上，使得管理企业服务与使用普通手机应用一样简单。 只需要简单操作就可以实现企业服务的安装、启停、升级、卸载等维护工作，无需聘请专门的技术人员。
@@ -2551,4 +2551,27 @@ showWorkflow(flow,did) { //显示某条记录对应的工作流
 6. 表中增加update_time字段，用以阻止极端情况下主备双写混乱，但在多实例时钟漂移超过毫秒级、且单用户访问并发在毫秒级时失效；
 7. update中不支持子查询，需要分解成两个处理或两个sql解决，在后面的update中用占位符引用前面处理或sql的结果；
 8. 受网络延迟限制，跨Region只建议做数据备份，不当作一个集群使用，业务请求在端侧负载均衡到不同Resgion。
+
+# 问题终极定位方法
+
+系统不是100%完美的，运行时很可能会出现一些问题，所有的问题都是源自实现代码与运行时的状态，所以终极的定位方法是看日志与代码。
+
+## 日志定位
+
+日志的配置文件是 `conf/logback.xml`，修改其中的level，有DEBUG、INFO、WARN、ERROR四个等级，等级越高，打印内容越少。
+比如，设成WARN，则只打印WARN、ERROR级别的日志，设成DEBUG，则所有都打印。
+
+```XML
+<root level="DEBUG">
+    <appender-ref ref="CONSOLE" />
+    <appender-ref ref="FILE" />
+</root>
+```
+日志文件写在 `logs/mesh`下，每日一个文件，超过50M则新起一个文件，最多15个，超过则删除最老的文件。
+写日志会占用CPU与磁盘IO，过多的日志会降低系统处理速度，所以在正常运行时建议设置成INFO级别，在定位问题时才设置成DEBUG。
+
+## 代码定位
+
+对照日志内容，在代码中寻找对应的实现，这是最根本的方法。
+代码已在[Gitee](https://gitee.com/zhijian_net/MeshServer)与[GitHub](https://github.com/ZhiJianMesh/MeshServer)开源，从上面下载即可查看。
 
