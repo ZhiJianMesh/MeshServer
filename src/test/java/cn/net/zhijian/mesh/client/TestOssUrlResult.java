@@ -1,4 +1,4 @@
-package cn.net.zhijian.mesh.frm.oss;
+package cn.net.zhijian.mesh.client;
 
 import static cn.net.zhijian.UnitTestBase.assertTrue;
 
@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import cn.net.zhijian.mesh.oss.AbsOssClient.UrlRequest;
+import cn.net.zhijian.mesh.client.OssClient.UrlRequest;
 import cn.net.zhijian.util.ValParser;
 
 public class TestOssUrlResult {

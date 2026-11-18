@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -40,9 +41,11 @@ import cn.net.zhijian.mesh.MeshException;
 import cn.net.zhijian.mesh.bean.CompanyInfo;
 import cn.net.zhijian.mesh.bean.HandleResult;
 import cn.net.zhijian.mesh.bean.NodeAddress;
+import cn.net.zhijian.mesh.client.OssClient;
 import cn.net.zhijian.mesh.client.BiosClient;
 import cn.net.zhijian.mesh.client.HttpClient.ServiceReqBuilder;
 import cn.net.zhijian.mesh.client.ServiceClient;
+import cn.net.zhijian.mesh.client.OssClient.UrlRequest;
 import cn.net.zhijian.mesh.frm.RetCode;
 import cn.net.zhijian.mesh.frm.abs.AbsConnection;
 import cn.net.zhijian.mesh.frm.abs.AbsDBWorker;
@@ -54,8 +57,6 @@ import cn.net.zhijian.mesh.frm.config.ServiceInfo;
 import cn.net.zhijian.mesh.frm.intf.IConst;
 import cn.net.zhijian.mesh.frm.intf.IDBConst;
 import cn.net.zhijian.mesh.frm.intf.IThreadPool;
-import cn.net.zhijian.mesh.oss.AbsOssClient;
-import cn.net.zhijian.mesh.oss.AbsOssClient.UrlRequest;
 import cn.net.zhijian.mesh.pool.IResourceFactory;
 import cn.net.zhijian.mesh.pool.ResourcePool;
 import cn.net.zhijian.mesh.server.TimerKeeper;
@@ -840,11 +841,10 @@ public final class SqliteWorker extends AbsJDBCWorker {
      * @return 结果
      */
     private static HandleResult uploadBaks(int cid, File bakZipDir, List<Object> urls) {
-        CountDownLatch counter = new CountDownLatch(urls.size());
-        List<String> failed = new ArrayList<>();
+        List<String> failed = Collections.synchronizedList(new ArrayList<>());
+        List<CompletableFuture<HandleResult>> tasks = new ArrayList<>(urls.size());
         String objHead = SecureUtil.md5(BAK_HEAD + cid) + '_';
-        long size = 0;
-        
+
         for(Object o : urls) {
             Map<String, Object> map = ValParser.parseObject(o);
             UrlRequest req = UrlRequest.fromMap(map);
@@ -854,9 +854,14 @@ public final class SqliteWorker extends AbsJDBCWorker {
             }
             String locName = req.objName.substring(objHead.length());
             File locFile = new File(FileUtil.addPath(bakZipDir, locName));
-            size += req.size;
             LOG.debug("Upload `{}` to `{}`", locFile, req.url);
-            AbsOssClient.upload(req, locFile).whenCompleteAsync((hr, e) -> {
+            //根服务给了分片方案就走分片上传，没给(小文件)就整包PUT
+            OssClient.MultipartPlan plan = OssClient.MultipartPlan.fromMap(
+                    ValParser.getAsObject(map, "multipart"), req.objName);
+            CompletableFuture<HandleResult> task = plan == null
+                    ? OssClient.upload(req, locFile)
+                    : OssClient.upload(plan, req, locFile);
+            tasks.add(task.whenCompleteAsync((hr, e) -> {
                 if(e != null) {
                     LOG.error("Fail to upload `{}` to `{}`", locFile, req.url, e);
                     failed.add(req.url);
@@ -866,14 +871,15 @@ public final class SqliteWorker extends AbsJDBCWorker {
                 } else if(LOG.isDebugEnabled()) {
                     LOG.debug("Success to upload `{}` to `{}`", locFile, req.url);
                 }
-                counter.countDown();
-            }, IThreadPool.Pool);
+            }, IThreadPool.Pool));
         }
-        
-        try {
-            counter.await(AbsOssClient.predictedHttpTime(size), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-        }
+
+        //大文件走分片上传后总耗时可能超过按单次PUT估算的时长，这里等待所有任务真正结束，
+        //避免提前返回造成"以为成功、其实还在传"或漏报失败
+        CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0]))
+            .exceptionally(e -> null) //异常已在回调里记入failed，这里只保证等待不中断
+            .join();
+
         if(!failed.isEmpty()) {
             return new HandleResult(RetCode.INTERNAL_ERROR, StringUtil.concat(failed, ";"));
         }
@@ -993,7 +999,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
             size += req.size;
             String locName = req.objName.substring(objHead.length());
             File locFile = new File(FileUtil.addPath(bakZipDir, locName));
-            AbsOssClient.download(req, locFile, req.size).whenCompleteAsync((hr, ex) -> {
+            OssClient.download(req, locFile, req.size).whenCompleteAsync((hr, ex) -> {
                 if(ex != null) {
                     LOG.error("Fail to download `{}`", req.url, ex);
                     failed.add(req.url);
@@ -1014,7 +1020,9 @@ public final class SqliteWorker extends AbsJDBCWorker {
         }
         
         try {
-            counter.await(AbsOssClient.predictedHttpTime(size), TimeUnit.MILLISECONDS); //等待所有对象下载完毕，按80K/s预估时间
+            //等待所有对象下载完毕，按60K/s预估时间再留一倍余量：分片下载虽然在慢慢推进，
+            //但慢链路下总耗时可能超过预估，等早了会拿着半截文件去解压
+            counter.await(OssClient.predictedHttpTime(size) * 2L, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
         }
 
@@ -1078,7 +1086,7 @@ public final class SqliteWorker extends AbsJDBCWorker {
         } else {
             File[] files = bakHome.listFiles();
             if(files == null || files.length == 0) {
-                LOG.debug("No db directories under {}", bakHome);
+                LOG.warn("No db directories under {}", bakHome);
                 return;
             }
     
@@ -1134,13 +1142,11 @@ public final class SqliteWorker extends AbsJDBCWorker {
             }
             if(list.isEmpty()) {
                 BackupList = null;
-                LOG.debug("No backup needs for companies {}", cids);
+                LOG.info("Needn't backup for companies {}", cids);
             } else {
                 BackupList = list.toArray(new KVPair[] {});
-                if(LOG.isDebugEnabled()) {
-                    for(KVPair<Integer, Integer> kp : BackupList) {
-                        LOG.debug("Backup company {} at {}", kp.key, DateUtil.utcToLocale((long)kp.val * MINUTE_MS));
-                    }
+                for(KVPair<Integer, Integer> kp : BackupList) {
+                    LOG.info("Backup company {} at {}", kp.key, DateUtil.utcToLocale((long)kp.val * MINUTE_MS));
                 }
             }
         });

@@ -7,8 +7,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import cn.net.zhijian.mesh.frm.config.PartitionConfig;
 import cn.net.zhijian.mesh.js.JsEngine;
-import cn.net.zhijian.util.ValParser;
 
 /**
  * 线程池&公共定时器，可以共用Pool与定时器
@@ -52,27 +52,12 @@ public interface IThreadPool {
      */
     ExecutorService Pool = initPool();
     static ExecutorService initPool() {
-        String s = System.getProperty("threadPool.min");
-        int min = ValParser.parseInt(s, 0);
-        if(min < 2) {
-            min = 2;
-        }
-        if(min > 9) { //一个自定义的限制，没有测试数据证明不能超过9倍
-            min = 9;
-        }
-        s = System.getProperty("threadPool.max");
-        int max = ValParser.parseInt(s, 0);
-        if(max > 100) {
-            max = 100;
-        }
-        if(max <= min) {
-            max = min + min / 1;
-        }
         int base = Runtime.getRuntime().availableProcessors();
         
         return new ThreadPoolExecutor(
-            min * base, //如果用1，启动时就会吊死，未知原因
-            max * base,
+            //如果设为1，启动时就会吊死，因为出现A调B，B再调C时，没有线程可以使用
+            PartitionConfig.instance().poolMin * base,
+            PartitionConfig.instance().poolMax * base,
             60L, TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(),
             new NamedThreadFactory("process") {

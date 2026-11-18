@@ -230,6 +230,10 @@ public class Release extends AbsCommand implements IConst {
 
     private void clearOldVersions(File path) {
         File[] list = path.listFiles();
+        if(list == null || list.length == 0) {
+            return;
+        }
+        
         List<String> ss = new ArrayList<>();
         for(File l : list) {
             ss.add(l.getName());

@@ -253,9 +253,47 @@ public final class JsSecure implements IConst {
         }
         
         switch(TV.parseType(type)) {
-        case TV.TYPE_LONG: return Long.toString(rand.nextLong(ValParser.parseLong(max, Long.MAX_VALUE)));
-        case TV.TYPE_FLOAT: return Float.toString(rand.nextFloat(ValParser.parseFloat(max, Float.MAX_VALUE)));
-        case TV.TYPE_DOUBLE: return Double.toString(rand.nextDouble(ValParser.parseDouble(max, Double.MAX_VALUE)));
+        case TV.TYPE_INT: {
+            int v;
+            int vMax = ValParser.parseInt(max, 0);
+            if(vMax > 0) {
+                v = rand.nextInt(vMax);
+            } else {
+                v = rand.nextInt();
+            }            
+            return Integer.toString(v);
+        }
+        case TV.TYPE_LONG: {
+            long v;
+            long vMax = ValParser.parseLong(max, 0);
+            if(vMax > 0) {
+                v = SecureUtil.randomLong(vMax); //jdk17前没有带最大值的nextLong、nextDouble、nextFloat
+            } else {
+                v = rand.nextLong();
+            }
+            
+            return Long.toString(v);
+        }
+        case TV.TYPE_FLOAT: {
+            float v;
+            float vMax = ValParser.parseFloat(max, 0f);
+            if(vMax > 0) {
+                v = SecureUtil.randomFloat(vMax);
+            } else {
+                v = rand.nextFloat();
+            }
+            return Float.toString(v);
+        }
+        case TV.TYPE_DOUBLE: {
+            double v;
+            double vMax = ValParser.parseDouble(max, 0);
+            if(vMax > 0) {
+                v = SecureUtil.randomDouble(vMax);
+            } else {
+                v = rand.nextDouble();
+            }
+            return Double.toString(v);
+        }
         case TV.TYPE_STRING: {
             int len;
             int base = 16;

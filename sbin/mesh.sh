@@ -31,7 +31,7 @@ MAINBIOS="$3"
 
 # 等待/超时参数（秒）
 START_WAIT_SEC=30     # 等待服务启动完成 / 健康检查宽限的最长时间
-STOP_WAIT_SEC=30      # 等待服务停止完成的最长时间
+STOP_WAIT_SEC=60      # 等待服务停止完成的最长时间
 RESTART_SLEEP_SEC=3   # 重启前等待时间
 HEALTH_TIMEOUT=5      # 单次健康检查的 curl 超时时间
 TIMEZONE="GMT$(date +%Z)"

@@ -64,6 +64,7 @@ public class UnitTestBase {
         SERVICE_ROOT = FileUtilBase.addPath(HomeDir, "services", TEST_SERVICE);
         OUT_ROOT = FileUtilBase.addPath(SERVICE_ROOT, "output");
         initLog();
+        RootKeystore.setHelper(new SrvKeystoreHelper(configDir));
         AbsAssets.init(new AssetsWrapper(UnitTestBase.class.getClassLoader()));
         ServiceInfo.setWorkDir(HomeDir);
         AbsPlatform.init(new SrvPlatformUtil(HomeDir));
@@ -86,7 +87,6 @@ public class UnitTestBase {
             if(!LogUtil.init(logCfgFile, logsPath, true)) {
                 System.out.println("Fail to load log config file:" + logCfgFile);
             }
-            RootKeystore.setHelper(new SrvKeystoreHelper(configDir));
         } catch(Exception e) {
             e.printStackTrace();
             System.exit(1);

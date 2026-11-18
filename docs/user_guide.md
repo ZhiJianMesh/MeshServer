@@ -290,7 +290,14 @@ chmod +x meshhelper.sh
     //是否在公有云部署，私网部署时设为false
     "inCloud":false,
     //静态文件缓存时间
-    "fileCacheTime":300
+    "fileCacheTime":300,
+    //系统所用线程池是CPU数量的最小倍数，不设置或小于，都默认为2
+    "poolMin":2,
+    //系统所用线程池是CPU数量的最大倍数，不设置或小于poolMin，默认为poolMin的二倍
+    "poolMax":4,
+    //数据备份时，OSS分片上传/下载的并行链数，不设置或<=0按1处理
+    //过小上传下载慢，过大会因上行带宽被平分而频繁超时，导致上传失败，如果带宽小于5M，建议设成1
+    "ossParallelParts":1
 }
 ```
 单例情况下，channel.cfg与partition.cfg使用默认配置即可；集群时，需要做一些修改，请参照[集群配置](#cluster_config)部分。

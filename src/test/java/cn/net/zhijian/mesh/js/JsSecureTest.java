@@ -1,6 +1,7 @@
 package cn.net.zhijian.mesh.js;
 
 import static cn.net.zhijian.UnitTestBase.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -94,5 +95,24 @@ public class JsSecureTest {
 
         txt = secure.keyPairDecrypt(kp, pwd, cipher);
         assertEquals(txt, plain);
+    }
+    
+    @Test
+    public void testRandom() throws Exception {
+        String v = secure.random("i.35");
+        int iv = Integer.parseInt(v);
+        assertTrue(iv >=0 && iv < 35);
+
+        v = secure.random("l.2000");
+        long lv = Long.parseLong(v);
+        assertTrue(lv >= 0L && lv < 2000L);
+        
+        v = secure.random("float.100");
+        float fv = Float.parseFloat(v);
+        assertTrue(fv >= 0.0f && fv < 100);
+
+        v = secure.random("d.100");
+        double dv = Double.parseDouble(v);
+        assertTrue(dv >= 0.0 && dv < 100);
     }
 }

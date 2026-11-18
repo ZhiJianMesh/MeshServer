@@ -55,6 +55,9 @@ public class PartitionConfig {
     private static final String SEG_CLOUD_HTTPDNS = "cloudHttpdns";
     private static final String SEG_TIMEZONE = "timeZone";
     private static final String SEG_RUNMODE = "runMode"; //运行模式
+    private static final String SEG_OSS_PARALLEL_PARTS = "ossParallelParts"; //OSS分片上传并行链数
+    private static final String SEG_POOLMIN = "poolMin"; //线程池与CPU数量的最小倍数
+    private static final String SEG_POOLMAX = "poolMax"; //线程池与CPU数量的最大倍数
    
     //公司服务运行方式
     public enum DeployMode {
@@ -78,6 +81,9 @@ public class PartitionConfig {
 
     public final String[] cloudHttpdns; //云侧httpdns服务器地址列表，主要用于特殊部署环境
     public final int fileCacheTime; //静态文件缓存时间，单位毫秒
+    /** OSS分片上传/下载的并行链数，<=0按1处理。现网备份双桶双写时，
+     *  实际并发连接数=zip数×桶数×本值，过大会因上行带宽被平分而全部超时 */
+    public final int ossParallelParts;
 
     /*
      *  是否为单例模式运行，此种模式中，需要启动时自动在bios中注册，及初始化数据库，
@@ -88,6 +94,8 @@ public class PartitionConfig {
     public final String environment; //工作的环境
     public final int timeZone; //时区偏移，单位为分钟，比如东八区为480
     public final String confPath;
+    public final int poolMin;
+    public final int poolMax;
 
     /**
      * bios服务节点的ip:port，可以有多个，逗号分隔，
@@ -116,6 +124,7 @@ public class PartitionConfig {
         
         int partition = ValParser.getAsInt(cfg, SEG_PARTITION, PRIVATE_CLOUD_PARTITION);
         int fileCacheTime = ValParser.getAsInt(cfg, SEG_FILECACHETIME, 300*1000);
+        int ossParallelParts = ValParser.getAsInt(cfg, SEG_OSS_PARALLEL_PARTS, 1);
         int timeZone = TimeZone.getDefault().getRawOffset() / 60000;
         if(cfg.containsKey(SEG_TIMEZONE)) {
             timeZone = ValParser.getAsInt(cfg, SEG_TIMEZONE, timeZone);
@@ -136,9 +145,26 @@ public class PartitionConfig {
             biosServers.add(ChannelConfig.instance().localHttpAddr());//默认只有本机是bios
         }
         
+        //线程池与CPU数的最小倍数关系
+        int poolMin = ValParser.getAsInt(cfg, SEG_POOLMIN, 2);
+        if(poolMin < 2) {
+            poolMin = 2;
+        }
+        if(poolMin > 9) { //一个自定义的限制，没有测试数据证明不能超过9倍
+            poolMin = 9;
+        }
+        //线程池与CPU数的最大倍数关系
+        int poolMax = ValParser.getAsInt(cfg, SEG_POOLMAX, poolMin * 2);
+        if(poolMax > 100) {
+            poolMax = 100;
+        }
+        if(poolMax <= poolMin) {
+            poolMax = poolMin * 2;
+        }
+        
         return new PartitionConfig(cfgFile, inCloud,
-                partition, cloudHttpdns, fileCacheTime,
-                runMode, enviorment, timeZone, biosServers);
+                partition, cloudHttpdns, fileCacheTime, ossParallelParts,
+                runMode, enviorment, timeZone, poolMin, poolMax, biosServers);
     }
 
     public static PartitionConfig parse(File cfgFile, String enviorment) throws MeshException {
@@ -169,8 +195,9 @@ public class PartitionConfig {
 
     private PartitionConfig(File cfgFile, boolean inCloud,
             int partition, String[] cloudHttpdns,
-            int fileCacheTime, DeployMode mode, String environment,
-            int timeZone, List<String> biosDns) throws MeshException {
+            int fileCacheTime, int ossParallelParts, DeployMode mode, String environment,
+            int timeZone, int poolMin, int poolMax,
+            List<String> biosDns) throws MeshException {
         this.cfgFile = cfgFile;
         this.confPath = cfgFile.getParent();
         //公有云运行时，设为true，此时不会判断用户访问是否来自外网
@@ -178,9 +205,12 @@ public class PartitionConfig {
         this.partition = partition;
         this.cloudHttpdns = cloudHttpdns;
         this.fileCacheTime = fileCacheTime;
+        this.ossParallelParts = ossParallelParts;
         this.mode = mode;
         this.environment = environment;
         this.timeZone = timeZone;
+        this.poolMin = poolMin;
+        this.poolMax = poolMax;
         updateBiosDns(biosDns, biosDns.get(0), false);
     }
 
@@ -262,6 +292,9 @@ public class PartitionConfig {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("{\n\"").append(SEG_PARTITION).append("\":").append(partition)
           .append(",\n\"").append(SEG_FILECACHETIME).append("\":").append(fileCacheTime)
+          .append(",\n\"").append(SEG_OSS_PARALLEL_PARTS).append("\":").append(ossParallelParts)
+          .append(",\n\"").append(SEG_POOLMIN).append("\":").append(poolMin)
+          .append(",\n\"").append(SEG_POOLMAX).append("\":").append(poolMax)
           .append(",\n\"").append(SEG_INCLOUD).append("\":\"").append(isInCloud)
           .append("\",\n\"").append(SEG_BIOS_SERVERS).append("\":").append(biosDns.toString());
 
